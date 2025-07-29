@@ -8,6 +8,7 @@ const fileResolver = require('../domain/file-resolver');
 const transformerManager = require('../transform/transformers');
 const fileResolutionCache = require('../cache/file-resolution-cache');
 const URLTransformer = require('../transform/url-transformer');
+const ComputeFunctionManager = require('../transform/compute/compute-function-manager');
 const https = require('https');
 const zlib = require('zlib');
 
@@ -34,6 +35,13 @@ class ProxyManager {
     
     // Initialize URL transformer
     this.urlTransformer = new URLTransformer(config.urlTransformation || {});
+    
+    // Initialize compute function manager
+    this.computeFunctionManager = null;
+    if (config.computeFunctions?.enabled) {
+      this.computeFunctionManager = new ComputeFunctionManager(config.computeFunctions);
+      logger.info('Compute function manager initialized');
+    }
     
     // Create proxy middleware
     this.proxy = this.createProxyMiddleware();
@@ -378,6 +386,51 @@ class ProxyManager {
         }
       }
       
+      // Apply compute functions if enabled and content is processable
+      if (typeof responseData === 'string' && this.computeFunctionManager) {
+        try {
+          const requestContext = {
+            originalUrl: req.url,
+            proxyHost: req.headers.host,
+            pathTransformation: req.pathTransformation,
+            protocol: req.protocol || 'https',
+            domainManager: domainManager
+          };
+          
+          const computeResult = await this.computeFunctionManager.processContent(
+            responseData,
+            contentType,
+            requestContext
+          );
+          
+          if (computeResult.modified) {
+            responseData = computeResult.content;
+            body = Buffer.from(responseData, 'utf8');
+            
+            logger.info('Compute functions applied', {
+              url: req.url,
+              contentType,
+              totalModifications: computeResult.totalModifications,
+              functionsExecuted: computeResult.functionsExecuted,
+              processingTime: computeResult.totalProcessingTime,
+              functions: computeResult.results.map(r => ({
+                name: r.computeFunction,
+                success: r.success,
+                modified: r.modified
+              }))
+            });
+          }
+        } catch (computeError) {
+          logger.error('Compute function processing error', {
+            url: req.url,
+            error: computeError.message,
+            contentType,
+            stack: computeError.stack
+          });
+          // Continue with original content on compute error
+        }
+      }
+      
       // Apply URL transformation if content is transformable
       if (typeof responseData === 'string' && this.urlTransformer) {
         try {
@@ -390,8 +443,8 @@ class ProxyManager {
           };
           
           const transformResult = await this.urlTransformer.transformContent(
-            responseData, 
-            contentType, 
+            responseData,
+            contentType,
             requestContext
           );
           

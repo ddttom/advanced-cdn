@@ -480,6 +480,58 @@ const config = {
     }
   },
 
+  // Compute Functions configuration
+  computeFunctions: {
+    // Enable compute function system
+    enabled: process.env.COMPUTE_FUNCTIONS_ENABLED === 'true',
+    
+    // Maximum content size to process (bytes)
+    maxContentSize: parseInt(process.env.COMPUTE_MAX_CONTENT_SIZE || '10485760', 10), // 10MB default
+    
+    // Timeout for compute function execution (milliseconds)
+    timeout: parseInt(process.env.COMPUTE_TIMEOUT || '5000', 10), // 5 seconds default
+    
+    // Enable debug mode for detailed logging
+    debugMode: process.env.COMPUTE_DEBUG === 'true',
+    
+    // URL Relativization compute function
+    urlRelativization: {
+      enabled: process.env.URL_RELATIVIZATION_ENABLED === 'true',
+      
+      // Additional URL patterns to relativize (JSON format)
+      // Example: [{"pattern": "https://example.com/path/", "replacement": "/", "description": "Convert example URLs"}]
+      additionalPatterns: process.env.URL_RELATIVIZATION_PATTERNS
+        ? (() => {
+            try {
+              return JSON.parse(process.env.URL_RELATIVIZATION_PATTERNS);
+            } catch (err) {
+              console.warn('Invalid URL_RELATIVIZATION_PATTERNS JSON format, using empty array');
+              return [];
+            }
+          })()
+        : [],
+      
+      // Content types to process
+      processableContentTypes: process.env.URL_RELATIVIZATION_CONTENT_TYPES
+        ? process.env.URL_RELATIVIZATION_CONTENT_TYPES.split(',').map(t => t.trim())
+        : [
+            'text/html',
+            'application/xhtml+xml',
+            'text/javascript',
+            'application/javascript',
+            'application/x-javascript',
+            'text/css',
+            'application/json',
+            'text/plain',
+            'text/xml',
+            'application/xml'
+          ],
+      
+      // Enable detailed logging for URL transformations
+      debugTransformations: process.env.URL_RELATIVIZATION_DEBUG === 'true'
+    }
+  },
+
   // Monitoring configuration
   monitoring: {
     // Health check endpoint
