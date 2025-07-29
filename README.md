@@ -272,6 +272,9 @@ For production deployment, consider the following:
   - `GET /api/cache/stats`: Get cache statistics
   - `DELETE /api/cache/url-transform`: Clear URL transformation cache
   - `GET /api/cache/url-transform/stats`: Get URL transformation cache statistics
+  - `DELETE /api/cache/file-resolution`: Clear file resolution cache
+  - `GET /api/cache/file-resolution/stats`: Get file resolution cache statistics
+  - `DELETE /api/cache/nuke`: Nuclear cache clear - clears ALL caches system-wide
 - `/api/domains`: Domain management endpoint (local access only)
   - `GET /api/domains`: List configured domains and their path mappings
   - `POST /api/domains/reload`: Reload domain configuration
@@ -798,7 +801,7 @@ URL_TRANSFORM_DEBUG=true
 
 ## Cache Management
 
-The application provides comprehensive cache management capabilities for both general content caching and URL transformation caching.
+The application provides comprehensive cache management capabilities for both general content caching and URL transformation caching, including advanced multi-cache coordination and nuclear cache clearing.
 
 ### URL Transformation Cache Management
 
@@ -911,11 +914,183 @@ curl http://localhost:3000/api/cache/url-transform/stats    # URL transformation
 - **Isolation**: Separate cache namespaces prevent conflicts
 - **Efficiency**: Optimized key generation for fast lookups
 
-## View transformation logs
+#### File Resolution Cache Management
+
+The application provides specialized cache management for file resolution operations, with separate endpoints for clearing and monitoring the file resolution cache.
+
+#### API Endpoints
+
+**Clear File Resolution Cache:**
+```bash
+# Clear the entire file resolution cache
+curl -X DELETE http://localhost:3000/api/cache/file-resolution
+
+# Response:
+{
+  "message": "File resolution cache cleared successfully",
+  "timestamp": "2025-07-29T12:03:00.000Z"
+}
+
+# If file resolution cache is not available:
+{
+  "error": "File resolution cache not available",
+  "message": "The file resolution cache module is not loaded or does not support clearing"
+}
+```
+
+**Get File Resolution Cache Statistics:**
+
+```bash
+# View detailed cache performance metrics
+curl http://localhost:3000/api/cache/file-resolution/stats
+
+# Response includes:
+{
+  "hits": 1234,
+  "misses": 567,
+  "sets": 890,
+  "deletes": 45,
+  "evictions": 12,
+  "cleanups": 8,
+  "positiveHits": 890,
+  "negativeHits": 344,
+  "size": 456,
+  "maxSize": 5000,
+  "hitRate": 0.69,
+  "positiveHitRate": 0.72,
+  "memoryUsage": {
+    "totalBytes": 1048576,
+    "keyBytes": 262144,
+    "valueBytes": 786432,
+    "averageEntrySize": 2300
+  }
+}
+```
+
+#### Cache Performance Features
+
+**Dual TTL Management:**
+
+- **Positive results**: Cached longer (default: 300 seconds)
+- **Negative results**: Cached shorter (default: 60 seconds)
+- **Automatic cleanup**: LRU eviction when cache reaches capacity
+- **Performance optimization**: Separate hit tracking for positive vs negative results
+
+### Nuclear Cache Clear
+
+The nuclear cache clear endpoint provides system-wide cache clearing capabilities, clearing all cache types in a single operation with comprehensive error handling and detailed feedback.
+
+#### API Endpoint
+
+**Nuclear Cache Clear:**
+```bash
+# Clear ALL caches system-wide
+curl -X DELETE http://localhost:3000/api/cache/nuke
+
+# Successful response (200):
+{
+  "success": true,
+  "message": "All caches cleared successfully",
+  "data": {
+    "clearedCaches": [
+      {
+        "cache": "main",
+        "type": "response-cache",
+        "itemsCleared": 1234,
+        "status": "success"
+      },
+      {
+        "cache": "url-transform",
+        "type": "transformation-cache",
+        "status": "success"
+      },
+      {
+        "cache": "file-resolution",
+        "type": "file-cache",
+        "status": "success"
+      }
+    ],
+    "totalCachesCleared": 3,
+    "timestamp": "2025-07-29T12:03:00.000Z"
+  }
+}
+
+# Partial failure response (207 Multi-Status):
+{
+  "success": false,
+  "message": "Some caches failed to clear",
+  "data": {
+    "clearedCaches": [
+      {
+        "cache": "main",
+        "type": "response-cache",
+        "itemsCleared": 1234,
+        "status": "success"
+      },
+      {
+        "cache": "url-transform",
+        "type": "transformation-cache",
+        "status": "success"
+      }
+    ],
+    "totalCachesCleared": 2,
+    "errors": [
+      {
+        "cache": "file-resolution",
+        "error": "Cache module not available"
+      }
+    ],
+    "timestamp": "2025-07-29T12:03:00.000Z"
+  }
+}
+```
+
+#### Nuclear Cache Clear Features
+
+**Multi-Cache Coordination:**
+
+- **Main cache**: Response cache with item count tracking
+- **URL transformation cache**: Transformation result cache
+- **File resolution cache**: File resolution result cache (if available)
+- **Comprehensive logging**: Detailed operation logging for each cache type
+- **Error isolation**: Individual cache failures don't prevent other caches from clearing
+
+**Production Monitoring:**
+
+```bash
+# Monitor nuclear cache clear operations
+tail -f logs/app.log | grep "Nuclear cache clear"
+
+# Check cache status after nuclear clear
+curl http://localhost:3000/api/cache/stats
+curl http://localhost:3000/api/cache/url-transform/stats
+curl http://localhost:3000/api/cache/file-resolution/stats
+
+# Automated nuclear cache clear with monitoring
+RESPONSE=$(curl -s -X DELETE http://localhost:3000/api/cache/nuke)
+SUCCESS=$(echo $RESPONSE | jq -r '.success')
+if [ "$SUCCESS" = "true" ]; then
+  echo "Nuclear cache clear completed successfully"
+  echo $RESPONSE | jq '.data.totalCachesCleared'
+else
+  echo "Nuclear cache clear had errors"
+  echo $RESPONSE | jq '.data.errors'
+fi
+```
+
+**Security and Access Control:**
+
+- **Local access only**: Nuclear cache clear restricted to localhost (127.0.0.1, ::1)
+- **Comprehensive audit trail**: All operations logged with detailed context
+- **Error handling**: Graceful handling of unavailable cache modules
+- **Status reporting**: Multi-status responses for partial failures
+
+# View transformation logs
 
 tail -f logs/app.log | grep "URL_TRANSFORM"
 
-```bash
+```bash</search>
+</search_and_replace>
 
 - `docs.mysite.com/getting-started` →
   1. Path rewriting: `/getting-started` → `/documentation/getting-started`
@@ -958,9 +1133,60 @@ This version includes critical fixes for browser compatibility issues:
 - **Integration Tests**: [`test-fixes.js`](test-fixes.js) validates both fixes
 - **Documentation**: Detailed fix documentation in [`docs/browser-issue-fixes.md`](docs/browser-issue-fixes.md)
 
+## Dashboard Integration
+
+The application includes an integrated dashboard with enhanced initialization and error handling capabilities for comprehensive API management and monitoring.
+
+### Enhanced Dashboard Features
+
+**Improved Initialization:**
+
+- **Error handling**: Graceful handling of dashboard initialization failures
+- **Fallback behavior**: Application continues to function even if dashboard fails to initialize
+- **Comprehensive logging**: Detailed logging of initialization steps and any errors
+- **Resource management**: Proper cleanup of dashboard resources during shutdown
+
+**Dashboard Integration Process:**
+
+```javascript
+// Enhanced initialization with error handling
+dashboardIntegration.initialize()
+  .then(() => {
+    logger.info('Dashboard integration initialized successfully');
+    startServer();
+  })
+  .catch(err => {
+    logger.error('Failed to initialize dashboard integration', { error: err.message });
+    // Start server anyway, just without dashboard
+    startServer();
+  });
+```
+
+**Dashboard API Discovery:**
+
+The dashboard automatically discovers and documents all API endpoints, including the new cache management endpoints:
+
+- File resolution cache management endpoints
+- Nuclear cache clear endpoint
+- Enhanced error handling and parameter validation
+- Comprehensive response documentation
+
+**Access Dashboard:**
+
+```bash
+# Access the dashboard interface
+http://localhost:3000/dashboard
+
+# Dashboard API endpoints
+http://localhost:3000/dashboard/api/discovery/endpoints
+http://localhost:3000/dashboard/api/discovery/stats
+http://localhost:3000/dashboard/api/docs/openapi.json
+```
+
 ## Development and Testing
 
-### Getting Started with Development
+### Getting Started with Development</search>
+</search_and_replace>
 
 1. **Clone and Setup**
    ```bash

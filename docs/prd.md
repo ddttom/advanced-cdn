@@ -96,6 +96,9 @@ To create a flexible, self-hosted CDN solution that provides core CDN functional
    - The system must provide an API to purge cached content
    - The system must support pattern-based cache purging
    - The system must provide cache statistics
+   - The system must provide specialized cache management for file resolution operations
+   - The system must support nuclear cache clearing across all cache types
+   - The system must provide detailed cache performance metrics and monitoring
 
 9. **Logging**
    - The system must log all requests with relevant details
@@ -1399,9 +1402,174 @@ URL_TRANSFORM_DEBUG=false
 4. **Security**: Zero successful URL-based attacks or injections
 5. **Compatibility**: Support for all major content types and URL patterns
 
+## Enhanced Cache Management System
+
+### Overview
+
+The Advanced CDN application implements a comprehensive multi-tier cache management system that provides specialized caching for different types of operations, including response caching, URL transformation caching, and file resolution caching. The system includes advanced features such as nuclear cache clearing, detailed performance monitoring, and enhanced error handling.
+
+### Core Cache Management Requirements
+
+#### 1. Multi-Tier Cache Architecture
+
+**Requirement**: The system must support multiple specialized cache types with independent management capabilities.
+
+**Cache Types**:
+- **Main Response Cache**: HTTP response caching with domain-aware keys
+- **URL Transformation Cache**: Caching of URL transformation results for performance
+- **File Resolution Cache**: Specialized caching for file resolution operations with dual TTL support
+
+**Cache Isolation**:
+- Each cache type must operate independently
+- Cache failures in one type must not affect others
+- Separate configuration and management for each cache type
+
+#### 2. File Resolution Cache Management
+
+**Requirement**: The system must provide specialized cache management for file resolution operations with dual TTL support for positive and negative results.
+
+**API Endpoints**:
+- `DELETE /api/cache/file-resolution` - Clear file resolution cache
+- `GET /api/cache/file-resolution/stats` - Get file resolution cache statistics
+
+**Features**:
+- **Dual TTL System**: Different TTL for positive vs negative results
+- **LRU Eviction**: Automatic cleanup when cache reaches capacity
+- **Statistics Tracking**: Comprehensive metrics for positive/negative hit rates
+- **Memory Management**: Detailed memory usage tracking and optimization
+
+**Performance Requirements**:
+- Cache hit rate: > 90% for optimal performance
+- Memory usage: < 100MB for file resolution cache
+- Cache lookup time: < 1ms for cached entries
+- Statistics generation: < 10ms for comprehensive stats
+
+#### 3. Nuclear Cache Clear System
+
+**Requirement**: The system must provide system-wide cache clearing capabilities that coordinate across all cache types with comprehensive error handling and detailed feedback.
+
+**API Endpoint**:
+- `DELETE /api/cache/nuke` - Clear ALL caches system-wide
+
+**Features**:
+- **Multi-Cache Coordination**: Clears all cache types in a single operation
+- **Error Isolation**: Individual cache failures don't prevent other caches from clearing
+- **Comprehensive Logging**: Detailed operation logging for each cache type
+- **Status Aggregation**: Multi-status response handling for partial failures
+
+**Response Format**:
+```javascript
+{
+  "success": true,
+  "message": "All caches cleared successfully",
+  "data": {
+    "clearedCaches": [
+      {
+        "cache": "main",
+        "type": "response-cache",
+        "itemsCleared": 1234,
+        "status": "success"
+      },
+      {
+        "cache": "url-transform",
+        "type": "transformation-cache",
+        "status": "success"
+      },
+      {
+        "cache": "file-resolution",
+        "type": "file-cache",
+        "status": "success"
+      }
+    ],
+    "totalCachesCleared": 3,
+    "timestamp": "2025-07-29T12:03:00.000Z"
+  }
+}
+```
+
+#### 4. Enhanced Dashboard Integration
+
+**Requirement**: The system must provide enhanced dashboard integration with comprehensive error handling and graceful degradation capabilities.
+
+**Error Handling Features**:
+- **Initialization Error Recovery**: Application continues if dashboard fails to initialize
+- **Resource Cleanup**: Proper cleanup of intervals and resources during shutdown
+- **Error Isolation**: Dashboard errors don't affect core CDN functionality
+- **Comprehensive Logging**: Detailed error logging with context and stack traces
+- **Graceful Degradation**: System remains functional without dashboard features
+
+**Dashboard Integration Process**:
+```javascript
+// Enhanced initialization with error handling
+dashboardIntegration.initialize()
+  .then(() => {
+    logger.info('Dashboard integration initialized successfully');
+    startServer();
+  })
+  .catch(err => {
+    logger.error('Failed to initialize dashboard integration', { error: err.message });
+    // Start server anyway, just without dashboard
+    startServer();
+  });
+```
+
+#### 5. Parameter Handling and User Feedback
+
+**Requirement**: The system must provide detailed parameter validation and comprehensive user feedback for all cache management operations.
+
+**Parameter Validation Features**:
+- **Input Validation**: Comprehensive validation of all API parameters
+- **Error Messages**: Clear, actionable error messages with context
+- **Request Tracking**: Detailed logging of request processing steps
+- **Response Metadata**: Additional context in API responses for debugging
+
+**User Feedback Improvements**:
+- **Detailed Error Responses**: Comprehensive error information with context
+- **Operation Status**: Clear indication of operation success/failure
+- **Timing Information**: Response time and processing duration
+- **Resource Information**: Cache sizes, hit rates, and performance metrics
+
+### Technical Specifications
+
+#### 1. Cache Architecture
+
+**Cache Key Strategies**:
+- **Main Cache**: `{method}:{domain}:{transformedPath}:{varyHeaders}`
+- **URL Transformation Cache**: `{url}:{proxyHost}:{pathTransformation.target}`
+- **File Resolution Cache**: `file-resolution:{domain}:{path}`
+
+**Performance Targets**:
+- Cache lookup time: < 1ms for all cache types
+- Cache clearing time: < 100ms for individual caches
+- Nuclear cache clear time: < 500ms for all caches
+- Memory usage: < 250MB total for all caches combined
+
+#### 2. Security and Access Control
+
+**Security Requirements**:
+- **Local Access Only**: All cache management APIs restricted to localhost
+- **Comprehensive Audit Trail**: All cache operations logged with detailed context
+- **Error Handling**: Graceful handling of unavailable cache modules
+- **Rate Limiting**: Protection against cache management API abuse
+
+#### 3. Monitoring and Observability
+
+**Metrics Collection**:
+- Cache hit/miss ratios for all cache types
+- Memory usage and performance statistics
+- Operation timing and success rates
+- Error rates and debugging information
+
+**Health Indicators**:
+- Overall cache system health > 95%
+- Individual cache performance within targets
+- Error rates < 1% for all cache operations
+- Memory usage within configured limits
+
 ### Cache Management
 
-The URL transformation system implements comprehensive cache management with multiple clearing mechanisms and performance optimization features.
+The URL transformation system implements comprehensive cache management with multiple clearing mechanisms and performance optimization features.</search>
+</search_and_replace>
 
 #### Cache Clearing Requirements
 

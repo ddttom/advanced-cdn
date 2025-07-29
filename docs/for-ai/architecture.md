@@ -228,6 +228,118 @@ Standard: GET:/path
 Domain-aware: GET:domain.com:/transformed/path
 ```
 
+#### Nuclear Cache Clear Architecture
+
+**Purpose**: System-wide cache clearing with comprehensive coordination across all cache types
+
+**Architecture Pattern**: Coordinator Pattern with Error Isolation
+
+**Key Components**:
+- Multi-cache coordinator: Orchestrates clearing across all cache types
+- Error isolation: Individual cache failures don't prevent other operations
+- Comprehensive logging: Detailed operation tracking for each cache type
+- Status aggregation: Multi-status response handling for partial failures
+
+**Nuclear Cache Clear Flow**:
+
+```bash
+Nuclear Clear Request → Cache Type Discovery → Parallel Cache Operations → Status Aggregation → Response Generation
+```
+
+**Cache Types Coordinated**:
+
+1. **Main Response Cache** (`cache-manager.js`)
+   - Purges all cached HTTP responses
+   - Returns count of items cleared
+   - Tracks domain-specific cache keys
+
+2. **URL Transformation Cache** (`url-transformer.js`)
+   - Clears URL transformation results
+   - Resets transformation statistics
+   - Maintains cache performance metrics
+
+3. **File Resolution Cache** (`file-resolution-cache.js`)
+   - Clears file resolution results (if available)
+   - Handles graceful degradation when module unavailable
+   - Maintains positive/negative result separation
+
+**Error Handling Architecture**:
+
+```javascript
+// Nuclear cache clear error isolation pattern
+const clearedCaches = [];
+const errors = [];
+
+// Each cache operation is isolated
+try {
+  const result = cacheManager.purge('*');
+  clearedCaches.push({
+    cache: 'main',
+    type: 'response-cache',
+    itemsCleared: result.purged || 0,
+    status: 'success'
+  });
+} catch (error) {
+  errors.push({
+    cache: 'main',
+    error: error.message
+  });
+}
+
+// Response includes both successes and failures
+const response = {
+  success: errors.length === 0,
+  message: errors.length === 0 ? 'All caches cleared successfully' : 'Some caches failed to clear',
+  data: {
+    clearedCaches,
+    totalCachesCleared: clearedCaches.length,
+    errors: errors.length > 0 ? errors : undefined,
+    timestamp: new Date().toISOString()
+  }
+};
+```
+
+#### File Resolution Cache Management Architecture
+
+**Purpose**: Specialized cache management for file resolution operations with dual TTL support
+
+**Architecture Pattern**: Cache-Aside Pattern with Specialized TTL Management
+
+**Key Features**:
+- **Dual TTL System**: Different TTL for positive vs negative results
+- **LRU Eviction**: Automatic cleanup when cache reaches capacity
+- **Statistics Tracking**: Comprehensive metrics for positive/negative hit rates
+- **Memory Management**: Detailed memory usage tracking and optimization
+
+**Cache Management Operations**:
+
+```javascript
+// File resolution cache architecture
+class FileResolutionCacheManager {
+  // Specialized cache clearing
+  clear() {
+    const size = this.cache.size;
+    this.cache.clear();
+    this.emit('clear', { previousSize: size });
+  }
+  
+  // Comprehensive statistics
+  getStats() {
+    return {
+      hits: this.stats.hits,
+      misses: this.stats.misses,
+      positiveHits: this.stats.positiveHits,
+      negativeHits: this.stats.negativeHits,
+      size: this.cache.size,
+      maxSize: this.config.maxSize,
+      hitRate: this.calculateHitRate(),
+      positiveHitRate: this.calculatePositiveHitRate(),
+      memoryUsage: this.getMemoryUsage()
+    };
+  }
+}
+```
+
 ### 5. Monitoring and Observability
 
 #### `src/monitoring/metrics-manager.js`
@@ -492,6 +604,11 @@ FILE_RESOLUTION_TRANSFORMER_CONFIG={
 - `POST /api/domains/test-transformation` - Transformation testing
 - `GET /api/cache/stats` - Cache performance metrics
 - `DELETE /api/cache` - Cache management
+- `DELETE /api/cache/url-transform` - Clear URL transformation cache
+- `GET /api/cache/url-transform/stats` - URL transformation cache statistics
+- `DELETE /api/cache/file-resolution` - Clear file resolution cache
+- `GET /api/cache/file-resolution/stats` - File resolution cache statistics
+- `DELETE /api/cache/nuke` - Nuclear cache clear (all caches system-wide)
 
 ### File Resolution APIs
 
@@ -1495,5 +1612,201 @@ while kill -0 $APP_PID 2>/dev/null; do
   sleep 30
 done
 ```
+
+## Enhanced Dashboard Integration Architecture
+
+### Dashboard Integration with Error Handling
+
+The dashboard integration system implements comprehensive error handling and graceful degradation patterns to ensure the core CDN functionality remains unaffected by dashboard-related issues.
+
+#### Enhanced Error Handling Architecture
+
+**Purpose**: Robust dashboard integration with comprehensive error handling and graceful degradation
+
+**Architecture Pattern**: Integration Pattern with Graceful Degradation and Error Isolation
+
+**Key Components**:
+- **Initialization Error Recovery**: Application continues if dashboard fails to initialize
+- **Resource Cleanup**: Proper cleanup of intervals and resources during shutdown
+- **Error Isolation**: Dashboard errors don't affect core CDN functionality
+- **Comprehensive Logging**: Detailed error logging with context and stack traces
+- **Graceful Degradation**: System remains functional without dashboard features
+
+#### Dashboard Integration Flow
+
+```bash
+Application Start → Dashboard Integration Attempt → Error Handling → Graceful Degradation → Core CDN Start
+```
+
+**Enhanced Initialization Process**:
+
+```javascript
+// Dashboard integration with comprehensive error handling
+class DashboardIntegration {
+  async initialize() {
+    try {
+      logger.info('Initializing dashboard integration...');
+      
+      // Mount dashboard API routes with error isolation
+      logger.debug('Mounting dashboard API routes...');
+      this.app.use('/dashboard', this.dashboardAPI.getRouter());
+      logger.debug('Dashboard API routes mounted successfully');
+      
+      // Start API discovery service with error handling
+      logger.debug('Starting API discovery service...');
+      await this.dashboardAPI.discoveryService.initialize();
+      logger.debug('API discovery service started successfully');
+      
+      // Setup periodic scanning with error recovery
+      logger.debug('Setting up periodic scanning...');
+      this.setupPeriodicScanning();
+      logger.debug('Periodic scanning setup complete');
+      
+      this.isInitialized = true;
+      logger.info('Dashboard integration initialized successfully');
+      
+      // Log available dashboard endpoints
+      this.logDashboardEndpoints();
+      
+    } catch (error) {
+      logger.error('Failed to initialize dashboard integration', { 
+        error: error.message, 
+        stack: error.stack 
+      });
+      throw error; // Allow graceful degradation at application level
+    }
+  }
+  
+  // Enhanced resource cleanup with comprehensive error handling
+  async shutdown() {
+    try {
+      logger.info('Shutting down dashboard integration...');
+      
+      // Clear periodic scanning interval with null check
+      if (this.scanIntervalId) {
+        clearInterval(this.scanIntervalId);
+        this.scanIntervalId = null;
+      }
+      
+      // Shutdown discovery service with error handling
+      if (this.dashboardAPI.discoveryService) {
+        await this.dashboardAPI.discoveryService.shutdown();
+      }
+      
+      this.isInitialized = false;
+      logger.info('Dashboard integration shutdown complete');
+      
+    } catch (error) {
+      logger.error('Error during dashboard shutdown', { error: error.message });
+      // Continue shutdown process despite errors
+    }
+  }
+}
+```
+
+#### Application-Level Graceful Degradation
+
+**Graceful Degradation Pattern**:
+
+```javascript
+// Application-level graceful degradation in app.js
+const dashboardIntegration = new DashboardIntegration(app);
+global.dashboardIntegration = dashboardIntegration;
+
+// Enhanced initialization with error handling
+dashboardIntegration.initialize()
+  .then(() => {
+    logger.info('Dashboard integration initialized successfully');
+    startServer();
+  })
+  .catch(err => {
+    logger.error('Failed to initialize dashboard integration', { error: err.message });
+    // Start server anyway, just without dashboard
+    startServer();
+  });
+```
+
+#### Error Handling Features
+
+**Initialization Error Recovery**:
+- Dashboard initialization failures don't prevent CDN startup
+- Detailed error logging with context and stack traces
+- Fallback behavior ensures core functionality remains available
+
+**Resource Management**:
+- Proper cleanup of periodic scanning intervals
+- Graceful shutdown of API discovery services
+- Memory leak prevention through comprehensive resource cleanup
+
+**Error Isolation**:
+- Dashboard errors are contained and don't propagate to core CDN
+- Individual component failures handled independently
+- Comprehensive logging for debugging and monitoring
+
+#### Parameter Handling and User Feedback Improvements
+
+**Enhanced Parameter Validation**:
+
+```javascript
+// Comprehensive parameter handling in dashboard API
+async testEndpoint(req, res) {
+  try {
+    logger.debug('Test endpoint request received', { body: req.body });
+    
+    const { method, path, headers = {} } = req.body;
+    
+    // Enhanced parameter validation
+    if (!method || !path) {
+      logger.warn('Missing method or path in test request', { method, path });
+      return res.status(400).json({
+        success: false,
+        error: 'Method and path are required',
+        details: {
+          method: method ? 'provided' : 'missing',
+          path: path ? 'provided' : 'missing'
+        }
+      });
+    }
+    
+    // Detailed user feedback
+    logger.debug('Making test request', { method, path, headers });
+    const testResult = await this.makeTestRequest(method, path, headers);
+    logger.debug('Test request completed', { testResult });
+    
+    res.json({
+      success: true,
+      data: testResult,
+      meta: {
+        requestTime: new Date().toISOString(),
+        parameters: { method, path, headers }
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Error testing endpoint', { 
+      error: error.message, 
+      stack: error.stack,
+      body: req.body 
+    });
+    
+    // Enhanced error response with user feedback
+    res.status(500).json({
+      success: false,
+      error: `Failed to test endpoint: ${error.message}`,
+      details: {
+        timestamp: new Date().toISOString(),
+        requestBody: req.body,
+        errorType: error.constructor.name
+      }
+    });
+  }
+}
+```
+
+**User Feedback Improvements**:
+- **Detailed Error Messages**: Comprehensive error information with context
+- **Parameter Validation**: Clear feedback on missing or invalid parameters
+- **Request Tracking**: Detailed logging of request processing steps
+- **Response Metadata**: Additional context in API responses for better debugging
 
 This architecture provides a robust, scalable, and maintainable foundation for both domain-to-path prefix mapping, cascading file resolution, and comprehensive URL transformation in a CDN context, with comprehensive monitoring, error handling, performance optimization capabilities, and critical memory leak prevention measures. The recent fixes ensure browser compatibility and system stability while maintaining the core architectural principles and preventing production memory issues.
