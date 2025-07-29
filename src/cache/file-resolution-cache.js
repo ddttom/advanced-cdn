@@ -1,7 +1,7 @@
 // file-resolution-cache.js
 const { EventEmitter } = require('events');
-const config = require('./config');
-const logger = require('./logger').getModuleLogger('file-resolution-cache');
+const config = require('../config');
+const logger = require('../logger').getModuleLogger('file-resolution-cache');
 
 /**
  * File Resolution Cache

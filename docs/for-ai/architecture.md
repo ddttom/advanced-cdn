@@ -20,19 +20,19 @@ The Advanced CDN is a Node.js-based content delivery network that provides advan
 
 ### 1. Application Entry Points
 
-#### `index.js`
+#### `src/index.js`
 
 - **Purpose**: Main application entry point
 - **Responsibilities**: Bootstrap the application, handle clustering
-- **Dependencies**: `cluster-manager.js`, `app.js`
+- **Dependencies**: `src/cluster-manager.js`, `src/app.js`
 
-#### `cluster-manager.js`
+#### `src/cluster-manager.js`
 
 - **Purpose**: Multi-process management for performance
 - **Responsibilities**: Worker process creation, load balancing, graceful shutdown
 - **Configuration**: `ENABLE_CLUSTER`, `CLUSTER_WORKERS`
 
-#### `app.js`
+#### `src/app.js`
 
 - **Purpose**: Express application setup and middleware configuration
 - **Responsibilities**: Route setup, middleware chain, server initialization
@@ -40,7 +40,7 @@ The Advanced CDN is a Node.js-based content delivery network that provides advan
 
 ### 2. Core Routing System
 
-#### `path-rewriter.js` (NEW - Primary Innovation)
+#### `src/domain/path-rewriter.js` (NEW - Primary Innovation)
 
 - **Purpose**: Domain-to-path prefix mapping engine
 - **Architecture Pattern**: Strategy Pattern with Rule Engine
@@ -71,14 +71,14 @@ class PathRewriter {
 4. Fallback handling for unmatched domains
 5. Performance tracking and circuit breaker evaluation
 
-#### `domain-manager.js`
+#### `src/domain/domain-manager.js`
 
 - **Purpose**: Domain validation and management
-- **Integration**: Works with `path-rewriter.js` for domain routing
+- **Integration**: Works with `src/domain/path-rewriter.js` for domain routing
 - **Responsibilities**: Domain whitelist validation, additional domain handling
 - **Configuration**: `ORIGIN_DOMAIN`, `ADDITIONAL_DOMAINS`, `STRICT_DOMAIN_CHECK`
 
-#### `file-resolver.js` (NEW - File Resolution Engine)
+#### `src/domain/file-resolver.js` (NEW - File Resolution Engine)
 
 - **Purpose**: Cascading file resolution with extensionless request handling
 - **Architecture Pattern**: Chain of Responsibility Pattern with Circuit Breaker
@@ -112,7 +112,7 @@ class FileResolver {
 5. Transform content if file found and transformation enabled
 6. Track performance metrics and circuit breaker status
 
-#### `transformers/index.js` (NEW - Content Transformation System)
+#### `src/transform/transformers/index.js` (NEW - Content Transformation System)
 
 - **Purpose**: Plugin-based content transformation system
 - **Architecture Pattern**: Strategy Pattern with Plugin Architecture
@@ -133,7 +133,7 @@ class Transformer {
 }
 ```
 
-#### `file-resolution-cache.js` (NEW - Specialized File Resolution Cache)
+#### `src/cache/file-resolution-cache.js` (NEW - Specialized File Resolution Cache)
 
 - **Purpose**: High-performance caching for file resolution results
 - **Architecture Pattern**: Cache-Aside Pattern with TTL Management
@@ -151,15 +151,15 @@ Positive: file:domain.com:/path → {found: true, extension: 'md', transformed: 
 Negative: file:domain.com:/path → {found: false, extensionsTried: ['html', 'md', 'txt']}
 ```
 
-#### `proxy-manager.js` (Enhanced)
+#### `src/proxy/proxy-manager.js` (Enhanced)
 
 - **Purpose**: HTTP proxy implementation with path transformation and file resolution
 - **Architecture Pattern**: Decorator Pattern (enhances basic proxy with transformations)
 - **Integration Points**:
-  - Uses `path-rewriter.js` for URL transformation
-  - Uses `file-resolver.js` for extensionless request handling
-  - Integrates with `cache-manager.js` for response caching
-  - Connects to `metrics-manager.js` for request tracking
+  - Uses `src/domain/path-rewriter.js` for URL transformation
+  - Uses `src/domain/file-resolver.js` for extensionless request handling
+  - Integrates with `src/cache/cache-manager.js` for response caching
+  - Connects to `src/monitoring/metrics-manager.js` for request tracking
 
 **Enhanced Request Flow**:
 
@@ -169,7 +169,7 @@ Request → Domain Validation → Path Transformation → File Resolution → Ba
 
 ### 3. Configuration Management
 
-#### `config.js`
+#### `src/config.js`
 
 - **Purpose**: Centralized configuration management
 - **Architecture Pattern**: Configuration Object Pattern
@@ -210,7 +210,7 @@ Request → Domain Validation → Path Transformation → File Resolution → Ba
 
 ### 4. Caching Layer
 
-#### `cache-manager.js`
+#### `src/cache/cache-manager.js`
 
 - **Purpose**: Intelligent caching with domain awareness
 - **Architecture Pattern**: Cache-Aside Pattern with Domain Partitioning
@@ -230,7 +230,7 @@ Domain-aware: GET:domain.com:/transformed/path
 
 ### 5. Monitoring and Observability
 
-#### `metrics-manager.js`
+#### `src/monitoring/metrics-manager.js`
 
 - **Purpose**: Prometheus-compatible metrics collection
 - **Architecture Pattern**: Observer Pattern
@@ -241,13 +241,13 @@ Domain-aware: GET:domain.com:/transformed/path
   - Circuit breaker status
   - Error rates and response times
 
-#### `health-manager.js`
+#### `src/monitoring/health-manager.js`
 
 - **Purpose**: Application health monitoring
 - **Responsibilities**: System health checks, domain routing status
-- **Integration**: Monitors `path-rewriter.js` performance and circuit breaker status
+- **Integration**: Monitors `src/domain/path-rewriter.js` performance and circuit breaker status
 
-#### `logger.js`
+#### `src/logger.js`
 
 - **Purpose**: Centralized logging with structured output
 - **Architecture Pattern**: Singleton Pattern
@@ -255,7 +255,7 @@ Domain-aware: GET:domain.com:/transformed/path
 
 ### 6. Security and Rate Limiting
 
-#### `rate-limiter.js`
+#### `src/middleware/rate-limiter.js`
 
 - **Purpose**: Request rate limiting
 - **Integration**: Can be configured per domain or globally
@@ -568,7 +568,7 @@ POST /api/domains/reload
 PATH_REWRITE_RULES={"domain.com": {"^/pattern/(.*)": "/new-pattern/$1"}}
 ```
 
-### 3. Performance Tuning
+### 3. Path Rewrite Performance Tuning
 
 ```javascript
 // Adjust cache settings
@@ -579,7 +579,7 @@ PATH_REWRITE_SLOW_THRESHOLD=0.005
 PATH_REWRITE_ERROR_RATE_THRESHOLD=0.05
 ```
 
-### 4. Monitoring Configuration
+### 4. Path Rewrite Monitoring Configuration
 
 ```javascript
 // Enable detailed monitoring
@@ -590,21 +590,21 @@ HEALTH_CHECK_DETAILED=true
 
 ## Common AI Assistant Tasks
 
-### 1. Troubleshooting
+### 1. General Troubleshooting
 
 - Check `/health` endpoint for system status
 - Review `/api/domains` for configuration
 - Analyze `/metrics` for performance issues
 - Use test endpoints for validation
 
-### 2. Configuration Updates
+### 2. General Configuration Updates
 
 - Validate JSON syntax for domain mappings
 - Test transformations before applying
 - Monitor performance after changes
 - Use circuit breaker status for health assessment
 
-### 3. Performance Analysis
+### 3. General Performance Analysis
 
 - Run benchmark suite for performance testing
 - Monitor cache hit rates by domain
@@ -651,7 +651,7 @@ FILE_RESOLUTION_TRANSFORMER_CONFIG={
 }
 ```
 
-### 3. Performance Tuning
+### 3. File Resolution Performance Tuning
 
 ```javascript
 // Adjust file resolution performance settings
@@ -664,7 +664,7 @@ FILE_RESOLUTION_CIRCUIT_BREAKER_THRESHOLD=3
 FILE_RESOLUTION_CIRCUIT_BREAKER_TIMEOUT=15000
 ```
 
-### 4. Monitoring Configuration
+### 4. File Resolution Monitoring Configuration
 
 ```javascript
 // Enable detailed file resolution monitoring
@@ -683,14 +683,14 @@ FILE_RESOLUTION_PERFORMANCE_MONITORING=true
 - Analyze `/api/file-resolution/circuit-breaker` for domain health
 - Use `/api/file-resolution/test` for specific path testing
 
-### 2. Configuration Updates
+### 2. File Resolution Configuration Updates
 
 - Validate JSON syntax for domain configurations
 - Test file resolution before applying changes
 - Monitor cache hit rates after configuration updates
 - Use circuit breaker status for health assessment
 
-### 3. Performance Analysis
+### 3. File Resolution Performance Analysis
 
 - Monitor file resolution timing metrics
 - Track cache hit rates by domain and extension
@@ -715,11 +715,13 @@ This version includes important fixes for browser compatibility and system stabi
 **Issue**: Mixed ES modules and CommonJS causing runtime errors and preventing proper metrics collection.
 
 **Files Modified**:
+
 - [`file-resolver.js`](../../file-resolver.js) - Converted from ES modules to CommonJS
 - [`file-resolution-cache.js`](../../file-resolution-cache.js) - Converted from ES modules to CommonJS  
 - [`transformers/index.js`](../../transformers/index.js) - Converted from ES modules to CommonJS
 
-**Impact**: 
+**Impact**:
+
 - Eliminated `getStats is not a function` errors
 - Improved server stability and metrics collection reliability
 - Consistent module system throughout the application
@@ -731,6 +733,7 @@ This version includes important fixes for browser compatibility and system stabi
 **File Modified**: [`proxy-manager.js`](../../proxy-manager.js) - Enhanced `handleProxyResponse` method
 
 **Improvements**:
+
 - Robust error handling for gzip decompression failures
 - Comprehensive logging for debugging decompression issues
 - Special protection for JavaScript files (returns 502 Bad Gateway instead of corrupted content)
@@ -738,6 +741,7 @@ This version includes important fixes for browser compatibility and system stabi
 - Proper content-encoding header management
 
 **Impact**:
+
 - Eliminated "Invalid or unexpected token" JavaScript syntax errors in browsers
 - Improved content delivery reliability
 - Enhanced debugging capabilities for decompression issues
@@ -751,17 +755,20 @@ This version includes important fixes for browser compatibility and system stabi
 **File Modified**: [`proxy-manager.js`](../../proxy-manager.js) - Enhanced `setupResponseHeaders` and `handleProxyResponse` methods
 
 **Technical Solution**:
+
 - **Conditional Content-Length exclusion**: Modified `setupResponseHeaders()` to skip Content-Length header for compressed responses that will be decompressed
 - **Proper header timing**: Set correct Content-Length after decompression in `handleProxyResponse()`
 - **Chunked transfer fallback**: Use chunked transfer encoding when Content-Length cannot be determined
 - **Comprehensive logging**: Added detailed logging for debugging header flow and decompression process
 
 **HTTP Proxy Middleware Integration**:
+
 - Headers are copied from upstream response in `setupResponseHeaders()` before content processing
 - Content processing happens later in `handleProxyResponse()` after headers are already sent
 - Solution prevents incorrect Content-Length from being copied initially, then sets correct value after decompression
 
 **Impact**:
+
 - Eliminated HTTP parsing errors in Node.js clients (curl was already tolerant)
 - Both curl and Node.js clients now receive identical, correctly formatted responses
 - Maintains HTTP specification compliance for all client types
@@ -771,6 +778,7 @@ This version includes important fixes for browser compatibility and system stabi
 **Integration Tests**: [`test-fixes.js`](../../test-fixes.js) validates all fixes and prevents regression.
 
 **Test Coverage**:
+
 - Module system stability verification
 - Server health check validation
 - Gzip decompression error handling
@@ -808,14 +816,16 @@ module.exports.namedExport = namedExport;
 
 The browser issue fixes introduce comprehensive layered error handling:
 
-#### Gzip Decompression Error Handling:
+#### Gzip Decompression Error Handling
+
 1. **Detection Layer**: Identify content encoding and compression status
 2. **Processing Layer**: Attempt decompression with comprehensive error catching
 3. **Fallback Layer**: Handle failures based on content type (JavaScript gets special treatment)
 4. **Logging Layer**: Detailed logging for debugging and monitoring
 5. **Recovery Layer**: Graceful degradation and proper error responses
 
-#### Content-Length Header Management:
+#### Content-Length Header Management
+
 1. **Analysis Layer**: Detect compressed responses that will be decompressed
 2. **Prevention Layer**: Skip Content-Length header copying for compressed responses
 3. **Processing Layer**: Decompress content and measure actual size
@@ -834,20 +844,24 @@ The URL transformation system implements sophisticated cache management with mul
 #### Cache Clearing Methods
 
 **1. API Endpoints (Recommended)**
+
 - `DELETE /api/cache/url-transform` - Clear URL transformation cache
 - `GET /api/cache/url-transform/stats` - Get cache statistics and performance metrics
 
 **2. Automatic LRU Eviction**
+
 - Default maximum cache size: 10,000 entries (configurable via `URL_TRANSFORM_CACHE_SIZE`)
 - Automatic removal of oldest entries when cache reaches capacity
 - Intelligent cache key management for optimal performance
 
 **3. Application Shutdown Integration**
+
 - Automatic cache clearing during graceful shutdown
 - Integrated with existing shutdown sequence in `proxy-manager.js`
 - Clean resource cleanup prevents memory leaks
 
 **4. Programmatic Access**
+
 ```javascript
 // Direct cache management
 proxyManager.urlTransformer.clearCache();
@@ -857,12 +871,14 @@ const stats = proxyManager.urlTransformer.getStats();
 #### Cache Performance Monitoring
 
 **Available Metrics:**
+
 - Cache hit/miss ratios for transformation operations
 - Memory usage and cache size statistics
 - Transformation performance timing
 - Error rates and debugging information
 
 **Cache Key Strategy:**
+
 ```bash
 # Transformation cache keys include context for proper isolation
 {url}:{proxyHost}:{pathTransformation.target}
@@ -889,6 +905,7 @@ class URLTransformer {
 ```
 
 **Key Features:**
+
 - **Multi-format Support**: HTML, JavaScript, and CSS content transformation
 - **Comprehensive URL Detection**: Regex patterns for different URL contexts
 - **Intelligent Caching**: Cache transformation results for performance
@@ -898,12 +915,14 @@ class URLTransformer {
 #### 2. URL Detection Patterns
 
 **HTML Patterns:**
+
 - Standard attributes: `href`, `src`, `action`, `formaction`, `data-*`
 - Style attributes: `background`, `background-image`, `content`
 - Meta tags: `content` attribute in meta refresh, canonical links
 - Iframe and embed sources: `iframe`, `embed`, `object`
 
 **JavaScript Patterns:**
+
 - String literals containing URLs
 - Dynamic URL construction: `fetch()`, `XMLHttpRequest`
 - Import statements and dynamic imports
@@ -911,6 +930,7 @@ class URLTransformer {
 - AJAX libraries (jQuery, etc.)
 
 **CSS Patterns:**
+
 - `url()` functions in stylesheets
 - `@import` statements
 - Background images and fonts
@@ -919,6 +939,7 @@ class URLTransformer {
 #### 3. URL Transformation Logic
 
 **URL Classification:**
+
 ```javascript
 const urlTypes = {
   ABSOLUTE: 'https://example.com/path',
@@ -931,6 +952,7 @@ const urlTypes = {
 ```
 
 **Transformation Strategy:**
+
 1. **Parse URL**: Extract components (protocol, host, path, query, fragment)
 2. **Apply Domain Mapping**: Use existing path-rewriter logic for domain routing
 3. **Construct Proxy URL**: Build new URL routing through proxy
@@ -940,18 +962,21 @@ const urlTypes = {
 #### 4. Integration with Existing Systems
 
 **Proxy Manager Integration:**
+
 - Hooks into `handleProxyResponse()` method in `proxy-manager.js`
 - Transforms content before caching
 - Applies transformations based on content-type
 - Maintains response headers and status codes
 
 **Domain Manager Integration:**
+
 - Leverages existing domain routing logic
 - Uses path transformation rules
 - Respects domain-specific configurations
 - Maintains backward compatibility
 
 **Configuration Integration:**
+
 - Extends existing `config.js` structure
 - Environment variable support: `URL_TRANSFORM_ENABLED`, `URL_TRANSFORM_HTML`, etc.
 - Runtime configuration updates
@@ -977,6 +1002,7 @@ graph TD
 ### Configuration Options
 
 **Environment Variables:**
+
 ```bash
 # Enable URL transformation
 URL_TRANSFORM_ENABLED=true
@@ -999,12 +1025,14 @@ URL_TRANSFORM_DEBUG=false
 ### Performance Considerations
 
 **Caching Strategy:**
+
 - **Transformation Cache**: Cache URL transformation results
 - **Pattern Cache**: Cache compiled regex patterns
 - **Content Cache**: Cache fully transformed content
 - **TTL Management**: Appropriate cache expiration times
 
 **Optimization Techniques:**
+
 - **Lazy Compilation**: Compile regex patterns on first use
 - **Batch Processing**: Process multiple URLs in single pass
 - **Size Limits**: Skip transformation for very large content
@@ -1013,12 +1041,14 @@ URL_TRANSFORM_DEBUG=false
 ### Security Features
 
 **URL Validation:**
+
 - **Malicious URL Detection**: Prevent injection attacks
 - **Protocol Validation**: Only allow safe protocols (http/https)
 - **Domain Validation**: Ensure transformed URLs are valid
 - **Encoding Safety**: Proper URL encoding to prevent XSS
 
 **Content Integrity:**
+
 - **Transformation Verification**: Validate transformed content
 - **Fallback Mechanisms**: Serve original content if transformation fails
 - **Error Logging**: Log transformation failures for security analysis
@@ -1026,6 +1056,7 @@ URL_TRANSFORM_DEBUG=false
 ### Monitoring and Statistics
 
 **Metrics Collected:**
+
 - Transformation success/failure rates
 - Performance timing metrics
 - Cache hit/miss ratios
@@ -1033,6 +1064,7 @@ URL_TRANSFORM_DEBUG=false
 - URLs transformed per request
 
 **Integration with Existing Monitoring:**
+
 - Extends existing `metrics-manager.js`
 - Prometheus-compatible metrics
 - Health check integration

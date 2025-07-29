@@ -1,12 +1,12 @@
 // metrics-manager.js
 const promClient = require('prom-client');
 const os = require('os');
-const config = require('./config');
-const logger = require('./logger').getModuleLogger('metrics-manager');
-const cacheManager = require('./cache-manager');
-const fileResolver = require('./file-resolver');
-const fileResolutionCache = require('./file-resolution-cache');
-const domainManager = require('./domain-manager');
+const config = require('../config');
+const logger = require('../logger').getModuleLogger('metrics-manager');
+const cacheManager = require('../cache/cache-manager');
+const fileResolver = require('../domain/file-resolver');
+const fileResolutionCache = require('../cache/file-resolution-cache');
+const domainManager = require('../domain/domain-manager');
 
 class MetricsManager {
   constructor() {

@@ -11,12 +11,12 @@ const path = require('path');
 // Load configuration and modules
 const config = require('./config');
 const logger = require('./logger');
-const cacheManager = require('./cache-manager');
-const proxyManager = require('./proxy-manager');
-const metricsManager = require('./metrics-manager');
-const healthManager = require('./health-manager');
-const rateLimiter = require('./rate-limiter');
-const domainManager = require('./domain-manager');
+const cacheManager = require('./cache/cache-manager');
+const proxyManager = require('./proxy/proxy-manager');
+const metricsManager = require('./monitoring/metrics-manager');
+const healthManager = require('./monitoring/health-manager');
+const rateLimiter = require('./middleware/rate-limiter');
+const domainManager = require('./domain/domain-manager');
 const DashboardIntegration = require('./dashboard/dashboard-integration');
 
 // Create Express app

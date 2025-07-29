@@ -1,6 +1,6 @@
 // url-transformer.js
 const { URL } = require('url');
-const logger = require('./logger').getModuleLogger('url-transformer');
+const logger = require('../logger').getModuleLogger('url-transformer');
 
 /**
  * URL Transformation Engine
@@ -541,7 +541,7 @@ class URLTransformer {
     }
     
     // Check if this domain is in the additional domains list
-    const config = require('./config');
+    const config = require('../config');
     if (config.cdn.additionalDomains && config.cdn.additionalDomains.includes(hostname)) {
       return true;
     }

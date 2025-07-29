@@ -3,8 +3,8 @@ const { readFile } = require('fs/promises');
 const { URL } = require('url');
 const http = require('http');
 const https = require('https');
-const config = require('../config');
-const logger = require('../logger').getModuleLogger('transformers');
+const config = require('../../config');
+const logger = require('../../logger').getModuleLogger('transformers');
 
 /**
  * Transformer Plugin System

@@ -2,12 +2,12 @@
   "name": "advanced-cdn",
   "version": "1.0.0",
   "description": "A production-quality advanced CDN proxy service",
-  "main": "cluster-manager.js",
+  "main": "src/cluster-manager.js",
   "scripts": {
-    "start": "node cluster-manager.js",
-    "dev": "NODE_ENV=development nodemon app.js",
-    "debug-ddt": "node debug-ddt.js",
-    "test-debug-ddt": "node test-debug-ddt.js",
+    "start": "node src/cluster-manager.js",
+    "dev": "NODE_ENV=development nodemon src/app.js",
+    "debug-ddt": "node tests/debug-ddt.js",
+    "test-debug-ddt": "node tests/test-debug-ddt.js",
     "lint": "eslint .",
     "test": "jest"
   },

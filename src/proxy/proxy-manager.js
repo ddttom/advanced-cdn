@@ -1,13 +1,13 @@
 // proxy-manager.js
 const { createProxyMiddleware } = require('http-proxy-middleware');
-const config = require('./config');
-const logger = require('./logger').getModuleLogger('proxy-manager');
-const cacheManager = require('./cache-manager');
-const domainManager = require('./domain-manager');
-const fileResolver = require('./file-resolver');
-const transformerManager = require('./transformers');
-const fileResolutionCache = require('./file-resolution-cache');
-const URLTransformer = require('./url-transformer');
+const config = require('../config');
+const logger = require('../logger').getModuleLogger('proxy-manager');
+const cacheManager = require('../cache/cache-manager');
+const domainManager = require('../domain/domain-manager');
+const fileResolver = require('../domain/file-resolver');
+const transformerManager = require('../transform/transformers');
+const fileResolutionCache = require('../cache/file-resolution-cache');
+const URLTransformer = require('../transform/url-transformer');
 const https = require('https');
 const zlib = require('zlib');
 

@@ -1,9 +1,9 @@
 // domain-manager.js
-const config = require('./config');
-const logger = require('./logger').getModuleLogger('domain-manager');
+const config = require('../config');
+const logger = require('../logger').getModuleLogger('domain-manager');
 const PathRewriter = require('./path-rewriter');
 const fileResolver = require('./file-resolver');
-const fileResolutionCache = require('./file-resolution-cache');
+const fileResolutionCache = require('../cache/file-resolution-cache');
 
 class DomainManager {
   constructor() {

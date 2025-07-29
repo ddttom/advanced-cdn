@@ -1,6 +1,6 @@
 // robust-http-client.js - Improved HTTP client with better error handling
 const http = require('http');
-const config = require('./config');
+const config = require('../config');
 
 /**
  * Make HTTP request with robust error handling and connection management

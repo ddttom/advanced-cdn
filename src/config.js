@@ -1,6 +1,6 @@
 // config.js
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 /**
  * Application configuration
@@ -22,8 +22,8 @@ const config = {
     // SSL configuration (if using HTTPS directly)
     ssl: {
       enabled: process.env.ENABLE_SSL === 'true',
-      cert: process.env.SSL_CERT_PATH || path.join(__dirname, 'ssl', 'cert.pem'),
-      key: process.env.SSL_KEY_PATH || path.join(__dirname, 'ssl', 'key.pem'),
+      cert: process.env.SSL_CERT_PATH || path.join(__dirname, '..', 'ssl', 'cert.pem'),
+      key: process.env.SSL_KEY_PATH || path.join(__dirname, '..', 'ssl', 'key.pem'),
       passphrase: process.env.SSL_PASSPHRASE || '',
       httpRedirect: process.env.HTTP_TO_HTTPS_REDIRECT === 'true'
     }

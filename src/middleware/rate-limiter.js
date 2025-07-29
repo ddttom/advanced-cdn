@@ -1,7 +1,7 @@
 // rate-limiter.js
 const rateLimit = require('express-rate-limit');
-const config = require('./config');
-const logger = require('./logger').getModuleLogger('rate-limiter');
+const config = require('../config');
+const logger = require('../logger').getModuleLogger('rate-limiter');
 
 class RateLimiter {
   constructor() {

@@ -1,7 +1,7 @@
 // dashboard/api/discovery.js
 const fs = require('fs');
 const path = require('path');
-const logger = require('../../logger').getModuleLogger('dashboard-discovery');
+const logger = require('../../../logger').getModuleLogger('dashboard-discovery');
 
 /**
  * API Discovery Service

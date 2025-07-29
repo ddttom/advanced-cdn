@@ -3,8 +3,8 @@ const http = require('http');
 const https = require('https');
 const { URL } = require('url');
 const { EventEmitter } = require('events');
-const config = require('./config');
-const logger = require('./logger').getModuleLogger('file-resolver');
+const config = require('../config');
+const logger = require('../logger').getModuleLogger('file-resolver');
 
 /**
  * File Resolver - Cascading file resolution with HTTP HEAD requests

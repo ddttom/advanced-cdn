@@ -1,13 +1,13 @@
 // health-manager.js
 const os = require('os');
-const config = require('./config');
-const logger = require('./logger').getModuleLogger('health-manager');
-const cacheManager = require('./cache-manager');
-const domainManager = require('./domain-manager');
-const fileResolver = require('./file-resolver');
-const fileResolutionCache = require('./file-resolution-cache');
-const transformerManager = require('./transformers');
-const { version } = require('./package.json');
+const config = require('../config');
+const logger = require('../logger').getModuleLogger('health-manager');
+const cacheManager = require('../cache/cache-manager');
+const domainManager = require('../domain/domain-manager');
+const fileResolver = require('../domain/file-resolver');
+const fileResolutionCache = require('../cache/file-resolution-cache');
+const transformerManager = require('../transform/transformers');
+const { version } = require('../../package.json');
 
 class HealthManager {
   constructor() {

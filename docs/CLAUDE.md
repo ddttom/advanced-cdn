@@ -20,7 +20,7 @@ This is a production-quality Node.js application that provides advanced CDN func
 
 The project is organized into logical directories for better maintainability and development experience:
 
-```
+```bash
 advanced-cdn/
 ├── src/                          # Core application source code
 │   ├── app.js                   # Main Express application

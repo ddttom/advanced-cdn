@@ -1,7 +1,7 @@
 // cache-manager.js
 const NodeCache = require('node-cache');
-const logger = require('./logger').getModuleLogger('cache-manager');
-const config = require('./config');
+const logger = require('../logger').getModuleLogger('cache-manager');
+const config = require('../config');
 
 class CacheManager {
   constructor() {

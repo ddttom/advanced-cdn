@@ -23,6 +23,63 @@ A production-quality Node.js application that provides advanced CDN functionalit
 - **HTTP Specification Compliance**: Proper Content-Length header management for all HTTP clients (Node.js, curl, browsers)
 - **Module System Consistency**: CommonJS module system throughout for reliable operation and metrics collection
 
+## Project Structure
+
+The project is organized into logical directories for better maintainability and development experience:
+
+bash
+advanced-cdn/
+├── src/                          # Core application source code
+│   ├── app.js                   # Main Express application
+│   ├── index.js                 # Application entry point
+│   ├── cluster-manager.js       # Cluster management
+│   ├── config.js                # Configuration management
+│   ├── logger.js                # Logging utilities
+│   ├── cache/                   # Cache-related modules
+│   │   ├── cache-manager.js
+│   │   └── file-resolution-cache.js
+│   ├── proxy/                   # Proxy and networking
+│   │   ├── proxy-manager.js
+│   │   └── robust-http-client.js
+│   ├── domain/                  # Domain and routing logic
+│   │   ├── domain-manager.js
+│   │   ├── path-rewriter.js
+│   │   └── file-resolver.js
+│   ├── transform/               # Content transformation
+│   │   ├── url-transformer.js
+│   │   └── transformers/
+│   ├── middleware/              # Express middleware
+│   │   └── rate-limiter.js
+│   ├── monitoring/              # Metrics and health
+│   │   ├── metrics-manager.js
+│   │   └── health-manager.js
+│   └── dashboard/               # Dashboard interface
+│       ├── dashboard-integration.js
+│       ├── api/
+│       └── public/
+├── tests/                       # All test files
+│   ├── unit/
+│   ├── integration/
+│   └── fixtures/
+├── scripts/                     # Utility and setup scripts
+│   ├── setup-script.sh
+│   └── git-setup.sh
+├── config/                      # Configuration files
+│   ├── env-example.txt
+│   └── production-package-json.json
+├── docs/                        # Documentation
+└── [root config files]          # package.json, README.md, etc.
+
+```bash
+
+### Key Benefits of This Structure
+
+- **Logical Grouping**: Related functionality is grouped together
+- **Clear Separation**: Source code, tests, scripts, and config are clearly separated
+- **Scalability**: Easy to add new modules within appropriate categories
+- **Maintainability**: Easier to locate and modify specific functionality
+- **Standard Structure**: Follows common Node.js project conventions
+
 ## Installation
 
 ### Prerequisites
@@ -68,7 +125,7 @@ If you prefer manual setup:
 npm install express http-proxy-middleware compression helmet winston express-rate-limit cors prom-client dotenv node-cache
 ```
 
-## Project Structure
+## Key Application Files
 
 - **app.js**: Main application entry point
 - **cluster-manager.js**: Process management for multi-core operation
@@ -404,7 +461,6 @@ FILE_RESOLUTION_DOMAIN_CONFIG='{
 
 **Combined Request Transformations:**
 
-
 ## URL Transformation Examples
 
 The application includes a comprehensive URL transformation system that automatically detects and rewrites all URLs in HTML, JavaScript, and CSS content, routing them through the proxy server to completely obscure the original server's domain and path structure.
@@ -422,6 +478,7 @@ TARGET_DOMAIN=backend.original-site.com
 ```
 
 **Original Content:**
+
 ```html
 <!DOCTYPE html>
 <html>
@@ -441,6 +498,7 @@ TARGET_DOMAIN=backend.original-site.com
 ```
 
 **Transformed Content (served to users):**
+
 ```html
 <!DOCTYPE html>
 <html>
@@ -462,6 +520,7 @@ TARGET_DOMAIN=backend.original-site.com
 ### Advanced Example: JavaScript and CSS Transformation
 
 **Original JavaScript:**
+
 ```javascript
 // Dynamic imports and AJAX calls
 import('/modules/feature.js').then(module => {
@@ -483,6 +542,7 @@ window.location.href = '/dashboard';
 ```
 
 **Transformed JavaScript:**
+
 ```javascript
 // All URLs automatically routed through proxy
 import('https://proxy.example.com/modules/feature.js').then(module => {
@@ -501,6 +561,7 @@ window.location.href = 'https://proxy.example.com/dashboard';
 ```
 
 **Original CSS:**
+
 ```css
 /* Background images and imports */
 @import url('https://backend.original-site.com/fonts/roboto.css');
@@ -520,6 +581,7 @@ window.location.href = 'https://proxy.example.com/dashboard';
 ```
 
 **Transformed CSS:**
+
 ```css
 /* All URLs routed through proxy */
 @import url('https://proxy.example.com/fonts/roboto.css');
@@ -541,6 +603,7 @@ window.location.href = 'https://proxy.example.com/dashboard';
 ### Complex Example: Single Page Application with AJAX
 
 **Original SPA Content:**
+
 ```html
 <div id="app">
     <nav>
@@ -580,6 +643,7 @@ document.getElementById('contact-form').addEventListener('submit', (e) => {
 ```
 
 **Transformed SPA Content:**
+
 ```html
 <div id="app">
     <nav>
@@ -622,6 +686,7 @@ document.getElementById('contact-form').addEventListener('submit', (e) => {
 The transformation system preserves all URL functionality:
 
 **Query Parameters and Fragments:**
+
 ```html
 <!-- Original -->
 <a href="/search?q=javascript&page=2#results">Search Results</a>
@@ -633,6 +698,7 @@ The transformation system preserves all URL functionality:
 ```
 
 **Special URL Types:**
+
 ```html
 <!-- Data URLs (preserved unchanged) -->
 <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==">
@@ -648,6 +714,7 @@ The transformation system preserves all URL functionality:
 ### Performance and Caching
 
 **Configuration for Optimal Performance:**
+
 ```bash
 # Enable caching for better performance
 URL_TRANSFORM_CACHE_SIZE=10000
@@ -669,6 +736,7 @@ URL_TRANSFORM_DEBUG=false
 ```
 
 **Performance Metrics:**
+
 - URL detection: < 10ms for typical HTML pages
 - Content transformation: < 100ms for pages up to 1MB
 - Cache hit rate: > 90% for repeated content
@@ -677,12 +745,14 @@ URL_TRANSFORM_DEBUG=false
 ### Security Features
 
 **Automatic Security Validation:**
+
 - XSS prevention through URL validation
 - Content-type verification for transformed content
 - Input sanitization for URL parameters
 - Audit logging for security events
 
 **Example Security Handling:**
+
 ```html
 <!-- Malicious input (blocked) -->
 <script>location.href='javascript:alert("XSS")'</script>
@@ -694,6 +764,7 @@ URL_TRANSFORM_DEBUG=false
 ### Integration with Domain Routing
 
 **Combined with Path Rewriting:**
+
 ```bash
 # Enable both systems
 PATH_REWRITE_ENABLED=true
@@ -704,6 +775,7 @@ DOMAIN_PATH_MAPPING={"api.example.com": "/api", "cdn.example.com": "/static"}
 ```
 
 **Request Flow:**
+
 1. `api.example.com/users` → Path rewriting → `/api/users`
 2. Content fetched from backend with URLs like `https://backend.com/api/users`
 3. URL transformation → All URLs become `https://api.example.com/...`
@@ -712,12 +784,14 @@ DOMAIN_PATH_MAPPING={"api.example.com": "/api", "cdn.example.com": "/static"}
 ### Monitoring and Debugging
 
 **Available Metrics:**
+
 - `url_transform_attempts_total`: Total transformation attempts
 - `url_transform_cache_hits_total`: Cache hit statistics
 - `url_transform_duration_seconds`: Transformation latency
 - `url_transform_errors_total`: Transformation failures
 
 **Debug Information:**
+
 ```bash
 # Enable debug logging
 URL_TRANSFORM_DEBUG=true
@@ -744,6 +818,7 @@ curl -X DELETE http://localhost:3000/api/cache/url-transform
 ```
 
 **Get URL Transformation Cache Statistics:**
+
 ```bash
 # View detailed cache performance metrics
 curl http://localhost:3000/api/cache/url-transform/stats
@@ -772,12 +847,14 @@ curl http://localhost:3000/api/cache/url-transform/stats
 #### Automatic Cache Management
 
 **LRU Eviction:**
+
 - **Default maximum size**: 10,000 entries
 - **Configurable**: Set `URL_TRANSFORM_CACHE_SIZE` environment variable
 - **Automatic cleanup**: Removes oldest entries when cache reaches capacity
 - **Performance optimization**: Maintains optimal cache performance
 
 **Application Shutdown:**
+
 - **Graceful cleanup**: Cache automatically cleared during shutdown
 - **Resource management**: Prevents memory leaks and ensures clean exit
 - **Integration**: Fully integrated with existing shutdown procedures
@@ -785,6 +862,7 @@ curl http://localhost:3000/api/cache/url-transform/stats
 #### Cache Performance Monitoring
 
 **Production Monitoring:**
+
 ```bash
 # Monitor cache performance
 watch -n 5 'curl -s http://localhost:3000/api/cache/url-transform/stats | jq "{cacheHits: .cacheHits, cacheMisses: .cacheMisses, hitRate: (.cacheHits / (.cacheHits + .cacheMisses) * 100)}"'
@@ -798,6 +876,7 @@ fi
 ```
 
 **Performance Metrics:**
+
 - **Cache hit rate**: Target > 90% for optimal performance
 - **Memory usage**: < 50MB for transformation cache
 - **Transformation time**: < 100ms for typical content
@@ -806,6 +885,7 @@ fi
 #### Security and Access Control
 
 **Local Access Only:**
+
 - Cache management APIs restricted to localhost (127.0.0.1, ::1)
 - Same security model as existing cache management endpoints
 - Comprehensive error handling and logging
@@ -814,6 +894,7 @@ fi
 #### Integration with Existing Cache System
 
 **Unified Cache Management:**
+
 ```bash
 # Clear all caches
 curl -X DELETE http://localhost:3000/api/cache              # Main application cache
@@ -825,14 +906,17 @@ curl http://localhost:3000/api/cache/url-transform/stats    # URL transformation
 ```
 
 **Cache Key Strategy:**
+
 - **Main cache**: `{method}:{domain}:{path}:{headers}`
 - **URL transformation cache**: `{url}:{proxyHost}:{pathTransformation.target}`
 - **Isolation**: Separate cache namespaces prevent conflicts
 - **Efficiency**: Optimized key generation for fast lookups
 
-# View transformation logs
+## View transformation logs
+
 tail -f logs/app.log | grep "URL_TRANSFORM"
-```
+
+```bash
 
 - `docs.mysite.com/getting-started` →
   1. Path rewriting: `/getting-started` → `/documentation/getting-started`

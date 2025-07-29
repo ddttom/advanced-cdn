@@ -1,6 +1,6 @@
 // dashboard/dashboard-integration.js
 const DashboardAPI = require('./api/dashboard-api');
-const logger = require('../logger').getModuleLogger('dashboard-integration');
+const logger = require('../../logger').getModuleLogger('dashboard-integration');
 
 /**
  * Dashboard Integration Module

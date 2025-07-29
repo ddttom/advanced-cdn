@@ -1,5 +1,5 @@
 // path-rewriter.js
-const logger = require('./logger').getModuleLogger('path-rewriter');
+const logger = require('../logger').getModuleLogger('path-rewriter');
 
 /**
  * Path Rewriter Engine

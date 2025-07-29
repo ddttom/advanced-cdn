@@ -3,7 +3,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const APIDiscoveryService = require('./discovery');
-const logger = require('../../logger').getModuleLogger('dashboard-api');
+const logger = require('../../../logger').getModuleLogger('dashboard-api');
 
 /**
  * Dashboard API Router
