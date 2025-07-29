@@ -860,6 +860,7 @@ class PathRewriter {
   shutdown() {
     if (this.cacheCleanupInterval) {
       clearInterval(this.cacheCleanupInterval);
+      this.cacheCleanupInterval = null;
     }
     
     this.compiledRules.clear();

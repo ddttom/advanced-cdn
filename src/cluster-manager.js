@@ -111,10 +111,17 @@ function startCluster() {
     
     // Log memory usage periodically
     if (config.server.env === 'production') {
-      setInterval(() => {
+      const memoryLogInterval = setInterval(() => {
         const memUsage = process.memoryUsage();
         logger.info(`Master memory usage: ${Math.round(memUsage.rss / 1024 / 1024)}MB`);
       }, 5 * 60 * 1000); // Every 5 minutes
+      
+      // Clean up memory logging interval on shutdown
+      process.on('exit', () => {
+        if (memoryLogInterval) {
+          clearInterval(memoryLogInterval);
+        }
+      });
     }
   } else {
     // Worker process
@@ -129,8 +136,35 @@ function startCluster() {
         logger.info(`Worker ${process.env.NODE_APP_INSTANCE} received shutdown message`);
         
         // Gracefully close the server
-        server.close(() => {
+        server.close(async () => {
           logger.info(`Worker ${process.env.NODE_APP_INSTANCE} closed all connections`);
+          
+          // Cleanup resources before exiting
+          try {
+            // Import required modules for cleanup
+            const cacheManager = require('./cache/cache-manager');
+            const metricsManager = require('./monitoring/metrics-manager');
+            const domainManager = require('./domain/domain-manager');
+            
+            // Shutdown dashboard integration if it exists
+            if (global.dashboardIntegration) {
+              await global.dashboardIntegration.shutdown();
+            }
+            
+            // Shutdown domain manager (includes path rewriter)
+            if (domainManager.shutdown) {
+              domainManager.shutdown();
+            }
+            
+            // Shutdown other managers
+            cacheManager.shutdown();
+            metricsManager.shutdown();
+            
+            logger.info(`Worker ${process.env.NODE_APP_INSTANCE} cleanup completed`);
+          } catch (error) {
+            logger.error(`Worker ${process.env.NODE_APP_INSTANCE} cleanup error`, { error: error.message });
+          }
+          
           process.exit(0);
         });
         

@@ -612,6 +612,10 @@ class MetricsManager {
   shutdown() {
     if (this.metricsInterval) {
       clearInterval(this.metricsInterval);
+      this.metricsInterval = null;
+    }
+    if (this.register) {
+      this.register.clear();
     }
     logger.info('Metrics manager shutting down');
   }

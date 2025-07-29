@@ -1070,4 +1070,430 @@ URL_TRANSFORM_DEBUG=false
 - Health check integration
 - Error rate monitoring
 
-This architecture provides a robust, scalable, and maintainable foundation for both domain-to-path prefix mapping, cascading file resolution, and comprehensive URL transformation in a CDN context, with comprehensive monitoring, error handling, and performance optimization capabilities. The recent fixes ensure browser compatibility and system stability while maintaining the core architectural principles.
+## Resource Management and Memory Leak Prevention
+
+The CDN application implements comprehensive resource management and cleanup procedures to prevent memory leaks and ensure production stability. This section documents the architectural approaches to resource management.
+
+### 1. Interval and Timer Management Architecture
+
+**Problem**: Multiple components use `setInterval()` for periodic tasks, which can cause memory leaks if not properly cleaned up during shutdown.
+
+**Solution**: Implemented a standardized resource cleanup pattern across all components.
+
+#### Affected Components and Intervals
+
+```javascript
+// Component interval mapping
+const componentIntervals = {
+  'PathRewriter': {
+    interval: 'cacheCleanupInterval',
+    frequency: '5 minutes',
+    purpose: 'Cache cleanup and maintenance'
+  },
+  'CacheManager': {
+    interval: 'statsInterval', 
+    frequency: '5 minutes',
+    purpose: 'Statistics logging'
+  },
+  'MetricsManager': {
+    interval: 'metricsInterval',
+    frequency: '15 seconds', 
+    purpose: 'System metrics collection'
+  },
+  'APIDiscoveryService': {
+    interval: 'scanIntervalId',
+    frequency: '5 minutes',
+    purpose: 'API endpoint discovery'
+  },
+  'DashboardIntegration': {
+    interval: 'scanIntervalId',
+    frequency: '5 minutes',
+    purpose: 'Dashboard API scanning'
+  },
+  'ClusterManager': {
+    interval: 'memoryLogInterval',
+    frequency: '5 minutes',
+    purpose: 'Memory usage logging'
+  }
+};
+```
+
+#### Standardized Cleanup Pattern
+
+```javascript
+// Standard resource cleanup implementation
+class ResourceManager {
+  constructor() {
+    this.intervals = new Map();
+    this.resources = new Set();
+  }
+  
+  // Register interval for cleanup
+  registerInterval(name, intervalId) {
+    this.intervals.set(name, intervalId);
+  }
+  
+  // Register resource for cleanup
+  registerResource(resource) {
+    if (resource && typeof resource.shutdown === 'function') {
+      this.resources.add(resource);
+    }
+  }
+  
+  // Cleanup all resources
+  async shutdown() {
+    // Clear all intervals
+    for (const [name, intervalId] of this.intervals) {
+      if (intervalId) {
+        clearInterval(intervalId);
+        this.intervals.set(name, null);
+      }
+    }
+    
+    // Shutdown all resources
+    const shutdownPromises = Array.from(this.resources).map(async (resource) => {
+      try {
+        await resource.shutdown();
+      } catch (error) {
+        console.error('Resource shutdown error:', error);
+      }
+    });
+    
+    await Promise.all(shutdownPromises);
+  }
+}
+```
+
+### 2. Graceful Shutdown Architecture
+
+#### Master Process Shutdown Sequence
+
+```mermaid
+graph TD
+    A[SIGTERM/SIGINT Received] --> B[Stop Accepting New Connections]
+    B --> C[Signal All Workers to Shutdown]
+    C --> D[Wait for Worker Cleanup]
+    D --> E[Force Kill After Timeout]
+    E --> F[Master Process Exit]
+    
+    C --> G[Worker: Close Server]
+    G --> H[Worker: Cleanup Resources]
+    H --> I[Worker: Process Exit]
+```
+
+#### Worker Process Cleanup Sequence
+
+```javascript
+// Worker shutdown sequence
+const workerShutdownSequence = [
+  'Stop accepting new requests',
+  'Close HTTP server',
+  'Shutdown dashboard integration',
+  'Shutdown domain manager (includes path rewriter)',
+  'Shutdown cache manager', 
+  'Shutdown metrics manager',
+  'Clear remaining intervals',
+  'Process exit'
+];
+```
+
+### 3. Component-Level Resource Management
+
+#### PathRewriter Resource Management
+
+```javascript
+class PathRewriter {
+  constructor(config) {
+    // Store interval ID for cleanup
+    this.cacheCleanupInterval = setInterval(() => {
+      this.cleanupCache();
+    }, 5 * 60 * 1000);
+    
+    // Initialize data structures
+    this.compiledRules = new Map();
+    this.domainCache = new Map();
+    this.errorRates = new Map();
+    this.circuitBreakers = new Map();
+    this.performanceMonitor = new Map();
+  }
+  
+  shutdown() {
+    // Critical: Clear interval and null reference
+    if (this.cacheCleanupInterval) {
+      clearInterval(this.cacheCleanupInterval);
+      this.cacheCleanupInterval = null;
+    }
+    
+    // Clear all data structures
+    this.compiledRules.clear();
+    this.domainCache.clear();
+    this.errorRates.clear();
+    this.circuitBreakers.clear();
+    this.performanceMonitor.clear();
+  }
+}
+```
+
+#### CacheManager Resource Management
+
+```javascript
+class CacheManager {
+  constructor() {
+    this.statsInterval = setInterval(() => {
+      if (config.server.env === 'production') {
+        this.logStats();
+      }
+    }, 5 * 60 * 1000);
+  }
+  
+  shutdown() {
+    if (this.statsInterval) {
+      clearInterval(this.statsInterval);
+      this.statsInterval = null;
+    }
+    // Clear cache data
+    this.cache.flushAll();
+  }
+}
+```
+
+#### MetricsManager Resource Management
+
+```javascript
+class MetricsManager {
+  constructor() {
+    this.metricsInterval = setInterval(() => {
+      this.collectSystemMetrics();
+      this.collectCacheMetrics();
+      this.collectDomainCacheMetrics();
+      this.collectFileResolutionMetrics();
+    }, 15000);
+  }
+  
+  shutdown() {
+    if (this.metricsInterval) {
+      clearInterval(this.metricsInterval);
+      this.metricsInterval = null;
+    }
+    if (this.register) {
+      this.register.clear();
+    }
+  }
+}
+```
+
+### 4. Memory Leak Prevention Strategies
+
+#### Detection and Monitoring
+
+```javascript
+// Memory leak detection architecture
+class MemoryLeakDetector {
+  constructor(options = {}) {
+    this.baselineMemory = process.memoryUsage();
+    this.memoryHistory = [];
+    this.alertThreshold = options.threshold || 100 * 1024 * 1024; // 100MB
+    this.monitoringInterval = options.interval || 30000; // 30 seconds
+    
+    this.startMonitoring();
+  }
+  
+  startMonitoring() {
+    this.monitoringIntervalId = setInterval(() => {
+      this.checkMemoryUsage();
+    }, this.monitoringInterval);
+  }
+  
+  checkMemoryUsage() {
+    const currentMemory = process.memoryUsage();
+    const memoryIncrease = currentMemory.heapUsed - this.baselineMemory.heapUsed;
+    
+    this.memoryHistory.push({
+      timestamp: Date.now(),
+      heapUsed: currentMemory.heapUsed,
+      increase: memoryIncrease
+    });
+    
+    // Keep only last 100 readings
+    if (this.memoryHistory.length > 100) {
+      this.memoryHistory.shift();
+    }
+    
+    // Check for sustained memory increase
+    if (memoryIncrease > this.alertThreshold) {
+      this.alertMemoryLeak(memoryIncrease);
+    }
+  }
+  
+  shutdown() {
+    if (this.monitoringIntervalId) {
+      clearInterval(this.monitoringIntervalId);
+      this.monitoringIntervalId = null;
+    }
+  }
+}
+```
+
+#### Prevention Patterns
+
+```javascript
+// Anti-patterns to avoid
+const memoryLeakAntiPatterns = {
+  UNCLEANED_INTERVALS: {
+    bad: `setInterval(() => { /* task */ }, 1000);`,
+    good: `
+      this.intervalId = setInterval(() => { /* task */ }, 1000);
+      // Later in shutdown:
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    `
+  },
+  UNCLEANED_LISTENERS: {
+    bad: `process.on('SIGTERM', handler);`,
+    good: `
+      process.on('SIGTERM', handler);
+      // Later in shutdown:
+      process.removeListener('SIGTERM', handler);
+    `
+  },
+  CIRCULAR_REFERENCES: {
+    bad: `obj1.ref = obj2; obj2.ref = obj1;`,
+    good: `
+      obj1.ref = obj2;
+      // Later in cleanup:
+      obj1.ref = null;
+    `
+  }
+};
+```
+
+### 5. Testing and Validation Architecture
+
+#### Unit Test Structure
+
+```javascript
+// Memory leak test architecture
+describe('Memory Leak Prevention Tests', () => {
+  describe('Interval Cleanup', () => {
+    test('PathRewriter clears intervals on shutdown', () => {
+      const pathRewriter = new PathRewriter();
+      expect(pathRewriter.cacheCleanupInterval).toBeDefined();
+      
+      pathRewriter.shutdown();
+      
+      expect(pathRewriter.cacheCleanupInterval).toBeNull();
+    });
+    
+    test('Multiple create/destroy cycles show no memory growth', () => {
+      const initialMemory = process.memoryUsage().heapUsed;
+      
+      for (let i = 0; i < 100; i++) {
+        const instance = new PathRewriter();
+        instance.shutdown();
+      }
+      
+      if (global.gc) global.gc();
+      
+      const finalMemory = process.memoryUsage().heapUsed;
+      const increase = finalMemory - initialMemory;
+      
+      expect(increase).toBeLessThan(10 * 1024 * 1024); // < 10MB
+    });
+  });
+});
+```
+
+#### Integration Test Architecture
+
+```javascript
+// Integration test for memory stability
+class MemoryStabilityTest {
+  async runLoadTest(duration = 60000, requestsPerSecond = 10) {
+    const initialMemory = process.memoryUsage();
+    const startTime = Date.now();
+    
+    const intervalId = setInterval(async () => {
+      // Simulate requests
+      await this.simulateRequest();
+    }, 1000 / requestsPerSecond);
+    
+    // Wait for test duration
+    await new Promise(resolve => setTimeout(resolve, duration));
+    clearInterval(intervalId);
+    
+    // Force garbage collection
+    if (global.gc) global.gc();
+    
+    const finalMemory = process.memoryUsage();
+    const memoryIncrease = finalMemory.heapUsed - initialMemory.heapUsed;
+    
+    return {
+      duration,
+      initialMemory: initialMemory.heapUsed,
+      finalMemory: finalMemory.heapUsed,
+      memoryIncrease,
+      memoryIncreasePercentage: (memoryIncrease / initialMemory.heapUsed) * 100
+    };
+  }
+}
+```
+
+### 6. Production Deployment Considerations
+
+#### Monitoring and Alerting
+
+```javascript
+// Production monitoring configuration
+const productionMonitoring = {
+  memoryAlerts: {
+    warningThreshold: 512 * 1024 * 1024,  // 512MB
+    criticalThreshold: 1024 * 1024 * 1024, // 1GB
+    checkInterval: 30000 // 30 seconds
+  },
+  
+  resourceAlerts: {
+    intervalLeakDetection: true,
+    openHandleMonitoring: true,
+    eventListenerTracking: true
+  },
+  
+  healthChecks: {
+    memoryUsageTrend: true,
+    resourceCleanupVerification: true,
+    shutdownTimeoutMonitoring: true
+  }
+};
+```
+
+#### Deployment Scripts
+
+```bash
+# Production deployment with memory monitoring
+#!/bin/bash
+
+# Enable Node.js memory monitoring
+export NODE_OPTIONS="--max-old-space-size=2048 --trace-warnings"
+
+# Enable application memory monitoring
+export MEMORY_MONITORING_ENABLED=true
+export MEMORY_ALERT_THRESHOLD=1073741824  # 1GB
+
+# Enable graceful shutdown
+export GRACEFUL_SHUTDOWN_ENABLED=true
+export SHUTDOWN_TIMEOUT=30000
+
+# Start application with monitoring
+node src/cluster-manager.js &
+APP_PID=$!
+
+# Monitor memory usage
+while kill -0 $APP_PID 2>/dev/null; do
+  MEMORY_USAGE=$(ps -p $APP_PID -o rss= | tr -d ' ')
+  if [ "$MEMORY_USAGE" -gt 1048576 ]; then  # 1GB in KB
+    echo "WARNING: High memory usage detected: ${MEMORY_USAGE}KB"
+  fi
+  sleep 30
+done
+```
+
+This architecture provides a robust, scalable, and maintainable foundation for both domain-to-path prefix mapping, cascading file resolution, and comprehensive URL transformation in a CDN context, with comprehensive monitoring, error handling, performance optimization capabilities, and critical memory leak prevention measures. The recent fixes ensure browser compatibility and system stability while maintaining the core architectural principles and preventing production memory issues.

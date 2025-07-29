@@ -911,6 +911,53 @@ The application validates configuration on startup and will:
 - Warn about invalid configurations
 - Exit if critical settings are invalid
 
+## Memory Management Configuration
+
+The application includes comprehensive memory leak prevention and resource cleanup capabilities. These settings help ensure optimal memory usage in production environments.
+
+### Resource Cleanup Configuration
+
+```bash
+# Enable automatic resource cleanup on shutdown
+GRACEFUL_SHUTDOWN_ENABLED=true
+GRACEFUL_SHUTDOWN_TIMEOUT=30000    # Timeout for graceful shutdown in milliseconds
+
+# Memory leak prevention
+CLEANUP_INTERVALS_ON_SHUTDOWN=true # Clear all setInterval timers on shutdown
+CLEANUP_CACHES_ON_SHUTDOWN=true    # Flush caches during shutdown
+CLEANUP_METRICS_ON_SHUTDOWN=true   # Clear metrics registries on shutdown
+
+# Memory monitoring
+MEMORY_MONITORING_ENABLED=true     # Enable memory usage monitoring
+MEMORY_LOG_INTERVAL=60000          # Log memory usage every minute
+MEMORY_WARNING_THRESHOLD=80        # Warn when memory usage exceeds 80%
+MEMORY_CRITICAL_THRESHOLD=95       # Critical alert when memory usage exceeds 95%
+```
+
+### Cleanup Behavior
+
+The application automatically performs the following cleanup operations during shutdown:
+
+- **Interval Cleanup**: All `setInterval` timers are cleared and nullified
+- **Cache Cleanup**: All cache stores are flushed and cleared
+- **Metrics Cleanup**: Prometheus metrics registries are cleared
+- **Connection Cleanup**: HTTP agents and connection pools are destroyed
+- **Worker Cleanup**: In cluster mode, all workers are gracefully terminated
+
+### Memory Monitoring
+
+Enable memory monitoring to detect potential memory leaks:
+
+```bash
+# Development monitoring (more verbose)
+MEMORY_MONITORING_DETAILED=true   # Include detailed memory breakdowns
+MEMORY_MONITORING_INTERVAL=30000  # Check memory every 30 seconds in development
+
+# Production monitoring (optimized)
+MEMORY_MONITORING_DETAILED=false  # Basic memory stats only
+MEMORY_MONITORING_INTERVAL=300000 # Check memory every 5 minutes in production
+```
+
 ## Troubleshooting
 
 ### Common Issues
@@ -919,6 +966,37 @@ The application validates configuration on startup and will:
 2. **SSL Errors**: Verify certificate paths and permissions
 3. **Performance Issues**: Adjust `CLUSTER_WORKERS` and cache settings
 4. **Memory Usage**: Reduce `CACHE_MAX_ITEMS` if memory is limited
+5. **Memory Leaks**: Enable memory monitoring and check cleanup procedures
+6. **Resource Cleanup**: Ensure graceful shutdown is working properly
+
+### Memory Leak Troubleshooting
+
+If experiencing memory leaks or high memory usage:
+
+```bash
+# Enable comprehensive memory debugging
+LOG_LEVEL=debug
+MEMORY_MONITORING_ENABLED=true
+MEMORY_MONITORING_DETAILED=true
+MEMORY_MONITORING_INTERVAL=10000
+
+# Enable cleanup logging
+CLEANUP_LOGGING_ENABLED=true
+SHUTDOWN_LOGGING_ENABLED=true
+```
+
+**Memory Leak Indicators:**
+- Continuously increasing memory usage over time
+- Memory not being released after periods of low activity
+- High memory usage despite cache limits
+- Process crashes due to out-of-memory errors
+
+**Debug Steps:**
+1. Enable memory monitoring and observe usage patterns
+2. Check logs for cleanup operations during shutdown
+3. Monitor interval and cache cleanup in the logs
+4. Use development tools to profile memory usage
+5. Verify all intervals are properly cleared on shutdown
 
 ### Debug Mode
 
@@ -932,6 +1010,9 @@ LOG_TO_CONSOLE=true
 This will provide detailed information about:
 
 - Request routing
-- Cache operations
+- Cache operations  
 - Domain validation
 - Backend communication
+- Memory usage patterns
+- Resource cleanup operations
+- Interval management
