@@ -1,7 +1,7 @@
 // dashboard/api/discovery.js
 const fs = require('fs');
 const path = require('path');
-const logger = require('../../../logger').getModuleLogger('dashboard-discovery');
+const logger = require('../../logger').getModuleLogger('dashboard-discovery');
 
 /**
  * API Discovery Service
@@ -298,7 +298,7 @@ class APIDiscoveryService {
     this.scanForEndpoints();
     
     // Periodic scans
-    setInterval(() => {
+    this.scanIntervalId = setInterval(() => {
       this.scanForEndpoints();
     }, this.scanInterval);
   }
@@ -319,6 +319,18 @@ class APIDiscoveryService {
     });
 
     return stats;
+  }
+
+  /**
+   * Shutdown and cleanup resources
+   */
+  shutdown() {
+    if (this.scanIntervalId) {
+      clearInterval(this.scanIntervalId);
+      this.scanIntervalId = null;
+    }
+    this.endpoints.clear();
+    logger.info('API Discovery Service shutdown complete');
   }
 }
 

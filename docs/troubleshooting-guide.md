@@ -592,6 +592,9 @@ curl -X POST http://localhost:3000/api/domains/reload
 # Clear all caches
 curl -X DELETE http://localhost:3000/api/cache
 
+# Check for memory leaks
+curl -X GET http://localhost:3000/health | jq '.system.memory'
+
 # Restart with increased memory
 export NODE_OPTIONS="--max-old-space-size=4096"
 # Restart application
@@ -672,6 +675,527 @@ When contacting support, include:
 - Configuration details
 - Steps to reproduce the issue
 - Expected vs actual behavior
+
+## Memory Leak Troubleshooting
+
+Memory leaks can cause the application to consume increasing amounts of memory over time, leading to performance degradation and eventual crashes. This section covers detection, diagnosis, and prevention of memory leaks.
+
+### Quick Memory Leak Diagnostic Checklist
+
+Before diving into specific memory issues, run through this checklist:
+
+1. **Check Memory Usage Trends**
+
+   ```bash
+   # Monitor memory usage over time
+   while true; do
+     curl -s http://localhost:3000/health | jq '.system.memory.heapUsed'
+     sleep 30
+   done
+   ```
+
+2. **Check for Dangling Intervals**
+
+   ```bash
+   # Check for interval cleanup warnings in logs
+   grep -i "interval.*not.*cleared\|memory.*leak" logs/error.log
+   ```
+
+3. **Test Graceful Shutdown**
+
+   ```bash
+   # Send SIGTERM and check if cleanup occurs properly
+   kill -TERM $(pgrep -f "node.*cluster-manager")
+   grep "shutdown" logs/app.log | tail -10
+   ```
+
+4. **Check Active Handles**
+
+   ```bash
+   # Enable handle monitoring (requires restart with debug flag)
+   export NODE_OPTIONS="--trace-warnings"
+   ```
+
+### Common Memory Leak Issues
+
+#### 1. Interval Timer Memory Leaks
+
+**Symptoms:**
+
+- Memory usage continuously increases over time
+- Application becomes slower over hours/days of operation
+- High number of active timers in process
+
+**Diagnostic Steps:**
+
+```bash
+# Check if intervals are being cleared properly
+grep "shutting down" logs/app.log
+
+# Look for cleanup completion messages
+grep -E "(cleanup.*completed|resources.*cleaned)" logs/app.log
+
+# Check for worker process cleanup
+grep "Worker.*cleanup" logs/app.log | tail -5
+```
+
+**Common Causes and Solutions:**
+
+##### Cause 1: Intervals Not Cleared on Shutdown
+
+```bash
+# Check if graceful shutdown is working
+ps aux | grep node
+kill -TERM <pid>
+# Should see shutdown messages in logs
+
+# If shutdown hangs, intervals may not be cleared
+# Force restart if necessary:
+kill -KILL <pid>
+```
+
+##### Cause 2: Worker Process Cleanup Issues
+
+```bash
+# Check cluster worker cleanup
+grep "Worker.*shutdown" logs/app.log
+
+# If workers don't clean up properly, restart cluster manager:
+pm2 restart cluster-manager
+# OR
+systemctl restart cdn-service
+```
+
+##### Cause 3: Dashboard Integration Intervals
+
+```bash
+# Check dashboard integration cleanup
+grep "Dashboard.*shutdown" logs/app.log
+
+# If dashboard intervals persist:
+curl -X POST http://localhost:3000/api/dashboard/shutdown
+```
+
+**Prevention and Fix:**
+
+```bash
+# Ensure proper shutdown handling is enabled
+export GRACEFUL_SHUTDOWN_ENABLED=true
+export SHUTDOWN_TIMEOUT=30000
+
+# Enable cleanup logging
+export LOG_LEVEL=info
+export SHUTDOWN_LOG_ENABLED=true
+
+# Regular restart schedule (preventive)
+# Add to crontab for daily restart:
+# 0 2 * * * systemctl restart cdn-service
+```
+
+#### 2. Cache Memory Accumulation
+
+**Symptoms:**
+
+- Memory usage increases with traffic volume
+- Cache hit rates are low despite high traffic
+- Memory doesn't decrease during low traffic periods
+
+**Diagnostic Steps:**
+
+```bash
+# Check cache memory usage
+curl -s http://localhost:3000/api/cache/stats | jq '.keys, .memoryUsage'
+
+# Check cache configuration
+echo $CACHE_MAX_ITEMS
+echo $CACHE_DEFAULT_TTL
+
+# Monitor cache cleanup
+grep "cache.*cleanup\|cache.*expired" logs/app.log
+```
+
+**Common Causes and Solutions:**
+
+##### Cause 1: Cache Size Too Large
+
+```bash
+# Check current cache size
+curl -s http://localhost:3000/api/cache/stats | jq '.keys'
+
+# Solution: Reduce cache size
+export CACHE_MAX_ITEMS=5000
+export PATH_REWRITE_CACHE_SIZE=5000
+# Restart application
+```
+
+##### Cause 2: TTL Too Long
+
+```bash
+# Check TTL configuration
+echo $CACHE_DEFAULT_TTL
+echo $CACHE_MAX_TTL
+
+# Solution: Reduce TTL
+export CACHE_DEFAULT_TTL=300    # 5 minutes
+export CACHE_MAX_TTL=1800      # 30 minutes
+```
+
+##### Cause 3: Cache Cleanup Not Running
+
+```bash
+# Force cache cleanup
+curl -X DELETE http://localhost:3000/api/cache
+
+# Check if automatic cleanup is working
+grep "cache.*cleanup" logs/app.log | tail -5
+```
+
+#### 3. Event Listener Memory Leaks
+
+**Symptoms:**
+
+- Memory increases when handling many requests
+- High number of event listeners in process
+- Warning messages about MaxListenersExceededWarning
+
+**Diagnostic Steps:**
+
+```bash
+# Enable event listener warnings
+export NODE_OPTIONS="--trace-warnings --max-old-space-size=2048"
+
+# Check for listener warnings in logs
+grep -i "MaxListenersExceededWarning\|listener.*leak" logs/error.log
+
+# Monitor event listener count
+node -e "console.log(process.listenerCount('uncaughtException'))"
+```
+
+**Common Causes and Solutions:**
+
+##### Cause 1: Request Handlers Not Cleaned Up
+
+```bash
+# Check for request cleanup warnings
+grep "request.*cleanup\|response.*cleanup" logs/app.log
+
+# Solution: Ensure proper request/response cleanup in middleware
+# Check middleware configuration
+echo $REQUEST_CLEANUP_ENABLED
+```
+
+##### Cause 2: WebSocket Connection Leaks
+
+```bash
+# If using WebSockets, check connection count
+curl -s http://localhost:3000/health | jq '.connections'
+
+# Solution: Implement connection cleanup
+export WEBSOCKET_CLEANUP_ENABLED=true
+export WEBSOCKET_TIMEOUT=300000
+```
+
+#### 4. File Descriptor Leaks
+
+**Symptoms:**
+
+- "Too many open files" errors
+- High number of file descriptors in use
+- Application crashes after running for extended periods
+
+**Diagnostic Steps:**
+
+```bash
+# Check open file descriptors
+lsof -p $(pgrep -f "node.*cluster-manager") | wc -l
+
+# Check file descriptor limits
+ulimit -n
+
+# Monitor file descriptor usage
+watch "lsof -p $(pgrep -f node) | wc -l"
+```
+
+**Common Causes and Solutions:**
+
+##### Cause 1: HTTP Connections Not Closed
+
+```bash
+# Check for connection cleanup
+grep "connection.*close\|socket.*cleanup" logs/app.log
+
+# Solution: Ensure proper connection cleanup
+export HTTP_KEEP_ALIVE_TIMEOUT=5000
+export HTTP_MAX_SOCKETS=100
+```
+
+##### Cause 2: File Handles Not Released
+
+```bash
+# Check for file operation warnings
+grep "file.*not.*closed\|EMFILE" logs/error.log
+
+# Solution: Increase limits and ensure file cleanup
+ulimit -n 65536
+export FILE_CLEANUP_ENABLED=true
+```
+
+### Memory Leak Detection Tools
+
+#### 1. Memory Monitoring Commands
+
+```bash
+# Continuous memory monitoring
+monitor_memory() {
+  echo "timestamp,heapUsed,heapTotal,rss" > memory.log
+  while true; do
+    local timestamp=$(date +%s)
+    local memory=$(curl -s http://localhost:3000/health | jq -r '.system.memory | "\(.heapUsed),\(.heapTotal),\(.rss)"')
+    echo "$timestamp,$memory" >> memory.log
+    sleep 60
+  done
+}
+
+monitor_memory &
+```
+
+#### 2. Memory Leak Testing
+
+```bash
+# Memory leak stress test
+stress_test_memory() {
+  echo "Running memory leak stress test..."
+  
+  # Record initial memory
+  local initial_memory=$(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')
+  echo "Initial memory: $initial_memory bytes"
+  
+  # Generate load
+  for i in {1..1000}; do
+    curl -s -H "Host: ddt.com" http://localhost:3000/test > /dev/null
+    if [ $((i % 100)) -eq 0 ]; then
+      local current_memory=$(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')
+      echo "Memory after $i requests: $current_memory bytes"
+    fi
+  done
+  
+  # Wait for potential cleanup
+  sleep 30
+  
+  # Record final memory
+  local final_memory=$(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')
+  echo "Final memory: $final_memory bytes"
+  
+  local increase=$((final_memory - initial_memory))
+  echo "Memory increase: $increase bytes"
+  
+  if [ $increase -gt 50000000 ]; then  # 50MB
+    echo "⚠️  Potential memory leak detected!"
+  else
+    echo "✅ Memory usage appears stable"
+  fi
+}
+
+stress_test_memory
+```
+
+#### 3. Heap Dump Analysis
+
+```bash
+# Generate heap dump (requires --inspect flag)
+kill -USR2 $(pgrep -f "node.*cluster-manager")
+
+# Or use Node.js built-in
+node -e "require('v8').writeHeapSnapshot('heap-$(date +%s).heapsnapshot')"
+
+# Analyze with Chrome DevTools or clinic.js
+npm install -g clinic
+clinic doctor -- node src/cluster-manager.js
+```
+
+### Memory Leak Prevention Strategies
+
+#### 1. Configuration Best Practices
+
+```bash
+# Memory management configuration
+export NODE_OPTIONS="--max-old-space-size=2048 --gc-interval=100 --expose-gc"
+
+# Cache limits
+export CACHE_MAX_ITEMS=5000
+export CACHE_DEFAULT_TTL=300
+export CACHE_CLEANUP_INTERVAL=60000
+
+# Resource cleanup settings
+export GRACEFUL_SHUTDOWN_ENABLED=true
+export SHUTDOWN_TIMEOUT=30000
+export RESOURCE_CLEANUP_ENABLED=true
+
+# Monitoring and alerting
+export MEMORY_MONITORING_ENABLED=true
+export MEMORY_ALERT_THRESHOLD=1073741824  # 1GB
+export MEMORY_CHECK_INTERVAL=60000
+```
+
+#### 2. Monitoring and Alerting
+
+```bash
+# Set up memory monitoring alerts
+cat > memory-alert.sh << 'EOF'
+#!/bin/bash
+
+THRESHOLD=1073741824  # 1GB in bytes
+CURRENT_MEMORY=$(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')
+
+if [ "$CURRENT_MEMORY" -gt "$THRESHOLD" ]; then
+  echo "ALERT: Memory usage exceeds threshold"
+  echo "Current: $(echo "$CURRENT_MEMORY / 1024 / 1024" | bc)MB"
+  echo "Threshold: $(echo "$THRESHOLD / 1024 / 1024" | bc)MB"
+  
+  # Optional: automatic restart
+  # systemctl restart cdn-service
+fi
+EOF
+
+chmod +x memory-alert.sh
+
+# Add to crontab for regular monitoring
+# */5 * * * * /path/to/memory-alert.sh
+```
+
+#### 3. Regular Maintenance
+
+```bash
+# Create memory maintenance script
+cat > memory-maintenance.sh << 'EOF'
+#!/bin/bash
+
+echo "Running memory maintenance..."
+
+# Check current memory usage
+CURRENT_MEMORY=$(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')
+echo "Current memory usage: $(echo "$CURRENT_MEMORY / 1024 / 1024" | bc)MB"
+
+# Clear caches
+echo "Clearing caches..."
+curl -s -X DELETE http://localhost:3000/api/cache > /dev/null
+curl -s -X DELETE http://localhost:3000/api/cache/url-transform > /dev/null
+
+# Check memory after cleanup
+sleep 5
+NEW_MEMORY=$(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')
+echo "Memory after cleanup: $(echo "$NEW_MEMORY / 1024 / 1024" | bc)MB"
+
+SAVED=$((CURRENT_MEMORY - NEW_MEMORY))
+echo "Memory saved: $(echo "$SAVED / 1024 / 1024" | bc)MB"
+
+# Force garbage collection if available
+if command -v node >/dev/null 2>&1; then
+  node -e "if (global.gc) { global.gc(); console.log('Garbage collection triggered'); }"
+fi
+
+echo "Memory maintenance completed"
+EOF
+
+chmod +x memory-maintenance.sh
+```
+
+### Memory Leak Emergency Procedures
+
+#### 1. Immediate Memory Relief
+
+```bash
+# Clear all caches immediately
+curl -X DELETE http://localhost:3000/api/cache
+curl -X DELETE http://localhost:3000/api/cache/url-transform
+curl -X DELETE http://localhost:3000/api/file-resolution/cache
+
+# Force garbage collection if possible
+kill -USR2 $(pgrep -f "node.*cluster-manager")
+```
+
+#### 2. Graceful Service Restart
+
+```bash
+# Graceful restart to clear memory leaks
+echo "Initiating graceful restart..."
+
+# Send SIGTERM for graceful shutdown
+kill -TERM $(pgrep -f "node.*cluster-manager")
+
+# Wait for graceful shutdown
+sleep 30
+
+# Check if process stopped
+if pgrep -f "node.*cluster-manager" > /dev/null; then
+  echo "Graceful shutdown failed, forcing stop..."
+  kill -KILL $(pgrep -f "node.*cluster-manager")
+fi
+
+# Restart service
+systemctl start cdn-service
+# OR
+pm2 start cluster-manager
+
+echo "Service restarted"
+```
+
+#### 3. Memory Diagnostic Collection
+
+```bash
+# Collect memory diagnostic information
+cat > collect-memory-diagnostics.sh << 'EOF'
+#!/bin/bash
+
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+REPORT_DIR="memory-diagnostics-$TIMESTAMP"
+mkdir -p "$REPORT_DIR"
+
+echo "Collecting memory diagnostics to $REPORT_DIR..."
+
+# System memory info
+echo "=== System Memory ===" > "$REPORT_DIR/system-memory.txt"
+free -h >> "$REPORT_DIR/system-memory.txt"
+
+# Process memory info
+echo "=== Process Memory ===" > "$REPORT_DIR/process-memory.txt"
+ps aux | grep node >> "$REPORT_DIR/process-memory.txt"
+
+# Application memory info
+echo "=== Application Memory ===" > "$REPORT_DIR/app-memory.txt"
+curl -s http://localhost:3000/health | jq '.system.memory' >> "$REPORT_DIR/app-memory.txt"
+
+# Cache statistics
+echo "=== Cache Statistics ===" > "$REPORT_DIR/cache-stats.txt"
+curl -s http://localhost:3000/api/cache/stats >> "$REPORT_DIR/cache-stats.txt"
+
+# Open file descriptors
+echo "=== File Descriptors ===" > "$REPORT_DIR/file-descriptors.txt"
+lsof -p $(pgrep -f node) >> "$REPORT_DIR/file-descriptors.txt" 2>/dev/null
+
+# Network connections
+echo "=== Network Connections ===" > "$REPORT_DIR/network-connections.txt"
+netstat -tulpn | grep node >> "$REPORT_DIR/network-connections.txt"
+
+# Recent logs
+echo "=== Recent Error Logs ===" > "$REPORT_DIR/recent-errors.txt"
+grep -i "error\|warning\|memory\|leak" logs/error.log | tail -50 >> "$REPORT_DIR/recent-errors.txt"
+
+# Generate heap snapshot if possible
+if command -v node >/dev/null 2>&1; then
+  echo "Generating heap snapshot..."
+  node -e "require('v8').writeHeapSnapshot('$REPORT_DIR/heap-snapshot.heapsnapshot')" 2>/dev/null || echo "Could not generate heap snapshot"
+fi
+
+echo "Diagnostics collected in $REPORT_DIR/"
+tar -czf "$REPORT_DIR.tar.gz" "$REPORT_DIR"
+echo "Archive created: $REPORT_DIR.tar.gz"
+EOF
+
+chmod +x collect-memory-diagnostics.sh
+```
+
+This comprehensive memory leak troubleshooting section provides tools and procedures to detect, diagnose, and prevent memory leaks in the CDN application, with specific focus on the interval cleanup fixes that were implemented.
 
 ## File Resolution Troubleshooting
 

@@ -817,6 +817,436 @@ async function memoryStressTest() {
 }
 ```
 
+## Graceful Shutdown and Resource Cleanup
+
+Proper resource cleanup is critical for maintaining performance in production environments and preventing memory leaks that can degrade performance over time.
+
+### 1. Interval and Timer Cleanup
+
+The CDN application uses several intervals for periodic tasks that must be properly cleaned up to prevent memory leaks:
+
+```javascript
+// Example of proper interval cleanup in PathRewriter
+class PathRewriter {
+  constructor(config) {
+    this.cacheCleanupInterval = setInterval(() => {
+      this.cleanupCache();
+    }, 5 * 60 * 1000); // Every 5 minutes
+  }
+  
+  shutdown() {
+    // Critical: Clear interval and null the reference
+    if (this.cacheCleanupInterval) {
+      clearInterval(this.cacheCleanupInterval);
+      this.cacheCleanupInterval = null;
+    }
+    
+    // Clear other resources
+    this.compiledRules.clear();
+    this.domainCache.clear();
+    this.errorRates.clear();
+    this.circuitBreakers.clear();
+    this.performanceMonitor.clear();
+  }
+}
+```
+
+### 2. Memory Leak Prevention Strategies
+
+#### Identify Common Memory Leak Sources
+
+```javascript
+// Common memory leak patterns to avoid:
+
+// ❌ Bad: Interval not cleared
+setInterval(() => {
+  // Periodic task
+}, 1000);
+
+// ✅ Good: Interval properly managed
+this.intervalId = setInterval(() => {
+  // Periodic task
+}, 1000);
+
+shutdown() {
+  if (this.intervalId) {
+    clearInterval(this.intervalId);
+    this.intervalId = null;
+  }
+}
+
+// ❌ Bad: Event listeners not removed
+process.on('SIGTERM', handler);
+
+// ✅ Good: Event listeners properly managed
+this.handlers = new Map();
+const handler = () => { /* cleanup */ };
+this.handlers.set('SIGTERM', handler);
+process.on('SIGTERM', handler);
+
+shutdown() {
+  for (const [event, handler] of this.handlers) {
+    process.removeListener(event, handler);
+  }
+  this.handlers.clear();
+}
+```
+
+#### Memory Monitoring and Alerting
+
+```javascript
+// Memory monitoring utility
+class MemoryMonitor {
+  constructor(options = {}) {
+    this.threshold = options.threshold || 1024 * 1024 * 1024; // 1GB
+    this.checkInterval = options.checkInterval || 60000; // 1 minute
+    this.alerts = [];
+    
+    this.monitoringInterval = setInterval(() => {
+      this.checkMemoryUsage();
+    }, this.checkInterval);
+  }
+  
+  checkMemoryUsage() {
+    const usage = process.memoryUsage();
+    
+    if (usage.heapUsed > this.threshold) {
+      const alert = {
+        timestamp: new Date(),
+        heapUsed: usage.heapUsed,
+        heapTotal: usage.heapTotal,
+        rss: usage.rss,
+        external: usage.external
+      };
+      
+      this.alerts.push(alert);
+      console.warn('Memory usage exceeds threshold:', alert);
+      
+      // Trigger garbage collection if available
+      if (global.gc) {
+        global.gc();
+      }
+    }
+  }
+  
+  getStats() {
+    return {
+      currentUsage: process.memoryUsage(),
+      threshold: this.threshold,
+      alertCount: this.alerts.length,
+      recentAlerts: this.alerts.slice(-5)
+    };
+  }
+  
+  shutdown() {
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
+    }
+    this.alerts = [];
+  }
+}
+```
+
+### 3. Graceful Shutdown Implementation
+
+#### Application-Level Shutdown
+
+```javascript
+// Enhanced graceful shutdown implementation
+class GracefulShutdown {
+  constructor(app, server) {
+    this.app = app;
+    this.server = server;
+    this.shutdownTimeout = 30000; // 30 seconds
+    this.isShuttingDown = false;
+    this.resources = new Set();
+    
+    this.setupSignalHandlers();
+  }
+  
+  registerResource(resource) {
+    if (resource && typeof resource.shutdown === 'function') {
+      this.resources.add(resource);
+    }
+  }
+  
+  setupSignalHandlers() {
+    const signals = ['SIGTERM', 'SIGINT'];
+    
+    signals.forEach(signal => {
+      process.on(signal, () => {
+        if (!this.isShuttingDown) {
+          this.gracefulShutdown(signal);
+        }
+      });
+    });
+  }
+  
+  async gracefulShutdown(signal) {
+    console.log(`${signal} received, starting graceful shutdown...`);
+    this.isShuttingDown = true;
+    
+    // Set a timeout for forced shutdown
+    const forceShutdownTimer = setTimeout(() => {
+      console.error('Graceful shutdown timeout, forcing exit...');
+      process.exit(1);
+    }, this.shutdownTimeout);
+    
+    try {
+      // Stop accepting new connections
+      this.server.close();
+      
+      // Shutdown all registered resources
+      const shutdownPromises = Array.from(this.resources).map(async (resource) => {
+        try {
+          await resource.shutdown();
+        } catch (error) {
+          console.error('Error shutting down resource:', error);
+        }
+      });
+      
+      await Promise.all(shutdownPromises);
+      
+      console.log('All resources shut down successfully');
+      clearTimeout(forceShutdownTimer);
+      process.exit(0);
+      
+    } catch (error) {
+      console.error('Error during graceful shutdown:', error);
+      clearTimeout(forceShutdownTimer);
+      process.exit(1);
+    }
+  }
+}
+
+// Usage in main application
+const gracefulShutdown = new GracefulShutdown(app, server);
+gracefulShutdown.registerResource(pathRewriter);
+gracefulShutdown.registerResource(cacheManager);
+gracefulShutdown.registerResource(metricsManager);
+gracefulShutdown.registerResource(dashboardIntegration);
+```
+
+#### Cluster Worker Cleanup
+
+```javascript
+// Worker process cleanup in cluster mode
+if (cluster.isWorker) {
+  process.on('message', async (msg) => {
+    if (msg === 'shutdown') {
+      console.log(`Worker ${process.env.NODE_APP_INSTANCE} received shutdown message`);
+      
+      try {
+        // Close server
+        await new Promise((resolve) => {
+          server.close(resolve);
+        });
+        
+        // Cleanup resources in order
+        const cleanupTasks = [
+          () => dashboardIntegration?.shutdown(),
+          () => domainManager?.shutdown(),
+          () => cacheManager?.shutdown(),
+          () => metricsManager?.shutdown(),
+          () => pathRewriter?.shutdown()
+        ];
+        
+        for (const task of cleanupTasks) {
+          try {
+            await task();
+          } catch (error) {
+            console.error('Cleanup task failed:', error);
+          }
+        }
+        
+        console.log(`Worker ${process.env.NODE_APP_INSTANCE} cleanup completed`);
+        process.exit(0);
+        
+      } catch (error) {
+        console.error('Worker cleanup error:', error);
+        process.exit(1);
+      }
+    }
+  });
+}
+```
+
+### 4. Resource Monitoring and Health Checks
+
+#### Health Check Enhancement
+
+```javascript
+// Enhanced health check with resource monitoring
+class HealthManager {
+  constructor() {
+    this.resources = new Map();
+    this.healthCheckInterval = 30000; // 30 seconds
+    
+    this.monitoringInterval = setInterval(() => {
+      this.performHealthChecks();
+    }, this.healthCheckInterval);
+  }
+  
+  registerResource(name, resource) {
+    this.resources.set(name, resource);
+  }
+  
+  async performHealthChecks() {
+    const results = {};
+    
+    for (const [name, resource] of this.resources) {
+      try {
+        if (typeof resource.getHealthStatus === 'function') {
+          results[name] = await resource.getHealthStatus();
+        } else if (typeof resource.getStats === 'function') {
+          results[name] = { status: 'healthy', stats: resource.getStats() };
+        } else {
+          results[name] = { status: 'unknown' };
+        }
+      } catch (error) {
+        results[name] = { status: 'error', error: error.message };
+      }
+    }
+    
+    return results;
+  }
+  
+  async getSystemHealth() {
+    const memory = process.memoryUsage();
+    const uptime = process.uptime();
+    const resourceHealth = await this.performHealthChecks();
+    
+    return {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime,
+      memory: {
+        rss: Math.round(memory.rss / 1024 / 1024) + 'MB',
+        heapUsed: Math.round(memory.heapUsed / 1024 / 1024) + 'MB',
+        heapTotal: Math.round(memory.heapTotal / 1024 / 1024) + 'MB',
+        external: Math.round(memory.external / 1024 / 1024) + 'MB'
+      },
+      resources: resourceHealth
+    };
+  }
+  
+  shutdown() {
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
+    }
+    this.resources.clear();
+  }
+}
+```
+
+### 5. Performance Impact of Proper Cleanup
+
+#### Cleanup Performance Metrics
+
+```javascript
+// Measure cleanup performance
+class CleanupPerformanceTracker {
+  constructor() {
+    this.cleanupTimes = new Map();
+    this.cleanupCounts = new Map();
+  }
+  
+  trackCleanup(resourceName, cleanupFunction) {
+    return async (...args) => {
+      const startTime = process.hrtime.bigint();
+      
+      try {
+        const result = await cleanupFunction.apply(this, args);
+        
+        const duration = Number(process.hrtime.bigint() - startTime) / 1000000; // ms
+        
+        if (!this.cleanupTimes.has(resourceName)) {
+          this.cleanupTimes.set(resourceName, []);
+          this.cleanupCounts.set(resourceName, 0);
+        }
+        
+        this.cleanupTimes.get(resourceName).push(duration);
+        this.cleanupCounts.set(resourceName, this.cleanupCounts.get(resourceName) + 1);
+        
+        return result;
+      } catch (error) {
+        console.error(`Cleanup failed for ${resourceName}:`, error);
+        throw error;
+      }
+    };
+  }
+  
+  getCleanupStats() {
+    const stats = {};
+    
+    for (const [resource, times] of this.cleanupTimes) {
+      const avgTime = times.reduce((sum, time) => sum + time, 0) / times.length;
+      const maxTime = Math.max(...times);
+      const minTime = Math.min(...times);
+      const count = this.cleanupCounts.get(resource);
+      
+      stats[resource] = {
+        averageTime: avgTime.toFixed(2) + 'ms',
+        maxTime: maxTime.toFixed(2) + 'ms',
+        minTime: minTime.toFixed(2) + 'ms',
+        cleanupCount: count,
+        totalTime: times.reduce((sum, time) => sum + time, 0).toFixed(2) + 'ms'
+      };
+    }
+    
+    return stats;
+  }
+}
+```
+
+### 6. Testing Resource Cleanup
+
+#### Unit Tests for Cleanup
+
+```javascript
+// Test cleanup functionality
+describe('Resource Cleanup Tests', () => {
+  test('PathRewriter cleanup clears intervals', () => {
+    const pathRewriter = new PathRewriter();
+    expect(pathRewriter.cacheCleanupInterval).toBeDefined();
+    
+    pathRewriter.shutdown();
+    
+    expect(pathRewriter.cacheCleanupInterval).toBeNull();
+  });
+  
+  test('CacheManager cleanup clears intervals', () => {
+    const cacheManager = new CacheManager();
+    expect(cacheManager.statsInterval).toBeDefined();
+    
+    cacheManager.shutdown();
+    
+    expect(cacheManager.statsInterval).toBeNull();
+  });
+  
+  test('No memory leaks after multiple create/destroy cycles', () => {
+    const initialMemory = process.memoryUsage().heapUsed;
+    
+    // Create and destroy multiple instances
+    for (let i = 0; i < 100; i++) {
+      const pathRewriter = new PathRewriter();
+      pathRewriter.shutdown();
+    }
+    
+    // Force garbage collection
+    if (global.gc) global.gc();
+    
+    const finalMemory = process.memoryUsage().heapUsed;
+    const memoryIncrease = finalMemory - initialMemory;
+    
+    // Memory increase should be minimal (< 10MB)
+    expect(memoryIncrease).toBeLessThan(10 * 1024 * 1024);
+  });
+});
+```
+
 ## Best Practices for Performance
 
 ### 1. Rule Design
@@ -836,9 +1266,12 @@ async function memoryStressTest() {
 ### 3. Memory Management
 
 - Use object pools for frequently created objects
-- Implement proper cleanup for long-running processes
+- **Implement proper cleanup for long-running processes** ⭐ **Critical for preventing memory leaks**
+- **Always clear intervals and timers in shutdown methods** ⭐ **Essential for production stability**
 - Monitor memory usage and implement alerts
 - Use streaming for large datasets
+- **Test memory usage with load testing and monitor for leaks over time**
+- **Implement graceful shutdown procedures for all components**
 
 ### 4. Monitoring and Alerting
 

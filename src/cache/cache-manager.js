@@ -402,7 +402,9 @@ class CacheManager {
   shutdown() {
     if (this.statsInterval) {
       clearInterval(this.statsInterval);
+      this.statsInterval = null;
     }
+    this.cache.flushAll();
     logger.info('Cache manager shutting down');
   }
 }

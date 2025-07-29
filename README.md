@@ -958,6 +958,305 @@ This version includes critical fixes for browser compatibility issues:
 - **Integration Tests**: [`test-fixes.js`](test-fixes.js) validates both fixes
 - **Documentation**: Detailed fix documentation in [`docs/browser-issue-fixes.md`](docs/browser-issue-fixes.md)
 
+## Development and Testing
+
+### Getting Started with Development
+
+1. **Clone and Setup**
+   ```bash
+   git clone https://github.com/ddttom/advanced-cdn.git
+   cd advanced-cdn
+   npm install
+   ```
+
+2. **Development Mode**
+   ```bash
+   # Start in development mode with auto-reload
+   npm run dev
+   
+   # Start in debug mode
+   npm run debug-ddt
+   ```
+
+3. **Development Environment Variables**
+   ```bash
+   # Create .env file for development
+   NODE_ENV=development
+   LOG_LEVEL=debug
+   PORT=3001
+   ENABLE_CLUSTER=false
+   ```
+
+### Testing Framework and Test Suites
+
+The application includes comprehensive testing for memory leak prevention and system reliability:
+
+#### Available Test Commands
+
+```bash
+# Run all tests
+npm test
+
+# Run with coverage
+npm test -- --coverage
+
+# Run specific test files
+npm test -- tests/memory-leak-cleanup.test.js
+npm test -- tests/memory-leak-integration.test.js
+
+# Run in watch mode for development
+npm test -- --watch
+```
+
+#### Test Structure
+
+```
+tests/
+├── memory-leak-cleanup.test.js      # Unit tests for interval cleanup
+├── memory-leak-integration.test.js  # Integration tests for memory stability
+├── test-fixes.js                    # Browser compatibility fixes validation  
+├── test-url-transformation.js       # URL transformation functionality
+├── benchmark.js                     # Performance benchmarking
+├── debug-ddt.js                     # Debug utilities
+└── [other test files]               # Additional test suites
+```
+
+#### Memory Leak Prevention Tests
+
+**Unit Tests** (`memory-leak-cleanup.test.js`):
+- Tests all `setInterval()` cleanup methods in components
+- Verifies interval IDs are properly nulled after `clearInterval()`
+- Ensures graceful handling of multiple shutdown calls
+- Tests resource cleanup in PathRewriter, CacheManager, MetricsManager, etc.
+
+**Integration Tests** (`memory-leak-integration.test.js`):
+- Tests memory stability over time with simulated load
+- Verifies no dangling intervals after graceful shutdown
+- Tests multiple start/stop cycles without memory accumulation
+- Validates worker process cleanup in cluster mode
+
+**Example Test Output:**
+```bash
+✓ PathRewriter cleanup clears intervals (15ms)
+✓ CacheManager cleanup clears intervals (8ms)  
+✓ MetricsManager cleanup clears intervals (12ms)
+✓ APIDiscoveryService cleanup clears intervals (9ms)
+✓ DashboardIntegration cleanup clears intervals (11ms)
+✓ Multiple create/destroy cycles show no memory growth (245ms)
+✓ No dangling intervals after shutdown (156ms)
+
+Test Suites: 2 passed, 2 total
+Tests: 13 passed, 13 total
+```
+
+#### Performance and Load Testing
+
+**Benchmark Tests:**
+```bash
+# Run performance benchmarks
+node tests/benchmark.js
+
+# Memory stress testing
+node -e "
+const { runMemoryStressTest } = require('./tests/benchmark');
+runMemoryStressTest(60000, 100); // 1 minute, 100 req/sec
+"
+```
+
+**Memory Monitoring During Development:**
+```bash
+# Monitor memory usage in real-time
+node --expose-gc --max-old-space-size=2048 src/cluster-manager.js &
+PID=$!
+
+# Track memory usage
+while kill -0 $PID 2>/dev/null; do
+  echo "Memory: $(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')"
+  sleep 10
+done
+```
+
+#### Test Configuration
+
+**Jest Configuration** (auto-detected from `package.json`):
+```json
+{
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  }
+}
+```
+
+**Test Environment Setup:**
+- Mocked external dependencies to prevent network calls
+- Isolated test environment with controlled configuration
+- Automatic cleanup after each test
+- Memory monitoring and leak detection
+
+#### Continuous Integration Testing
+
+**Memory Leak Detection in CI:**
+```yaml
+# Example GitHub Actions workflow
+- name: Memory Leak Tests
+  run: |
+    npm test -- tests/memory-leak-*.test.js
+    node --expose-gc tests/memory-stability-test.js
+```
+
+### Development Tools and Scripts
+
+#### Available Scripts
+
+```bash
+# Development
+npm run dev          # Start with nodemon auto-reload
+npm run debug-ddt    # Debug mode with enhanced logging
+npm start            # Production start with clustering
+
+# Testing  
+npm test             # Run full test suite
+npm run lint         # ESLint code analysis
+npm run test:watch   # Watch mode for test development
+
+# Utilities
+node tests/debug-ddt.js              # Debug utilities
+node tests/benchmark.js              # Performance benchmarks  
+node tests/diagnose-http-response.js # HTTP diagnostic tools
+```
+
+#### Development Configuration
+
+**Recommended Development Settings:**
+```bash
+# .env.development
+NODE_ENV=development
+LOG_LEVEL=debug
+PORT=3001
+ENABLE_CLUSTER=false
+CACHE_ENABLED=true
+MEMORY_MONITORING_ENABLED=true
+SHUTDOWN_LOG_ENABLED=true
+
+# Memory monitoring
+NODE_OPTIONS="--max-old-space-size=1024 --trace-warnings"
+MEMORY_ALERT_THRESHOLD=536870912    # 512MB
+MEMORY_CHECK_INTERVAL=30000         # 30 seconds
+
+# Enable all debug logging
+PATH_REWRITE_LOG_ENABLED=true
+FILE_RESOLUTION_LOG_ENABLED=true
+URL_TRANSFORM_DEBUG=true
+```
+
+#### Memory Leak Prevention in Development
+
+**Development Checklist:**
+- ✅ Always store interval IDs: `this.intervalId = setInterval(...)`
+- ✅ Implement shutdown methods that clear intervals: `clearInterval(this.intervalId)`
+- ✅ Null interval references after clearing: `this.intervalId = null`
+- ✅ Test cleanup methods with unit tests
+- ✅ Monitor memory usage during development
+- ✅ Use development memory alerts to catch leaks early
+
+**Anti-patterns to Avoid:**
+```javascript
+// ❌ Bad: Interval not stored or cleared
+setInterval(() => { /* task */ }, 1000);
+
+// ❌ Bad: Interval cleared but not nulled
+clearInterval(this.intervalId);
+
+// ❌ Bad: Event listeners not removed
+process.on('SIGTERM', handler);
+
+// ✅ Good: Proper resource management
+this.intervalId = setInterval(() => { /* task */ }, 1000);
+// Later in shutdown():
+if (this.intervalId) {
+  clearInterval(this.intervalId);
+  this.intervalId = null;
+}
+```
+
+### Debugging and Troubleshooting
+
+#### Memory Leak Debugging
+
+**Enable Debug Mode:**
+```bash
+# Start with memory monitoring
+NODE_OPTIONS="--expose-gc --trace-warnings" npm run dev
+
+# Enable debug logging
+LOG_LEVEL=debug MEMORY_MONITORING_ENABLED=true npm run dev
+```
+
+**Debug Tools:**
+```bash
+# Check for memory leaks
+curl http://localhost:3000/health | jq '.system.memory'
+
+# Monitor memory trends
+watch -n 5 'curl -s http://localhost:3000/health | jq ".system.memory.heapUsed"'
+
+# Check active intervals (requires debug mode)
+curl http://localhost:3000/api/debug/intervals
+```
+
+#### Development Health Checks
+
+**Validate Resource Cleanup:**
+```bash
+# Test graceful shutdown
+kill -TERM $(pgrep -f "node.*cluster-manager")
+
+# Check logs for cleanup messages
+grep -E "(cleanup.*completed|resources.*cleaned|shutting down)" logs/app.log
+```
+
+#### IDE Integration
+
+**Recommended VS Code Settings:**
+```json
+{
+  "nodejs.terminal": "integrated",
+  "nodejs.defaultDebugConfiguration": {
+    "type": "node",
+    "request": "launch",
+    "program": "${workspaceFolder}/src/cluster-manager.js",
+    "env": {
+      "NODE_ENV": "development",
+      "LOG_LEVEL": "debug",
+      "MEMORY_MONITORING_ENABLED": "true"
+    }
+  }
+}
+```
+
+**ESLint Configuration:**
+- Configured to catch potential memory leak patterns
+- Warns about uncleaned intervals and event listeners
+- Enforces consistent resource management patterns
+
+### Contributing
+
+When contributing to the project:
+
+1. **Run Tests:** Ensure all tests pass, especially memory leak tests
+2. **Memory Safety:** Follow resource cleanup patterns for any new intervals/timers
+3. **Documentation:** Update relevant documentation for new features
+4. **Performance:** Run benchmarks to ensure no performance regression
+
+**Pre-commit Checklist:**
+- [ ] All tests pass (`npm test`)
+- [ ] No ESLint violations (`npm run lint`)
+- [ ] Memory leak tests pass
+- [ ] Documentation updated
+- [ ] Manual testing performed
+
 ## License
 
 MIT

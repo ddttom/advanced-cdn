@@ -150,6 +150,8 @@ app.get('/api/cache/url-transform/stats', (req, res) => {
 
 // Initialize dashboard integration BEFORE proxy middleware
 const dashboardIntegration = new DashboardIntegration(app);
+// Store globally for cleanup during shutdown
+global.dashboardIntegration = dashboardIntegration;
 dashboardIntegration.initialize().catch(err => {
   logger.error('Failed to initialize dashboard integration', { error: err.message });
 });
@@ -247,13 +249,34 @@ function startServer() {
 function gracefulShutdown(server, signal) {
   logger.info(`${signal} signal received: shutting down gracefully`);
   
-  server.close(() => {
+  server.close(async () => {
     logger.info('HTTP server closed');
     
-    // Cleanup resources
-    cacheManager.shutdown();
-    proxyManager.shutdown();
-    metricsManager.shutdown();
+    // Cleanup resources in proper order
+    try {
+      // Shutdown dashboard integration if it exists
+      if (global.dashboardIntegration) {
+        await global.dashboardIntegration.shutdown();
+      }
+      
+      // Shutdown domain manager (which includes path rewriter)
+      if (domainManager.shutdown) {
+        domainManager.shutdown();
+      }
+      
+      // Shutdown other managers
+      cacheManager.shutdown();
+      proxyManager.shutdown();
+      metricsManager.shutdown();
+      
+      if (healthManager.shutdown) {
+        healthManager.shutdown();
+      }
+      
+      logger.info('All resources cleaned up successfully');
+    } catch (error) {
+      logger.error('Error during resource cleanup', { error: error.message });
+    }
     
     logger.info('Graceful shutdown completed');
     process.exit(0);

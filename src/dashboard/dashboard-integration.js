@@ -1,6 +1,6 @@
 // dashboard/dashboard-integration.js
 const DashboardAPI = require('./api/dashboard-api');
-const logger = require('../../logger').getModuleLogger('dashboard-integration');
+const logger = require('../logger').getModuleLogger('dashboard-integration');
 
 /**
  * Dashboard Integration Module
@@ -46,7 +46,7 @@ class DashboardIntegration {
    */
   setupPeriodicScanning() {
     // Scan every 5 minutes
-    setInterval(async () => {
+    this.scanIntervalId = setInterval(async () => {
       try {
         await this.dashboardAPI.discoveryService.scanForEndpoints();
         logger.debug('Periodic API scan completed');
@@ -91,6 +91,12 @@ class DashboardIntegration {
   async shutdown() {
     try {
       logger.info('Shutting down dashboard integration...');
+      
+      // Clear periodic scanning interval
+      if (this.scanIntervalId) {
+        clearInterval(this.scanIntervalId);
+        this.scanIntervalId = null;
+      }
       
       if (this.dashboardAPI.discoveryService) {
         await this.dashboardAPI.discoveryService.shutdown();
