@@ -235,6 +235,7 @@ Domain-aware: GET:domain.com:/transformed/path
 **Architecture Pattern**: Coordinator Pattern with Error Isolation
 
 **Key Components**:
+
 - Multi-cache coordinator: Orchestrates clearing across all cache types
 - Error isolation: Individual cache failures don't prevent other operations
 - Comprehensive logging: Detailed operation tracking for each cache type
@@ -306,6 +307,7 @@ const response = {
 **Architecture Pattern**: Cache-Aside Pattern with Specialized TTL Management
 
 **Key Features**:
+
 - **Dual TTL System**: Different TTL for positive vs negative results
 - **LRU Eviction**: Automatic cleanup when cache reaches capacity
 - **Statistics Tracking**: Comprehensive metrics for positive/negative hit rates
@@ -1626,6 +1628,7 @@ The dashboard integration system implements comprehensive error handling and gra
 **Architecture Pattern**: Integration Pattern with Graceful Degradation and Error Isolation
 
 **Key Components**:
+
 - **Initialization Error Recovery**: Application continues if dashboard fails to initialize
 - **Resource Cleanup**: Proper cleanup of intervals and resources during shutdown
 - **Error Isolation**: Dashboard errors don't affect core CDN functionality
@@ -1729,16 +1732,19 @@ dashboardIntegration.initialize()
 #### Error Handling Features
 
 **Initialization Error Recovery**:
+
 - Dashboard initialization failures don't prevent CDN startup
 - Detailed error logging with context and stack traces
 - Fallback behavior ensures core functionality remains available
 
 **Resource Management**:
+
 - Proper cleanup of periodic scanning intervals
 - Graceful shutdown of API discovery services
 - Memory leak prevention through comprehensive resource cleanup
 
 **Error Isolation**:
+
 - Dashboard errors are contained and don't propagate to core CDN
 - Individual component failures handled independently
 - Comprehensive logging for debugging and monitoring
@@ -1804,6 +1810,7 @@ async testEndpoint(req, res) {
 ```
 
 **User Feedback Improvements**:
+
 - **Detailed Error Messages**: Comprehensive error information with context
 - **Parameter Validation**: Clear feedback on missing or invalid parameters
 - **Request Tracking**: Detailed logging of request processing steps

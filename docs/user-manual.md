@@ -375,7 +375,7 @@ dashboardIntegration.initialize()
 
 1. **Navigate to Dashboard**
 
-   ```
+   ```bash
    http://localhost:3000/dashboard
    ```
 
@@ -2834,7 +2834,7 @@ curl -X DELETE http://localhost:3000/api/domains/old.example.com
 }
 ```
 
-### Domain Validation
+### Domain Validation Middleware
 
 #### Domain Checking Middleware
 
@@ -3027,6 +3027,7 @@ MEMORY_ALERT_THRESHOLD=536870912  # 512MB
 **Root Causes and Solutions:**
 
 **Module System Compatibility:**
+
 ```bash
 # Issue: ES modules mixed with CommonJS causing runtime errors
 # Solution: All modules converted to CommonJS for consistency
@@ -3035,6 +3036,7 @@ grep -r "import.*from" src/ --include="*.js" | grep -v "// ES6 import"
 ```
 
 **Gzip Decompression Errors:**
+
 ```bash
 # Issue: CDN failing to properly decompress gzipped content
 # Solution: Enhanced error handling in proxy-manager.js
@@ -3047,6 +3049,7 @@ tail -f logs/app.log | grep -E "(decompression|gzip|deflate)"
 ```
 
 **Content-Length Header Mismatches:**
+
 ```bash
 # Issue: Node.js HTTP clients getting "Parse Error: Expected HTTP/"
 # Root Cause: Content-Length header mismatch after gzip decompression
@@ -3236,6 +3239,7 @@ URL_TRANSFORM_MAX_SIZE=10485760  # 10MB limit
 **Root Causes and Solutions:**
 
 **Server Not Running:**
+
 ```bash
 # Check if server is running on port 3000
 curl http://localhost:3000/health
@@ -3249,6 +3253,7 @@ lsof -i :3000
 ```
 
 **Dashboard Integration Not Initialized:**
+
 ```bash
 # Check server logs for dashboard initialization
 grep -E "(dashboard|Dashboard)" logs/app.log
@@ -3261,6 +3266,7 @@ LOG_LEVEL=debug npm start
 ```
 
 **Dashboard API Endpoints Not Available:**
+
 ```bash
 # Test if main server is responding
 curl http://localhost:3000/health
@@ -3276,6 +3282,7 @@ curl http://localhost:3000/dashboard/api/discovery/endpoints
 ```
 
 **Dashboard JavaScript Errors:**
+
 ```bash
 # Check browser console for JavaScript errors
 # Look for network errors or failed fetch requests
@@ -3289,6 +3296,7 @@ ls -la src/dashboard/public/
 ```
 
 **Configuration Issues:**
+
 ```bash
 # Ensure dashboard is enabled (if there's a config option)
 grep -i dashboard .env
@@ -3301,6 +3309,7 @@ grep -E "(/dashboard|dashboard)" src/app.js
 ```
 
 **Memory or Resource Issues:**
+
 ```bash
 # Check if server is running out of memory
 curl http://localhost:3000/health | jq '.system.memory'
@@ -3313,6 +3322,7 @@ NODE_OPTIONS="--max-old-space-size=2048" npm start
 ```
 
 **Quick Fix Steps:**
+
 ```bash
 # 1. Verify server is running
 curl http://localhost:3000/health
@@ -3332,6 +3342,7 @@ curl -v http://localhost:3000/dashboard/api/dashboard/status
 
 **Enhanced Error Handling:**
 The application is designed to continue running even if dashboard initialization fails. Check the logs for messages like:
+
 - "Dashboard integration initialized successfully"
 - "Failed to initialize dashboard integration"
 - "Starting server without dashboard features"
@@ -3575,6 +3586,7 @@ echo "Configuration reset. Please update .env with your settings."
 #### Development Setup
 
 1. **Clone and Setup**
+
    ```bash
    git clone <repository-url>
    cd advanced-cdn
@@ -3582,6 +3594,7 @@ echo "Configuration reset. Please update .env with your settings."
    ```
 
 2. **Development Mode**
+
    ```bash
    # Start with nodemon auto-reload
    npm run dev
@@ -3591,6 +3604,7 @@ echo "Configuration reset. Please update .env with your settings."
    ```
 
 3. **Development Environment Variables**
+
    ```bash
    # Create .env file for development
    NODE_ENV=development
@@ -3622,7 +3636,7 @@ npm test -- --watch
 
 #### Test Structure
 
-```
+```bash
 tests/
 ├── memory-leak-cleanup.test.js      # Unit tests for interval cleanup
 ├── memory-leak-integration.test.js  # Integration tests for memory stability
@@ -3636,18 +3650,21 @@ tests/
 #### Memory Leak Prevention Tests
 
 **Unit Tests** (`memory-leak-cleanup.test.js`):
+
 - Tests all `setInterval()` cleanup methods in components
 - Verifies interval IDs are properly nulled after `clearInterval()`
 - Ensures graceful handling of multiple shutdown calls
 - Tests resource cleanup in PathRewriter, CacheManager, MetricsManager, etc.
 
 **Integration Tests** (`memory-leak-integration.test.js`):
+
 - Tests memory stability over time with simulated load
 - Verifies no dangling intervals after graceful shutdown
 - Tests multiple start/stop cycles without memory accumulation
 - Validates worker process cleanup in cluster mode
 
 **Example Test Output:**
+
 ```bash
 ✓ PathRewriter cleanup clears intervals (15ms)
 ✓ CacheManager cleanup clears intervals (8ms)
@@ -3664,6 +3681,7 @@ Tests: 13 passed, 13 total
 #### Performance and Load Testing
 
 **Benchmark Tests:**
+
 ```bash
 # Run performance benchmarks
 node tests/benchmark.js
@@ -3676,6 +3694,7 @@ runMemoryStressTest(60000, 100); // 1 minute, 100 req/sec
 ```
 
 **Memory Monitoring During Development:**
+
 ```bash
 # Monitor memory usage in real-time
 node --expose-gc --max-old-space-size=2048 src/cluster-manager.js &
@@ -3712,6 +3731,7 @@ node tests/diagnose-http-response.js # HTTP diagnostic tools
 #### Development Configuration
 
 **Recommended Development Settings:**
+
 ```bash
 # .env.development
 NODE_ENV=development
@@ -3736,6 +3756,7 @@ URL_TRANSFORM_DEBUG=true
 #### Memory Leak Prevention in Development
 
 **Development Checklist:**
+
 - ✅ Always store interval IDs: `this.intervalId = setInterval(...)`
 - ✅ Implement shutdown methods that clear intervals: `clearInterval(this.intervalId)`
 - ✅ Null interval references after clearing: `this.intervalId = null`
@@ -3744,6 +3765,7 @@ URL_TRANSFORM_DEBUG=true
 - ✅ Use development memory alerts to catch leaks early
 
 **Anti-patterns to Avoid:**
+
 ```javascript
 // ❌ Bad: Interval not stored or cleared
 setInterval(() => { /* task */ }, 1000);
@@ -3768,6 +3790,7 @@ if (this.intervalId) {
 #### Memory Leak Debugging
 
 **Enable Debug Mode:**
+
 ```bash
 # Start with memory monitoring
 NODE_OPTIONS="--expose-gc --trace-warnings" npm run dev
@@ -3777,6 +3800,7 @@ LOG_LEVEL=debug MEMORY_MONITORING_ENABLED=true npm run dev
 ```
 
 **Debug Tools:**
+
 ```bash
 # Check for memory leaks
 curl http://localhost:3000/health | jq '.system.memory'
@@ -3791,6 +3815,7 @@ curl http://localhost:3000/api/debug/intervals
 #### Development Health Checks
 
 **Validate Resource Cleanup:**
+
 ```bash
 # Test graceful shutdown
 kill -TERM $(pgrep -f "node.*cluster-manager")
@@ -3809,6 +3834,7 @@ When contributing to the project:
 4. **Performance:** Run benchmarks to ensure no performance regression
 
 **Pre-commit Checklist:**
+
 - [ ] All tests pass (`npm test`)
 - [ ] No ESLint violations (`npm run lint`)
 - [ ] Memory leak tests pass
@@ -3922,7 +3948,7 @@ server {
 
 #### HAProxy Configuration
 
-```
+```bash
 # /etc/haproxy/haproxy.cfg
 global
     daemon
