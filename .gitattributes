@@ -1,0 +1,46 @@
+# Git attributes for the  CDN project
+
+# Text files
+*.md text eol=lf
+*.txt text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
+
+# Ensure shell scripts are executable
+*.sh text eol=lf
+
+# Documentation files
+docs/** text eol=lf
+
+# Configuration files
+.env* text eol=lf
+*.config.js text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+
+# SSL certificates
+*.pem binary
+*.key binary
+*.crt binary
+*.cert binary
+
+# Archives
+*.zip binary
+*.tar.gz binary
+*.tgz binary
+
+# Logs (treat as binary to avoid line ending issues)
+*.log binary
+
+# Node.js specific
+package-lock.json text eol=lf
+yarn.lock text eol=lf

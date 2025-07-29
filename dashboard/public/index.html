@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDN API Dashboard</title>
+    <link rel="stylesheet" href="/dashboard/static/css/dashboard.css">
+    <link rel="icon" type="image/x-icon" href="/dashboard/static/favicon.ico">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <h1 class="dashboard-title">
+                    <span class="title-icon">🚀</span>
+                    CDN API Dashboard
+                </h1>
+                <div class="header-actions">
+                    <button id="refresh-btn" class="btn btn-secondary">
+                        <span class="btn-icon">🔄</span>
+                        Refresh
+                    </button>
+                    <button id="scan-btn" class="btn btn-primary">
+                        <span class="btn-icon">🔍</span>
+                        Scan APIs
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Status Cards -->
+            <section class="status-section">
+                <div class="status-cards">
+                    <div class="status-card" id="endpoints-card">
+                        <div class="card-icon">📡</div>
+                        <div class="card-content">
+                            <h3>API Endpoints</h3>
+                            <div class="card-value" id="endpoints-count">-</div>
+                            <div class="card-label">Discovered</div>
+                        </div>
+                    </div>
+                    
+                    <div class="status-card" id="categories-card">
+                        <div class="card-icon">📂</div>
+                        <div class="card-content">
+                            <h3>Categories</h3>
+                            <div class="card-value" id="categories-count">-</div>
+                            <div class="card-label">Available</div>
+                        </div>
+                    </div>
+                    
+                    <div class="status-card" id="health-card">
+                        <div class="card-icon">💚</div>
+                        <div class="card-content">
+                            <h3>System Health</h3>
+                            <div class="card-value" id="health-status">-</div>
+                            <div class="card-label">Status</div>
+                        </div>
+                    </div>
+                    
+                    <div class="status-card" id="uptime-card">
+                        <div class="card-icon">⏱️</div>
+                        <div class="card-content">
+                            <h3>Uptime</h3>
+                            <div class="card-value" id="uptime-value">-</div>
+                            <div class="card-label">Hours</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- API Discovery Section -->
+            <section class="discovery-section">
+                <div class="section-header">
+                    <h2>API Discovery</h2>
+                    <div class="section-actions">
+                        <select id="category-filter" class="filter-select">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="discovery-content">
+                    <div class="endpoints-grid" id="endpoints-grid">
+                        <!-- Endpoints will be populated here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- API Testing Section -->
+            <section class="testing-section">
+                <div class="section-header">
+                    <h2>API Testing</h2>
+                    <button id="test-all-btn" class="btn btn-outline">
+                        <span class="btn-icon">🧪</span>
+                        Test All Health Endpoints
+                    </button>
+                </div>
+                
+                <div class="testing-content">
+                    <div class="test-form">
+                        <div class="form-group">
+                            <label for="test-method">Method:</label>
+                            <select id="test-method" class="form-control">
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="DELETE">DELETE</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="test-path">Path:</label>
+                            <input type="text" id="test-path" class="form-control" placeholder="/api/health">
+                        </div>
+                        
+                        <div class="form-group">
+                            <button id="test-endpoint-btn" class="btn btn-primary">
+                                <span class="btn-icon">▶️</span>
+                                Test Endpoint
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="test-results" id="test-results">
+                        <!-- Test results will be displayed here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Documentation Section -->
+            <section class="documentation-section">
+                <div class="section-header">
+                    <h2>API Documentation</h2>
+                    <div class="section-actions">
+                        <a href="/dashboard/api/docs/openapi.json" target="_blank" class="btn btn-outline">
+                            <span class="btn-icon">📄</span>
+                            OpenAPI JSON
+                        </a>
+                        <a href="/dashboard/api/docs/openapi.yaml" target="_blank" class="btn btn-outline">
+                            <span class="btn-icon">📋</span>
+                            OpenAPI YAML
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="documentation-content">
+                    <div class="doc-info">
+                        <p>Auto-generated API documentation based on discovered endpoints.</p>
+                        <div class="doc-stats">
+                            <span class="stat-item">
+                                <strong>Last Scan:</strong> 
+                                <span id="last-scan-time">-</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <div class="footer-content">
+                <span>CDN API Dashboard v1.0.0</span>
+                <span id="last-updated">Last updated: -</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <div class="loading-text">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <!-- Scripts -->
+    <script type="module" src="/dashboard/static/js/dashboard.js"></script>
+</body>
+</html>

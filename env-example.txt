@@ -1,0 +1,90 @@
+# Server configuration
+PORT=3000
+HOST=0.0.0.0
+NODE_ENV=production
+TRUST_PROXY=true
+ENABLE_CLUSTER=true
+CLUSTER_WORKERS=4
+
+# SSL configuration
+ENABLE_SSL=false
+SSL_CERT_PATH=./ssl/cert.pem
+SSL_KEY_PATH=./ssl/key.pem
+SSL_PASSPHRASE=
+HTTP_TO_HTTPS_REDIRECT=true
+
+# CDN configuration
+ORIGIN_DOMAIN=allabout.network
+TARGET_DOMAIN=main--allaboutv2--ddttom.hlx.live
+TARGET_HTTPS=true
+CDN_NAME=advanced-cdn-proxy
+STRICT_DOMAIN_CHECK=true
+ADDITIONAL_DOMAINS=
+
+# Cache configuration
+CACHE_ENABLED=true
+CACHE_DEFAULT_TTL=300
+CACHE_MAX_TTL=3600
+CACHE_CHECK_PERIOD=120
+CACHE_MAX_ITEMS=1000
+RESPECT_CACHE_CONTROL=true
+CACHE_COOKIES=false
+CACHEABLE_CONTENT_TYPES=text/html,text/css,text/javascript,application/javascript,application/json,image/jpeg,image/png,image/gif,image/webp,image/svg+xml,application/font-woff,application/font-woff2,application/vnd.ms-fontobject,font/ttf,font/otf
+CACHEABLE_STATUS_CODES=200,301,302,304
+
+# Security configuration
+SECURITY_HEADERS=true
+CONTENT_SECURITY_POLICY=
+ENABLE_CORS=false
+CORS_ORIGINS=*
+RATE_LIMIT_ENABLED=false
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_MAX=100
+
+# Logging configuration
+LOG_LEVEL=info
+LOG_FORMAT=combined
+ACCESS_LOG_ENABLED=true
+ERROR_LOG_ENABLED=true
+LOG_DIR=./logs
+LOG_TO_CONSOLE=true
+LOG_TO_FILE=true
+
+# Performance configuration
+ENABLE_COMPRESSION=true
+COMPRESSION_LEVEL=6
+COMPRESSION_MIN_SIZE=1024
+MAX_BODY_SIZE=1mb
+REQUEST_TIMEOUT=30000
+
+# Monitoring configuration
+HEALTH_CHECK_ENABLED=true
+HEALTH_CHECK_PATH=/health
+HEALTH_CHECK_DETAILED=false
+METRICS_ENABLED=true
+METRICS_PATH=/metrics
+
+# File resolution configuration
+FILE_RESOLUTION_ENABLED=false
+FILE_RESOLUTION_DEFAULT_EXTENSIONS=html,md,json,csv,txt
+FILE_RESOLUTION_TIMEOUT=5000
+FILE_RESOLUTION_MAX_CONCURRENT=10
+FILE_RESOLUTION_RETRY_ATTEMPTS=2
+FILE_RESOLUTION_RETRY_DELAY=1000
+FILE_RESOLUTION_CACHE_ENABLED=true
+FILE_RESOLUTION_CACHE_TTL=300
+FILE_RESOLUTION_TRANSFORMERS_ENABLED=true
+
+# URL transformation configuration
+URL_TRANSFORM_ENABLED=false
+URL_TRANSFORM_HTML=true
+URL_TRANSFORM_JS=true
+URL_TRANSFORM_CSS=true
+URL_TRANSFORM_INLINE_STYLES=true
+URL_TRANSFORM_DATA_ATTRS=true
+URL_PRESERVE_FRAGMENTS=true
+URL_PRESERVE_QUERY=true
+URL_TRANSFORM_MAX_SIZE=52428800
+URL_TRANSFORM_CACHE_SIZE=10000
+URL_TRANSFORM_DEBUG=false
+URL_TRANSFORM_CONTENT_TYPES=text/html,application/xhtml+xml,text/javascript,application/javascript,application/x-javascript,text/css
