@@ -477,6 +477,278 @@ curl -X POST http://localhost:3000/api/domains/test-regex \
 }
 ```
 
+## Nuclear Cache Management
+
+### DELETE /api/cache/nuke
+
+Clears ALL caches system-wide including general cache, URL transformation cache, and file resolution cache. This is a nuclear option that should be used with caution.
+
+**Request:**
+
+```bash
+curl -X DELETE http://localhost:3000/api/cache/nuke
+```
+
+**Response (Success):**
+
+```json
+{
+  "success": true,
+  "message": "Nuclear cache clear completed",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "clearedCaches": [
+    {
+      "name": "general",
+      "itemsCleared": 450,
+      "status": "success"
+    },
+    {
+      "name": "urlTransformation",
+      "itemsCleared": 1200,
+      "status": "success"
+    },
+    {
+      "name": "fileResolution",
+      "itemsCleared": 85,
+      "status": "success"
+    }
+  ],
+  "totalItemsCleared": 1735
+}
+```
+
+**Response (Partial Failure):**
+
+```json
+{
+  "success": false,
+  "message": "Nuclear cache clear completed with errors",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "clearedCaches": [
+    {
+      "name": "general",
+      "itemsCleared": 450,
+      "status": "success"
+    },
+    {
+      "name": "urlTransformation",
+      "itemsCleared": 0,
+      "status": "error",
+      "error": "Cache not available"
+    }
+  ],
+  "totalItemsCleared": 450,
+  "errors": 1
+}
+```
+
+## Dashboard API Endpoints
+
+### GET /api/discovery/endpoints
+
+Returns all discovered API endpoints in the application.
+
+**Request:**
+
+```bash
+curl -X GET http://localhost:3000/api/discovery/endpoints
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "path": "/health",
+      "method": "GET",
+      "category": "monitoring",
+      "description": "Health check endpoint"
+    },
+    {
+      "path": "/api/cache",
+      "method": "DELETE",
+      "category": "cache",
+      "description": "Cache purge endpoint"
+    }
+  ],
+  "meta": {
+    "total": 15,
+    "lastScan": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+### GET /api/discovery/categories
+
+Returns available API endpoint categories.
+
+**Request:**
+
+```bash
+curl -X GET http://localhost:3000/api/discovery/categories
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "categories": [
+    {
+      "name": "monitoring",
+      "count": 3,
+      "endpoints": ["/health", "/metrics"]
+    },
+    {
+      "name": "cache",
+      "count": 5,
+      "endpoints": ["/api/cache", "/api/cache/stats"]
+    },
+    {
+      "name": "dashboard",
+      "count": 4,
+      "endpoints": ["/api/dashboard/status", "/api/dashboard/config"]
+    }
+  ]
+}
+```
+
+### POST /api/discovery/scan
+
+Triggers a rescan of available API endpoints.
+
+**Request:**
+
+```bash
+curl -X POST http://localhost:3000/api/discovery/scan
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "API endpoint scan completed",
+  "discovered": 15,
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
+```
+
+### GET /api/docs/openapi.json
+
+Returns the OpenAPI specification for the API.
+
+**Request:**
+
+```bash
+curl -X GET http://localhost:3000/api/docs/openapi.json
+```
+
+**Response:**
+
+```json
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Advanced CDN API",
+    "version": "1.0.0",
+    "description": "API for managing the Advanced CDN application"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Application is healthy"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### POST /api/test/endpoint
+
+Tests a specific API endpoint for functionality.
+
+**Request:**
+
+```bash
+curl -X POST http://localhost:3000/api/test/endpoint \
+  -H "Content-Type: application/json" \
+  -d '{
+    "endpoint": "/health",
+    "method": "GET"
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "endpoint": "/health",
+  "method": "GET",
+  "status": 200,
+  "responseTime": 45,
+  "result": "healthy"
+}
+```
+
+### GET /api/dashboard/status
+
+Returns the current status of the dashboard system.
+
+**Request:**
+
+```bash
+curl -X GET http://localhost:3000/api/dashboard/status
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "status": "active",
+  "uptime": 3600,
+  "version": "1.0.0",
+  "features": {
+    "apiDiscovery": true,
+    "realTimeMetrics": true,
+    "endpointTesting": true
+  }
+}
+```
+
+### GET /api/dashboard/config
+
+Returns the dashboard configuration.
+
+**Request:**
+
+```bash
+curl -X GET http://localhost:3000/api/dashboard/config
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "config": {
+    "refreshInterval": 5000,
+    "maxLogEntries": 1000,
+    "enableNotifications": true,
+    "theme": "light"
+  }
+}
+```
+
 ## Error Responses
 
 All endpoints return consistent error responses:

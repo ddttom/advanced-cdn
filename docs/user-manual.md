@@ -44,6 +44,7 @@ The Advanced CDN Application is a production-ready Node.js application that prov
 ### Basic Setup
 
 1. **Clone and Install**
+
    ```bash
    git clone <repository-url>
    cd advanced-cdn
@@ -51,6 +52,7 @@ The Advanced CDN Application is a production-ready Node.js application that prov
    ```
 
 2. **Configure Environment**
+
    ```bash
    # Copy the example environment file
    cp config/env-example.txt .env
@@ -60,6 +62,7 @@ The Advanced CDN Application is a production-ready Node.js application that prov
    ```
 
 3. **Start the Application**
+
    ```bash
    # Production mode with clustering
    npm start
@@ -69,6 +72,7 @@ The Advanced CDN Application is a production-ready Node.js application that prov
    ```
 
 4. **Verify Installation**
+
    ```bash
    # Check health status
    curl http://localhost:3000/health
@@ -90,28 +94,33 @@ The Advanced CDN Application is a production-ready Node.js application that prov
 ### Installation Steps
 
 1. **Install Node.js Dependencies**
+
    ```bash
    npm install --production
    ```
 
 2. **Create Required Directories**
+
    ```bash
    mkdir -p logs ssl config
    ```
 
 3. **Set Up SSL Certificates (Optional)**
+
    ```bash
    # For HTTPS support
    openssl req -x509 -newkey rsa:4096 -keyout ssl/key.pem -out ssl/cert.pem -days 365 -nodes
    ```
 
 4. **Configure Environment Variables**
+
    ```bash
    # Copy and customize the environment file
    cp config/env-example.txt .env
    ```
 
 5. **Test Installation**
+
    ```bash
    # Run the test suite
    npm test
@@ -161,10 +170,11 @@ CLUSTER_WORKERS=4           # Number of worker processes
 
 ```bash
 # CDN domain configuration
-ORIGIN_DOMAIN=example.com                    # Domain this CDN serves
-TARGET_DOMAIN=backend.example.com           # Target backend domain
-TARGET_HTTPS=true                          # Use HTTPS for backend
-STRICT_DOMAIN_CHECK=true                   # Enforce domain validation
+ORIGIN_DOMAIN=allabout.network                    # Domain this CDN serves
+TARGET_DOMAIN=main--allaboutv2--ddttom.hlx.live  # Target backend domain
+TARGET_HTTPS=true                                # Use HTTPS for backend
+CDN_NAME=advanced-nodejs-cdn                     # CDN identifier name
+STRICT_DOMAIN_CHECK=true                         # Enforce domain validation
 ADDITIONAL_DOMAINS=api.example.com,cdn.example.com  # Additional allowed domains
 ```
 
@@ -172,7 +182,7 @@ ADDITIONAL_DOMAINS=api.example.com,cdn.example.com  # Additional allowed domains
 
 ```bash
 # SSL configuration
-ENABLE_SSL=true                            # Enable HTTPS server
+ENABLE_SSL=false                          # Enable HTTPS server
 SSL_CERT_PATH=./ssl/cert.pem              # SSL certificate path
 SSL_KEY_PATH=./ssl/key.pem                # SSL private key path
 SSL_PASSPHRASE=                           # SSL key passphrase (if needed)
@@ -181,45 +191,87 @@ HTTP_TO_HTTPS_REDIRECT=true               # Redirect HTTP to HTTPS
 
 ### Advanced Configuration
 
-#### Path Rewriting
+#### Domain-to-Path Prefix Mapping
 
 ```bash
 # Enable domain-to-path mapping
 PATH_REWRITE_ENABLED=true
 
-# Simple domain-to-path mapping
-DOMAIN_PATH_MAPPING=ddt.com:/ddt,api.example.com:/api
+# Simple domain-to-path mapping (JSON format)
+DOMAIN_PATH_MAPPING={"ddt.com": "/ddt", "blog.allabout.network": "/blog"}
 
-# Complex routing rules (JSON format)
-DOMAIN_ROUTING_RULES='{
-  "ddt.com": {
-    "target": "backend.example.com",
-    "pathPrefix": "/ddt",
-    "fallback": "prefix",
-    "rules": [
-      {"pattern": "^/api/", "rewrite": "/v1/api/"},
-      {"pattern": "^/docs/", "rewrite": "/documentation/"}
-    ]
-  }
-}'
+# Complex routing rules with regex patterns (JSON format)
+PATH_REWRITE_RULES={"api.example.com": {"^/v1/(.*)": "/api/v1/$1"}}
 
-# Domain-specific backend targets
-DOMAIN_TARGETS='{
-  "api.example.com": "api-backend.example.com",
-  "cdn.example.com": "cdn-backend.example.com"
-}'
+# Domain-specific backend targets (JSON format)
+DOMAIN_TARGETS={"api.example.com": "api-backend.example.com"}
+
+# Path rewriting options
+PATH_REWRITE_FALLBACK_ENABLED=true       # Enable fallback mechanisms
+PATH_REWRITE_CACHE_ENABLED=true          # Enable path rewriting cache
+```
+
+#### File Resolution Configuration
+
+```bash
+# Enable file resolution system
+FILE_RESOLUTION_ENABLED=true
+
+# File resolution extensions (priority order)
+FILE_RESOLUTION_EXTENSIONS=html,md,json,csv,txt
+
+# Performance settings
+FILE_RESOLUTION_TIMEOUT=5000              # Request timeout in milliseconds
+FILE_RESOLUTION_TRANSFORM_ENABLED=true   # Enable content transformation
+
+# Content transformers
+FILE_RESOLUTION_TRANSFORM_MARKDOWN=true  # Enable Markdown to HTML
+FILE_RESOLUTION_TRANSFORM_JSON=true      # Enable JSON formatting
+FILE_RESOLUTION_TRANSFORM_CSV=true       # Enable CSV to HTML tables
+
+# Cache configuration
+FILE_RESOLUTION_CACHE_ENABLED=true       # Enable file resolution cache
+FILE_RESOLUTION_CACHE_POSITIVE_TTL=300   # TTL for successful resolutions
+FILE_RESOLUTION_CACHE_NEGATIVE_TTL=60    # TTL for failed resolutions
+
+# Circuit breaker protection
+FILE_RESOLUTION_CIRCUIT_BREAKER_ENABLED=true  # Enable circuit breaker
+```
+
+#### URL Transformation Configuration
+
+```bash
+# Enable URL transformation system
+URL_TRANSFORM_ENABLED=true
+
+# Content type transformations
+URL_TRANSFORM_HTML=true                   # Transform HTML content
+URL_TRANSFORM_JS=true                     # Transform JavaScript content
+URL_TRANSFORM_CSS=true                    # Transform CSS content
+URL_TRANSFORM_INLINE_STYLES=true          # Transform inline styles
+URL_TRANSFORM_DATA_ATTRS=true             # Transform data-* attributes
+
+# URL preservation options
+URL_PRESERVE_FRAGMENTS=true               # Preserve #fragments
+URL_PRESERVE_QUERY=true                   # Preserve ?query parameters
+
+# Performance settings
+URL_TRANSFORM_MAX_SIZE=52428800           # 50MB max content size
+URL_TRANSFORM_CACHE_SIZE=10000            # Cache size
+URL_TRANSFORM_DEBUG=false                 # Debug mode
 ```
 
 #### Cache Configuration
 
 ```bash
-# Cache settings
-CACHE_ENABLED=true                         # Enable caching
-CACHE_DEFAULT_TTL=300                      # Default TTL in seconds
-CACHE_MAX_TTL=3600                        # Maximum TTL in seconds
-CACHE_MAX_ITEMS=1000                      # Maximum cached items
-RESPECT_CACHE_CONTROL=true                # Respect Cache-Control headers
-CACHE_COOKIES=false                       # Cache responses with cookies
+# Main cache settings
+CACHE_ENABLED=true                        # Enable caching
+CACHE_DEFAULT_TTL=300                     # Default TTL in seconds
+CACHE_MAX_TTL=3600                       # Maximum TTL in seconds
+CACHE_CHECK_PERIOD=120                   # Cache cleanup interval
+CACHE_MAX_ITEMS=1000                     # Maximum cached items
+RESPECT_CACHE_CONTROL=true               # Respect Cache-Control headers
+CACHE_COOKIES=false                      # Cache responses with cookies
 
 # Cacheable content types
 CACHEABLE_CONTENT_TYPES=text/html,text/css,text/javascript,application/javascript,application/json,image/jpeg,image/png
@@ -228,25 +280,58 @@ CACHEABLE_CONTENT_TYPES=text/html,text/css,text/javascript,application/javascrip
 CACHEABLE_STATUS_CODES=200,301,302,304
 ```
 
-#### Security Settings
+#### Security Configuration
 
 ```bash
-# Security configuration
-SECURITY_HEADERS=true                      # Enable security headers
-ENABLE_CORS=false                         # Enable CORS
-CORS_ORIGINS=*                           # Allowed CORS origins
+# Security headers
+SECURITY_HEADERS=true                     # Enable security headers
+CONTENT_SECURITY_POLICY=                 # Custom CSP (leave empty for default)
+
+# CORS configuration
+ENABLE_CORS=false                        # Enable CORS
+CORS_ORIGINS=*                          # Allowed CORS origins
 
 # Rate limiting
-RATE_LIMIT_ENABLED=false                  # Enable rate limiting
-RATE_LIMIT_WINDOW_MS=60000               # Rate limit window
-RATE_LIMIT_MAX=100                       # Max requests per window
+RATE_LIMIT_ENABLED=false                 # Enable rate limiting
+RATE_LIMIT_WINDOW_MS=60000              # Rate limit window (1 minute)
+RATE_LIMIT_MAX=100                      # Max requests per window
+```
 
-# Content Security Policy (JSON format)
-CONTENT_SECURITY_POLICY='{
-  "default-src": ["self"],
-  "script-src": ["self", "unsafe-inline"],
-  "style-src": ["self", "unsafe-inline"]
-}'
+#### Logging Configuration
+
+```bash
+# Logging settings
+LOG_LEVEL=info                           # Log level (debug, info, warn, error)
+LOG_FORMAT=combined                      # Log format
+ACCESS_LOG_ENABLED=true                  # Enable access logging
+ERROR_LOG_ENABLED=true                   # Enable error logging
+LOG_DIR=./logs                          # Log directory
+LOG_TO_CONSOLE=true                     # Console output
+LOG_TO_FILE=true                        # File output
+```
+
+#### Performance Configuration
+
+```bash
+# Compression settings
+ENABLE_COMPRESSION=true                  # Enable response compression
+COMPRESSION_LEVEL=6                      # Compression level (1-9)
+COMPRESSION_MIN_SIZE=1024               # Minimum size to compress
+MAX_BODY_SIZE=1mb                       # Maximum request body size
+REQUEST_TIMEOUT=30000                   # Request timeout in milliseconds
+```
+
+#### Monitoring Configuration
+
+```bash
+# Health check settings
+HEALTH_CHECK_ENABLED=true               # Enable health check endpoint
+HEALTH_CHECK_PATH=/health               # Health check endpoint path
+HEALTH_CHECK_DETAILED=false             # Enable detailed health info
+
+# Metrics settings
+METRICS_ENABLED=true                    # Enable metrics collection
+METRICS_PATH=/metrics                   # Metrics endpoint path
 ```
 
 ### Configuration Validation
@@ -259,11 +344,37 @@ The application automatically validates critical configuration on startup:
 
 ## Dashboard Interface
 
-The web dashboard provides real-time monitoring, configuration management, and API testing capabilities.
+The web dashboard provides real-time monitoring, configuration management, and API testing capabilities with enhanced initialization and error handling for comprehensive API management and monitoring.
+
+### Enhanced Dashboard Features
+
+#### Improved Initialization
+
+- **Error handling**: Graceful handling of dashboard initialization failures
+- **Fallback behavior**: Application continues to function even if dashboard fails to initialize
+- **Comprehensive logging**: Detailed logging of initialization steps and any errors
+- **Resource management**: Proper cleanup of dashboard resources during shutdown
+
+#### Dashboard Integration Process
+
+```javascript
+// Enhanced initialization with error handling
+dashboardIntegration.initialize()
+  .then(() => {
+    logger.info('Dashboard integration initialized successfully');
+    startServer();
+  })
+  .catch(err => {
+    logger.error('Failed to initialize dashboard integration', { error: err.message });
+    // Start server anyway, just without dashboard
+    startServer();
+  });
+```
 
 ### Accessing the Dashboard
 
 1. **Navigate to Dashboard**
+
    ```
    http://localhost:3000/dashboard
    ```
@@ -271,39 +382,46 @@ The web dashboard provides real-time monitoring, configuration management, and A
 2. **Dashboard Features**
    - Real-time metrics visualization
    - API endpoint discovery and testing
-   - Cache management interface
+   - Cache management interface (including nuclear cache clear)
    - System health monitoring
    - Configuration management
+   - File resolution monitoring and management
+   - URL transformation cache management
+   - Circuit breaker status monitoring
 
 ### Dashboard Navigation
 
 #### Main Dashboard
 
-- **System Overview**: CPU, memory, uptime statistics
+- **System Overview**: CPU, memory, uptime statistics with enhanced memory leak monitoring
 - **Request Metrics**: Request rates, response times, status codes
-- **Cache Statistics**: Hit rates, cache size, TTL information
-- **Domain Routing**: Active routing rules and backend targets
+- **Cache Statistics**: Hit rates, cache size, TTL information for all cache types
+- **Domain Routing**: Active routing rules and backend targets with path rewriting status
+- **File Resolution**: File resolution statistics and circuit breaker status
 
 #### API Explorer
 
-- **Endpoint Discovery**: Automatic detection of available endpoints
+- **Endpoint Discovery**: Automatic detection of available endpoints including new cache management endpoints
 - **Interactive Testing**: Built-in API testing interface
-- **Documentation**: Auto-generated API documentation
+- **Documentation**: Auto-generated API documentation with comprehensive endpoint coverage
 - **Response Inspection**: Detailed response analysis
 
-#### Cache Management
+#### Enhanced Cache Management
 
-- **Cache Statistics**: Real-time cache metrics and performance
-- **Cache Control**: Clear cache, manage TTL settings
-- **Content Analysis**: View cached content and metadata
-- **Performance Metrics**: Cache hit/miss rates and optimization suggestions
+- **Multi-Cache Statistics**: Real-time metrics for main, URL transformation, and file resolution caches
+- **Nuclear Cache Control**: System-wide cache clearing capabilities
+- **Cache Performance Analysis**: Hit/miss rates and optimization suggestions for all cache types
+- **Content Analysis**: View cached content and metadata across all cache systems
+- **Memory Usage Monitoring**: Detailed memory usage tracking and alerts
 
 #### Configuration Panel
 
-- **Environment Variables**: View and modify configuration
-- **Domain Rules**: Manage domain-to-path mapping rules
+- **Environment Variables**: View and modify configuration including new URL transformation and file resolution settings
+- **Domain Rules**: Manage domain-to-path mapping rules with complex routing support
 - **Security Settings**: Configure CORS, rate limiting, security headers
-- **Performance Tuning**: Adjust cache, compression, and timeout settings
+- **Performance Tuning**: Adjust cache, compression, timeout settings, and memory monitoring
+- **File Resolution Configuration**: Manage file resolution settings per domain
+- **Circuit Breaker Management**: Monitor and control circuit breaker states
 
 ### Dashboard API Endpoints
 
@@ -368,6 +486,7 @@ curl http://localhost:3000/health
 ```
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -385,6 +504,7 @@ curl http://localhost:3000/health?detailed=true
 ```
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -440,6 +560,7 @@ curl http://localhost:3000/metrics
 ```
 
 **Response:** (Prometheus format)
+
 ```
 # HELP http_requests_total Total number of HTTP requests
 # TYPE http_requests_total counter
@@ -459,6 +580,7 @@ curl http://localhost:3000/api/metrics/summary
 ```
 
 **Response:**
+
 ```json
 {
   "requests": {
@@ -491,6 +613,7 @@ curl http://localhost:3000/api/cache/stats
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -518,6 +641,7 @@ curl -X DELETE http://localhost:3000/api/cache/clear
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -534,6 +658,7 @@ curl -X DELETE "http://localhost:3000/api/cache/clear?key=example.com:/path"
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -552,6 +677,7 @@ curl http://localhost:3000/api/cache/url-transform/stats
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -586,6 +712,7 @@ curl http://localhost:3000/api/domains
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -623,40 +750,512 @@ curl -X PUT http://localhost:3000/api/domains/ddt.com \
   }'
 ```
 
-### File Resolution Endpoints
+### File Resolution Management Endpoints
 
-#### File Resolution Statistics
+#### Get File Resolution Status
 
 ```bash
-# Get file resolution statistics
-curl http://localhost:3000/api/file-resolution/stats
+# Get current status and configuration of file resolution system
+curl http://localhost:3000/api/file-resolution/status
 ```
 
 **Response:**
+
 ```json
 {
-  "success": true,
-  "data": {
+  "enabled": true,
+  "globalConfig": {
+    "extensions": ["html", "md", "json", "csv", "txt", "xml"],
+    "timeout": 5000,
+    "maxRedirects": 3,
+    "transformEnabled": true,
+    "cacheEnabled": true
+  },
+  "circuitBreaker": {
     "enabled": true,
-    "requests": 500,
-    "hits": 450,
-    "misses": 50,
-    "hitRate": 0.9,
-    "avgResolutionTime": 25.5,
-    "extensionStats": {
-      "html": 200,
-      "md": 150,
-      "json": 100
+    "threshold": 5,
+    "timeout": 30000,
+    "resetTimeout": 60000
+  },
+  "cache": {
+    "enabled": true,
+    "maxSize": 1000,
+    "positiveTtl": 300,
+    "negativeTtl": 60,
+    "currentSize": 245,
+    "hitRate": 0.87
+  },
+  "transformers": {
+    "markdown": {
+      "enabled": true,
+      "processed": 156
+    },
+    "json": {
+      "enabled": true,
+      "processed": 89
+    },
+    "csv": {
+      "enabled": true,
+      "processed": 23
+    }
+  },
+  "domainConfigs": {
+    "docs.example.com": {
+      "enabled": true,
+      "extensions": ["md", "html"],
+      "transformEnabled": true
+    },
+    "api.example.com": {
+      "enabled": true,
+      "extensions": ["json", "xml"],
+      "transformEnabled": false
     }
   }
 }
 ```
 
-#### Clear File Resolution Cache
+#### Get File Resolution Statistics
 
 ```bash
-# Clear file resolution cache
-curl -X DELETE http://localhost:3000/api/file-resolution/cache/clear
+# Get detailed statistics about file resolution operations
+curl http://localhost:3000/api/file-resolution/stats
+```
+
+**Response:**
+
+```json
+{
+  "totalRequests": 1250,
+  "successfulResolutions": 1087,
+  "failedResolutions": 163,
+  "successRate": 0.87,
+  "averageResolutionTime": 45.2,
+  "cacheStats": {
+    "hits": 892,
+    "misses": 358,
+    "hitRate": 0.71,
+    "positiveHits": 756,
+    "negativeHits": 136
+  },
+  "extensionStats": {
+    "html": {
+      "requests": 456,
+      "found": 398,
+      "successRate": 0.87
+    },
+    "md": {
+      "requests": 234,
+      "found": 201,
+      "successRate": 0.86,
+      "transformed": 201
+    },
+    "json": {
+      "requests": 189,
+      "found": 167,
+      "successRate": 0.88,
+      "transformed": 89
+    },
+    "csv": {
+      "requests": 45,
+      "found": 23,
+      "successRate": 0.51,
+      "transformed": 23
+    }
+  },
+  "domainStats": {
+    "docs.example.com": {
+      "requests": 567,
+      "resolutions": 489,
+      "successRate": 0.86,
+      "averageTime": 42.1
+    },
+    "api.example.com": {
+      "requests": 234,
+      "resolutions": 201,
+      "successRate": 0.86,
+      "averageTime": 38.7
+    }
+  },
+  "circuitBreakerStats": {
+    "totalTrips": 2,
+    "currentlyOpen": [],
+    "recentFailures": {
+      "unreliable.example.com": 3
+    }
+  }
+}
+```
+
+#### Test File Resolution
+
+```bash
+# Test file resolution for a specific domain and path
+curl -X POST http://localhost:3000/api/file-resolution/test \
+  -H "Content-Type: application/json" \
+  -d '{
+    "domain": "docs.example.com",
+    "path": "/getting-started"
+  }'
+```
+
+**Successful Resolution Response:**
+
+```json
+{
+  "success": true,
+  "input": {
+    "domain": "docs.example.com",
+    "path": "/getting-started"
+  },
+  "resolution": {
+    "found": true,
+    "extension": "md",
+    "finalPath": "/getting-started.md",
+    "target": "backend.example.com",
+    "fullUrl": "https://backend.example.com/getting-started.md",
+    "contentType": "text/markdown",
+    "contentLength": 2048,
+    "lastModified": "2024-01-15T09:30:00.000Z"
+  },
+  "transformation": {
+    "applied": true,
+    "transformer": "markdown",
+    "outputContentType": "text/html",
+    "outputSize": 3072
+  },
+  "timing": {
+    "resolutionTime": 45.2,
+    "transformationTime": 12.8,
+    "totalTime": 58.0
+  },
+  "cacheKey": "file:docs.example.com:/getting-started",
+  "wouldCache": true
+}
+```
+
+**Failed Resolution Response:**
+
+```json
+{
+  "success": false,
+  "input": {
+    "domain": "docs.example.com",
+    "path": "/nonexistent"
+  },
+  "resolution": {
+    "found": false,
+    "extensionsTried": ["md", "html", "txt"],
+    "attempts": [
+      {
+        "extension": "md",
+        "url": "https://backend.example.com/nonexistent.md",
+        "status": 404,
+        "responseTime": 23.1
+      },
+      {
+        "extension": "html",
+        "url": "https://backend.example.com/nonexistent.html",
+        "status": 404,
+        "responseTime": 19.8
+      },
+      {
+        "extension": "txt",
+        "url": "https://backend.example.com/nonexistent.txt",
+        "status": 404,
+        "responseTime": 21.3
+      }
+    ]
+  },
+  "timing": {
+    "totalTime": 64.2
+  },
+  "cacheKey": "file:docs.example.com:/nonexistent",
+  "wouldCache": true
+}
+```
+
+#### Test Content Transformation
+
+```bash
+# Test content transformation without performing file resolution
+curl -X POST http://localhost:3000/api/file-resolution/transform \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "# Hello World\n\nThis is **markdown** content.",
+    "contentType": "text/markdown",
+    "transformer": "markdown",
+    "options": {
+      "breaks": true,
+      "linkify": true
+    }
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "input": {
+    "contentType": "text/markdown",
+    "transformer": "markdown",
+    "originalSize": 45
+  },
+  "transformation": {
+    "applied": true,
+    "outputContentType": "text/html",
+    "outputSize": 156,
+    "transformedContent": "<!DOCTYPE html><html><head><title>Transformed Content</title></head><body><h1>Hello World</h1><p>This is <strong>markdown</strong> content.</p></body></html>"
+  },
+  "timing": {
+    "transformationTime": 8.2
+  },
+  "options": {
+    "breaks": true,
+    "linkify": true,
+    "typographer": false
+  }
+}
+```
+
+#### Get Domain-Specific File Resolution Configuration
+
+```bash
+# Get file resolution configuration for a specific domain
+curl http://localhost:3000/api/file-resolution/domains/docs.example.com
+```
+
+**Response:**
+
+```json
+{
+  "domain": "docs.example.com",
+  "config": {
+    "enabled": true,
+    "extensions": ["md", "html", "txt"],
+    "transformEnabled": true,
+    "transformers": {
+      "markdown": {
+        "enabled": true,
+        "options": {
+          "breaks": true,
+          "linkify": true,
+          "typographer": true
+        }
+      }
+    },
+    "timeout": 5000,
+    "cacheEnabled": true,
+    "circuitBreakerEnabled": true,
+    "circuitBreakerThreshold": 5
+  },
+  "statistics": {
+    "totalRequests": 567,
+    "successfulResolutions": 489,
+    "failedResolutions": 78,
+    "successRate": 0.86,
+    "averageResolutionTime": 42.1,
+    "cacheHitRate": 0.73,
+    "transformationsPerformed": 401
+  },
+  "recentActivity": [
+    {
+      "path": "/getting-started",
+      "extension": "md",
+      "status": "success",
+      "responseTime": 38.2,
+      "transformed": true,
+      "cached": true,
+      "timestamp": "2024-01-15T10:29:45.000Z"
+    },
+    {
+      "path": "/api-reference",
+      "extension": "md",
+      "status": "success",
+      "responseTime": 45.1,
+      "transformed": true,
+      "cached": false,
+      "timestamp": "2024-01-15T10:29:30.000Z"
+    }
+  ],
+  "circuitBreaker": {
+    "status": "closed",
+    "failureCount": 0,
+    "lastFailure": null,
+    "nextAttempt": null
+  }
+}
+```
+
+#### Reload Domain File Resolution Configuration
+
+```bash
+# Reload file resolution configuration for a specific domain
+curl -X POST http://localhost:3000/api/file-resolution/domains/docs.example.com/reload
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "domain": "docs.example.com",
+  "message": "File resolution configuration reloaded successfully",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "changes": {
+    "extensionsChanged": true,
+    "transformersChanged": false,
+    "cacheCleared": true
+  },
+  "newConfig": {
+    "enabled": true,
+    "extensions": ["md", "html", "txt", "json"],
+    "transformEnabled": true,
+    "timeout": 5000
+  }
+}
+```
+
+#### Get Circuit Breaker Status
+
+```bash
+# Get circuit breaker status for all domains
+curl http://localhost:3000/api/file-resolution/circuit-breaker
+```
+
+**Response:**
+
+```json
+{
+  "enabled": true,
+  "globalConfig": {
+    "threshold": 5,
+    "timeout": 30000,
+    "resetTimeout": 60000
+  },
+  "domains": {
+    "docs.example.com": {
+      "status": "closed",
+      "failureCount": 0,
+      "lastFailure": null,
+      "nextAttempt": null
+    },
+    "unreliable.example.com": {
+      "status": "open",
+      "failureCount": 7,
+      "lastFailure": "2024-01-15T10:25:00.000Z",
+      "nextAttempt": "2024-01-15T10:35:00.000Z",
+      "reason": "Consecutive failures exceeded threshold"
+    },
+    "api.example.com": {
+      "status": "half-open",
+      "failureCount": 3,
+      "lastFailure": "2024-01-15T10:20:00.000Z",
+      "nextAttempt": "2024-01-15T10:30:00.000Z",
+      "reason": "Testing recovery"
+    }
+  },
+  "statistics": {
+    "totalTrips": 5,
+    "currentlyOpen": 1,
+    "currentlyHalfOpen": 1,
+    "totalDomains": 15,
+    "healthyDomains": 13
+  }
+}
+```
+
+#### Reset Circuit Breaker
+
+```bash
+# Manually reset circuit breaker for a specific domain
+curl -X POST http://localhost:3000/api/file-resolution/circuit-breaker/unreliable.example.com/reset
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "domain": "unreliable.example.com",
+  "message": "Circuit breaker reset successfully",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "previousStatus": "open",
+  "newStatus": "closed",
+  "failureCountReset": true
+}
+```
+
+#### Get Available Transformers
+
+```bash
+# Get information about available content transformers
+curl http://localhost:3000/api/file-resolution/transformers
+```
+
+**Response:**
+
+```json
+{
+  "available": {
+    "markdown": {
+      "enabled": true,
+      "inputTypes": ["text/markdown", "text/x-markdown"],
+      "outputType": "text/html",
+      "options": {
+        "breaks": "Enable line breaks",
+        "linkify": "Auto-link URLs",
+        "typographer": "Enable smart quotes",
+        "highlight": "Syntax highlighting",
+        "html": "Allow HTML tags"
+      },
+      "statistics": {
+        "totalTransformations": 456,
+        "averageTime": 12.8,
+        "averageInputSize": 2048,
+        "averageOutputSize": 3072
+      }
+    },
+    "json": {
+      "enabled": true,
+      "inputTypes": ["application/json"],
+      "outputType": "application/json",
+      "options": {
+        "pretty": "Pretty print JSON",
+        "indent": "Indentation spaces",
+        "sortKeys": "Sort object keys"
+      },
+      "statistics": {
+        "totalTransformations": 234,
+        "averageTime": 3.2,
+        "averageInputSize": 1024,
+        "averageOutputSize": 1536
+      }
+    },
+    "csv": {
+      "enabled": true,
+      "inputTypes": ["text/csv"],
+      "outputType": "text/html",
+      "options": {
+        "delimiter": "CSV delimiter",
+        "headers": "First row as headers",
+        "tableClass": "CSS class for table",
+        "responsive": "Responsive table design"
+      },
+      "statistics": {
+        "totalTransformations": 89,
+        "averageTime": 18.5,
+        "averageInputSize": 4096,
+        "averageOutputSize": 8192
+      }
+    }
+  },
+  "globalConfig": {
+    "enabled": true,
+    "defaultTimeout": 10000,
+    "maxContentSize": 10485760
+  }
+}
 ```
 
 ### Error Responses
@@ -675,6 +1274,7 @@ All API endpoints follow consistent error response format:
 ```
 
 Common HTTP status codes:
+
 - `200`: Success
 - `400`: Bad Request (invalid parameters)
 - `401`: Unauthorized (authentication required)
@@ -824,6 +1424,320 @@ curl http://localhost:3000/metrics | grep http_requests_total | grep 4[0-9][0-9]
 
 # Check rate limit violations
 curl http://localhost:3000/metrics | grep rate_limit_exceeded
+```
+
+## URL Transformation
+
+### Overview
+
+The URL transformation system provides comprehensive URL masking capabilities by automatically detecting and rewriting all URLs in HTML, JavaScript, and CSS responses. This ensures that all URLs are routed through the proxy server, completely obscuring the original server's domain, IP address, and path structure from end users while maintaining full functionality and session state.
+
+### Core Features
+
+#### Automatic URL Detection
+
+The system automatically detects URLs in various content types and contexts:
+
+- **HTML content**: href, src, action, data-* attributes
+- **JavaScript content**: fetch calls, imports, location assignments, AJAX requests
+- **CSS content**: url() functions, @import statements, font sources
+- **Inline styles and scripts**: Within HTML documents
+
+#### URL Classification and Transformation
+
+The system classifies URLs and applies appropriate transformations:
+
+- **External URLs**: Transform to route through proxy
+- **Internal URLs**: Preserve relative structure while ensuring proxy routing
+- **Fragment URLs**: Preserve functionality for single-page applications
+- **Data URLs**: Pass through unchanged for embedded content
+- **JavaScript URLs**: Handle special cases like `javascript:void(0)`
+
+### Configuration
+
+#### Basic URL Transformation Settings
+
+```bash
+# Enable URL transformation system
+URL_TRANSFORM_ENABLED=true
+
+# Content type transformations
+URL_TRANSFORM_HTML=true                    # Transform HTML content
+URL_TRANSFORM_JS=true                     # Transform JavaScript content
+URL_TRANSFORM_CSS=true                    # Transform CSS content
+URL_TRANSFORM_INLINE_STYLES=true          # Transform inline styles
+URL_TRANSFORM_DATA_ATTRS=true             # Transform data-* attributes
+
+# URL preservation options
+URL_PRESERVE_FRAGMENTS=true               # Preserve #fragments
+URL_PRESERVE_QUERY=true                   # Preserve ?query parameters
+
+# Performance settings
+URL_TRANSFORM_MAX_SIZE=52428800           # 50MB max content size
+URL_TRANSFORM_CACHE_SIZE=10000            # Cache size
+URL_TRANSFORM_DEBUG=false                 # Debug mode
+```
+
+#### Advanced Configuration
+
+```bash
+# Transformable content types
+URL_TRANSFORM_CONTENT_TYPES=text/html,application/xhtml+xml,text/javascript,application/javascript,text/css
+
+# Security settings
+URL_TRANSFORM_VALIDATE_URLS=true          # Validate URLs for security
+URL_TRANSFORM_SANITIZE_INPUT=true         # Sanitize input parameters
+URL_TRANSFORM_AUDIT_LOGGING=true          # Enable audit logging
+
+# Performance tuning
+URL_TRANSFORM_CACHE_TTL=3600              # Cache TTL in seconds
+URL_TRANSFORM_MAX_CONCURRENT=50           # Max concurrent transformations
+```
+
+### Comprehensive Transformation Examples
+
+#### Complete Domain Masking Example
+
+**Original Content:**
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://backend.original-site.com/styles/main.css">
+    <script src="https://backend.original-site.com/js/app.js"></script>
+</head>
+<body>
+    <a href="https://backend.original-site.com/about">About Us</a>
+    <img src="/images/logo.png" alt="Logo">
+    <script>
+        fetch('https://backend.original-site.com/api/data')
+            .then(response => response.json());
+    </script>
+</body>
+</html>
+```
+
+**Transformed Content (served to users):**
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://proxy.example.com/styles/main.css">
+    <script src="https://proxy.example.com/js/app.js"></script>
+</head>
+<body>
+    <a href="https://proxy.example.com/about">About Us</a>
+    <img src="https://proxy.example.com/images/logo.png" alt="Logo">
+    <script>
+        fetch('https://proxy.example.com/api/data')
+            .then(response => response.json());
+    </script>
+</body>
+</html>
+```
+
+#### Advanced JavaScript and CSS Transformation
+
+**Original JavaScript:**
+
+```javascript
+// Dynamic imports and AJAX calls
+import('/modules/feature.js').then(module => {
+    module.init();
+});
+
+// XMLHttpRequest
+const xhr = new XMLHttpRequest();
+xhr.open('GET', 'https://backend.original-site.com/api/users');
+
+// jQuery AJAX
+$.ajax({
+    url: '/api/posts',
+    method: 'GET'
+});
+
+// Location assignments
+window.location.href = '/dashboard';
+```
+
+**Transformed JavaScript:**
+
+```javascript
+// All URLs automatically routed through proxy
+import('https://proxy.example.com/modules/feature.js').then(module => {
+    module.init();
+});
+
+const xhr = new XMLHttpRequest();
+xhr.open('GET', 'https://proxy.example.com/api/users');
+
+$.ajax({
+    url: 'https://proxy.example.com/api/posts',
+    method: 'GET'
+});
+
+window.location.href = 'https://proxy.example.com/dashboard';
+```
+
+**Original CSS:**
+
+```css
+/* Background images and imports */
+@import url('https://backend.original-site.com/fonts/roboto.css');
+
+.hero {
+    background-image: url('/images/hero-bg.jpg');
+}
+
+.icon {
+    background: url('../icons/search.svg') no-repeat;
+}
+
+@font-face {
+    font-family: 'CustomFont';
+    src: url('https://backend.original-site.com/fonts/custom.woff2');
+}
+```
+
+**Transformed CSS:**
+
+```css
+/* All URLs routed through proxy */
+@import url('https://proxy.example.com/fonts/roboto.css');
+
+.hero {
+    background-image: url('https://proxy.example.com/images/hero-bg.jpg');
+}
+
+.icon {
+    background: url('https://proxy.example.com/icons/search.svg') no-repeat;
+}
+
+@font-face {
+    font-family: 'CustomFont';
+    src: url('https://proxy.example.com/fonts/custom.woff2');
+}
+```
+
+### URL Preservation Features
+
+The transformation system preserves all URL functionality:
+
+#### Query Parameters and Fragments
+
+```html
+<!-- Original -->
+<a href="/search?q=javascript&page=2#results">Search Results</a>
+<a href="/docs/api#authentication">API Docs</a>
+
+<!-- Transformed -->
+<a href="https://proxy.example.com/search?q=javascript&page=2#results">Search Results</a>
+<a href="https://proxy.example.com/docs/api#authentication">API Docs</a>
+```
+
+#### Special URL Types
+
+```html
+<!-- Data URLs (preserved unchanged) -->
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==">
+
+<!-- JavaScript URLs (preserved unchanged) -->
+<a href="javascript:void(0)" onclick="showModal()">Open Modal</a>
+
+<!-- Mailto and tel URLs (preserved unchanged) -->
+<a href="mailto:contact@example.com">Email Us</a>
+<a href="tel:+1234567890">Call Us</a>
+```
+
+### Performance Optimization
+
+#### Caching Strategy
+
+The URL transformation system uses intelligent caching:
+
+1. **Pattern Cache**: Cache compiled regex patterns for URL detection
+2. **Transformation Cache**: Cache transformation results with LRU eviction
+3. **Content Cache**: Cache transformed content with configurable TTL
+4. **Negative Cache**: Cache failed transformation attempts
+
+#### Performance Targets
+
+- URL detection: < 10ms for typical HTML pages
+- Content transformation: < 100ms for pages up to 1MB
+- Cache hit rate: > 90% for repeated content
+- Memory usage: < 50MB for transformation cache
+
+### Security Features
+
+#### Automatic Security Validation
+
+- XSS prevention through URL validation
+- Content-type verification for transformed content
+- Input sanitization for URL parameters
+- Audit logging for security events
+
+#### Example Security Handling
+
+```html
+<!-- Malicious input (blocked) -->
+<script>location.href='javascript:alert("XSS")'</script>
+
+<!-- Safe transformation -->
+<a href="https://proxy.example.com/safe-page">Safe Link</a>
+```
+
+### Integration with Domain Routing
+
+#### Combined with Path Rewriting
+
+```bash
+# Enable both systems
+PATH_REWRITE_ENABLED=true
+URL_TRANSFORM_ENABLED=true
+
+# Domain-to-path mapping
+DOMAIN_PATH_MAPPING={"api.example.com": "/api", "cdn.example.com": "/static"}
+```
+
+#### Request Flow
+
+1. `api.example.com/users` → Path rewriting → `/api/users`
+2. Content fetched from backend with URLs like `https://backend.com/api/users`
+3. URL transformation → All URLs become `https://api.example.com/...`
+4. Complete domain masking achieved
+
+### Debugging URL Transformation
+
+#### Debug Mode
+
+```bash
+# Enable debug logging
+URL_TRANSFORM_DEBUG=true
+LOG_LEVEL=debug
+
+# Monitor transformation logs
+tail -f logs/app.log | grep "url-transformer"
+```
+
+### Monitoring URL Transformation
+
+#### Available Metrics
+
+- `url_transform_attempts_total`: Total transformation attempts
+- `url_transform_cache_hits_total`: Cache hit statistics
+- `url_transform_duration_seconds`: Transformation latency
+- `url_transform_errors_total`: Transformation failures
+
+#### Debug Information
+
+```bash
+# Enable debug logging
+URL_TRANSFORM_DEBUG=true
+
+# View transformation logs
+tail -f logs/app.log | grep "URL_TRANSFORM"
 ```
 
 ## Monitoring & Metrics
@@ -1128,6 +2042,7 @@ curl http://localhost:3000/api/cache/stats
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1316,6 +2231,7 @@ URL_TRANSFORM_CONTENT_TYPES=text/html,application/xhtml+xml,text/javascript,appl
 #### HTML Transformation
 
 **Before:**
+
 ```html
 <a href="https://backend.example.com/page">Link</a>
 <img src="https://backend.example.com/image.jpg" />
@@ -1324,6 +2240,7 @@ URL_TRANSFORM_CONTENT_TYPES=text/html,application/xhtml+xml,text/javascript,appl
 ```
 
 **After:**
+
 ```html
 <a href="https://example.com/page">Link</a>
 <img src="https://example.com/image.jpg" />
@@ -1334,6 +2251,7 @@ URL_TRANSFORM_CONTENT_TYPES=text/html,application/xhtml+xml,text/javascript,appl
 #### JavaScript Transformation
 
 **Before:**
+
 ```javascript
 fetch('https://backend.example.com/api/data')
 import module from 'https://backend.example.com/module.js'
@@ -1341,6 +2259,7 @@ const url = 'https://backend.example.com/endpoint'
 ```
 
 **After:**
+
 ```javascript
 fetch('https://example.com/api/data')
 import module from 'https://example.com/module.js'
@@ -1350,12 +2269,14 @@ const url = 'https://example.com/endpoint'
 #### CSS Transformation
 
 **Before:**
+
 ```css
 @import url('https://backend.example.com/styles.css');
 background-image: url('https://backend.example.com/bg.jpg');
 ```
 
 **After:**
+
 ```css
 @import url('https://example.com/styles.css');
 background-image: url('https://example.com/bg.jpg');
@@ -1371,6 +2292,7 @@ curl http://localhost:3000/api/cache/url-transform/stats
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1594,6 +2516,7 @@ curl http://localhost:3000/api/file-resolution/stats
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1651,6 +2574,7 @@ curl -X POST http://localhost:3000/api/file-resolution/test \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1791,6 +2715,7 @@ curl http://localhost:3000/api/domains
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1963,6 +2888,7 @@ curl http://localhost:3000/api/domains/stats
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -2028,6 +2954,7 @@ curl http://localhost:3000/api/domains/circuit-breaker/stats
 #### 1. Application Won't Start
 
 **Symptoms:**
+
 - Application crashes on startup
 - Port binding errors
 - Configuration validation errors
@@ -2049,12 +2976,14 @@ env | grep -E "(PORT|HOST|ORIGIN_DOMAIN|TARGET_DOMAIN)"
 PORT=3001 NODE_ENV=development npm run dev
 ```
 
-#### 2. High Memory Usage
+#### 2. High Memory Usage and Memory Leaks
 
 **Symptoms:**
+
 - Process memory continuously increasing
 - Out of memory errors
 - Slow response times
+- Dangling intervals after shutdown
 
 **Solutions:**
 
@@ -2062,23 +2991,76 @@ PORT=3001 NODE_ENV=development npm run dev
 # Monitor memory usage
 curl http://localhost:3000/health | jq '.system.process.memory'
 
+# Check for memory leaks with detailed monitoring
+NODE_OPTIONS="--expose-gc --trace-warnings" npm start
+
 # Check cache sizes
 curl http://localhost:3000/api/cache/stats
+curl http://localhost:3000/api/cache/url-transform/stats
+curl http://localhost:3000/api/cache/file-resolution/stats
 
 # Reduce cache sizes
 CACHE_MAX_ITEMS=500
 URL_TRANSFORM_CACHE_SIZE=1000
+FILE_RESOLUTION_CACHE_MAX_SIZE=500
 
-# Clear caches
-curl -X DELETE http://localhost:3000/api/cache/clear
+# Clear all caches (nuclear option)
+curl -X DELETE http://localhost:3000/api/cache/nuke
 
 # Increase Node.js heap size
 NODE_OPTIONS="--max-old-space-size=4096" npm start
+
+# Enable memory monitoring
+MEMORY_MONITORING_ENABLED=true
+MEMORY_ALERT_THRESHOLD=536870912  # 512MB
+```
+
+#### 2a. Browser Compatibility Issues
+
+**Symptoms:**
+
+- JavaScript syntax errors in browser console
+- "Invalid or unexpected token" errors
+- Corrupted JavaScript files
+- HTTP parsing errors in Node.js clients
+
+**Root Causes and Solutions:**
+
+**Module System Compatibility:**
+```bash
+# Issue: ES modules mixed with CommonJS causing runtime errors
+# Solution: All modules converted to CommonJS for consistency
+# Verify no ES module imports in CommonJS files
+grep -r "import.*from" src/ --include="*.js" | grep -v "// ES6 import"
+```
+
+**Gzip Decompression Errors:**
+```bash
+# Issue: CDN failing to properly decompress gzipped content
+# Solution: Enhanced error handling in proxy-manager.js
+# Enable debug logging to monitor decompression
+LOG_LEVEL=debug
+URL_TRANSFORM_DEBUG=true
+
+# Monitor decompression errors
+tail -f logs/app.log | grep -E "(decompression|gzip|deflate)"
+```
+
+**Content-Length Header Mismatches:**
+```bash
+# Issue: Node.js HTTP clients getting "Parse Error: Expected HTTP/"
+# Root Cause: Content-Length header mismatch after gzip decompression
+# Solution: Conditional Content-Length exclusion for compressed responses
+
+# Test with both Node.js and curl clients
+curl -H "Accept-Encoding: gzip" http://localhost:3000/test.js
+node -e "require('http').get('http://localhost:3000/test.js', res => console.log('Success'))"
 ```
 
 #### 3. SSL/HTTPS Issues
 
 **Symptoms:**
+
 - SSL certificate errors
 - HTTPS connection failures
 - Mixed content warnings
@@ -2104,6 +3086,260 @@ openssl req -x509 -newkey rsa:4096 -keyout ssl/key.pem -out ssl/cert.pem -days 3
 #### 4. Proxy/Backend Connection Issues
 
 **Symptoms:**
+
+- 502 Bad Gateway errors
+- Connection timeouts
+- Backend unreachable
+- Circuit breaker activation
+
+**Solutions:**
+
+```bash
+# Test backend connectivity
+curl -I https://main--allaboutv2--ddttom.hlx.live/
+
+# Check DNS resolution
+nslookup main--allaboutv2--ddttom.hlx.live
+dig main--allaboutv2--ddttom.hlx.live
+
+# Verify firewall rules
+iptables -L | grep OUTPUT
+
+# Test with different backend
+TARGET_DOMAIN=alternative-backend.com npm start
+
+# Check circuit breaker status
+curl http://localhost:3000/api/file-resolution/circuit-breaker
+
+# Reset circuit breaker if needed
+curl -X POST http://localhost:3000/api/file-resolution/circuit-breaker/domain.com/reset
+
+# Enable debug logging
+LOG_LEVEL=debug npm start
+```
+
+#### 5. Cache Performance Issues
+
+**Symptoms:**
+
+- Low cache hit rates
+- Slow response times
+- Frequent cache misses
+- Cache corruption
+
+**Solutions:**
+
+```bash
+# Analyze cache statistics
+curl http://localhost:3000/api/cache/stats | jq '.hitRate'
+curl http://localhost:3000/api/cache/url-transform/stats | jq '.cacheHits'
+curl http://localhost:3000/api/cache/file-resolution/stats | jq '.hitRate'
+
+# Check cache configuration
+grep CACHE .env
+
+# Increase cache TTL
+CACHE_DEFAULT_TTL=600
+CACHE_MAX_TTL=7200
+FILE_RESOLUTION_CACHE_POSITIVE_TTL=600
+
+# Clear corrupted cache entries
+curl -X DELETE http://localhost:3000/api/cache/nuke
+
+# Monitor cache performance
+watch -n 5 'curl -s http://localhost:3000/api/cache/stats | jq "{hitRate: .hitRate, size: .totalItems}"'
+```
+
+#### 6. File Resolution Issues
+
+**Symptoms:**
+
+- Files not found despite existing
+- Transformation failures
+- Circuit breaker constantly open
+- Slow file resolution
+
+**Solutions:**
+
+```bash
+# Test file resolution for specific paths
+curl -X POST http://localhost:3000/api/file-resolution/test \
+  -H "Content-Type: application/json" \
+  -d '{"domain": "docs.example.com", "path": "/getting-started"}'
+
+# Check file resolution status
+curl http://localhost:3000/api/file-resolution/status
+
+# Monitor circuit breaker
+curl http://localhost:3000/api/file-resolution/circuit-breaker
+
+# Reset circuit breaker for failing domain
+curl -X POST http://localhost:3000/api/file-resolution/circuit-breaker/failing-domain.com/reset
+
+# Clear file resolution cache
+curl -X DELETE http://localhost:3000/api/cache/file-resolution
+
+# Enable file resolution debugging
+FILE_RESOLUTION_LOG_ENABLED=true
+LOG_LEVEL=debug
+```
+
+#### 7. URL Transformation Issues
+
+**Symptoms:**
+
+- URLs not being transformed
+- Broken links after transformation
+- JavaScript errors due to incorrect URLs
+- Performance issues with large content
+
+**Solutions:**
+
+```bash
+# Check URL transformation status
+curl http://localhost:3000/api/cache/url-transform/stats
+
+# Test URL transformation
+curl -X POST http://localhost:3000/api/debug/url-transform \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "<a href=\"https://backend.example.com/test\">Test</a>",
+    "contentType": "text/html",
+    "domain": "example.com"
+  }'
+
+# Enable URL transformation debugging
+URL_TRANSFORM_DEBUG=true
+LOG_LEVEL=debug
+
+# Clear URL transformation cache
+curl -X DELETE http://localhost:3000/api/cache/url-transform
+
+# Monitor transformation logs
+tail -f logs/app.log | grep "url-transformer"
+
+# Adjust content size limits
+URL_TRANSFORM_MAX_SIZE=10485760  # 10MB limit
+```
+
+#### 8. Dashboard Integration Issues
+
+**Symptoms:**
+
+- Dashboard fails to load
+- `ERR_CONNECTION_REFUSED` errors when accessing dashboard endpoints
+- API discovery not working
+- Dashboard initialization errors
+- Resource cleanup failures
+- Repeated failed fetch attempts to `/dashboard/api/dashboard/status`
+
+**Root Causes and Solutions:**
+
+**Server Not Running:**
+```bash
+# Check if server is running on port 3000
+curl http://localhost:3000/health
+
+# If server isn't running, start it
+npm start
+
+# Check if port 3000 is in use
+netstat -tlnp | grep :3000
+lsof -i :3000
+```
+
+**Dashboard Integration Not Initialized:**
+```bash
+# Check server logs for dashboard initialization
+grep -E "(dashboard|Dashboard)" logs/app.log
+
+# Look for dashboard integration errors
+grep -E "(dashboard.*error|dashboard.*failed)" logs/app.log
+
+# Enable debug logging to see initialization details
+LOG_LEVEL=debug npm start
+```
+
+**Dashboard API Endpoints Not Available:**
+```bash
+# Test if main server is responding
+curl http://localhost:3000/health
+
+# Test dashboard root endpoint
+curl http://localhost:3000/dashboard/
+
+# Test dashboard API endpoints
+curl http://localhost:3000/dashboard/api/dashboard/status
+curl http://localhost:3000/dashboard/api/discovery/endpoints
+
+# If endpoints return 404, dashboard integration may not be loaded
+```
+
+**Dashboard JavaScript Errors:**
+```bash
+# Check browser console for JavaScript errors
+# Look for network errors or failed fetch requests
+
+# Verify dashboard files are being served
+curl http://localhost:3000/dashboard/js/dashboard.js
+curl http://localhost:3000/dashboard/css/dashboard.css
+
+# Check if dashboard static files exist
+ls -la src/dashboard/public/
+```
+
+**Configuration Issues:**
+```bash
+# Ensure dashboard is enabled (if there's a config option)
+grep -i dashboard .env
+
+# Check if dashboard integration is properly imported in main app
+grep -E "(dashboard|Dashboard)" src/app.js
+
+# Verify dashboard routes are registered
+grep -E "(/dashboard|dashboard)" src/app.js
+```
+
+**Memory or Resource Issues:**
+```bash
+# Check if server is running out of memory
+curl http://localhost:3000/health | jq '.system.memory'
+
+# Monitor server logs for out of memory errors
+grep -E "(memory|heap|OOM)" logs/app.log
+
+# Restart server with more memory if needed
+NODE_OPTIONS="--max-old-space-size=2048" npm start
+```
+
+**Quick Fix Steps:**
+```bash
+# 1. Verify server is running
+curl http://localhost:3000/health
+
+# 2. If server is down, restart it
+npm start
+
+# 3. If server is up but dashboard fails, check logs
+tail -f logs/app.log | grep -i dashboard
+
+# 4. Test dashboard endpoints manually
+curl -v http://localhost:3000/dashboard/api/dashboard/status
+
+# 5. If endpoints don't exist, dashboard integration may not be loaded
+# Check if dashboard-integration.js is being imported and initialized
+```
+
+**Enhanced Error Handling:**
+The application is designed to continue running even if dashboard initialization fails. Check the logs for messages like:
+- "Dashboard integration initialized successfully"
+- "Failed to initialize dashboard integration"
+- "Starting server without dashboard features"
+
+#### 9. Domain Management and Path Rewriting Issues
+
+**Symptoms:**
+
 - 502 Bad Gateway errors
 - Connection timeouts
 - Backend unreachable
@@ -2131,6 +3367,7 @@ LOG_LEVEL=debug npm start
 #### 5. Cache Performance Issues
 
 **Symptoms:**
+
 - Low cache hit rates
 - Slow response times
 - Frequent cache misses
@@ -2324,6 +3561,259 @@ echo "Resetting to default configuration..."
 cp config/env-example.txt .env
 echo "Configuration reset. Please update .env with your settings."
 ```
+
+## Testing and Development
+
+### Getting Started with Development
+
+#### Prerequisites
+
+- Node.js 16.x or higher
+- npm or yarn package manager
+- Basic understanding of proxy/CDN concepts
+
+#### Development Setup
+
+1. **Clone and Setup**
+   ```bash
+   git clone <repository-url>
+   cd advanced-cdn
+   npm install
+   ```
+
+2. **Development Mode**
+   ```bash
+   # Start with nodemon auto-reload
+   npm run dev
+   
+   # Start in debug mode
+   npm run debug-ddt
+   ```
+
+3. **Development Environment Variables**
+   ```bash
+   # Create .env file for development
+   NODE_ENV=development
+   LOG_LEVEL=debug
+   PORT=3001
+   ENABLE_CLUSTER=false
+   ```
+
+### Testing Framework and Test Suites
+
+The application includes comprehensive testing for memory leak prevention and system reliability:
+
+#### Available Test Commands
+
+```bash
+# Run all tests
+npm test
+
+# Run with coverage
+npm test -- --coverage
+
+# Run specific test files
+npm test -- tests/memory-leak-cleanup.test.js
+npm test -- tests/memory-leak-integration.test.js
+
+# Run in watch mode for development
+npm test -- --watch
+```
+
+#### Test Structure
+
+```
+tests/
+├── memory-leak-cleanup.test.js      # Unit tests for interval cleanup
+├── memory-leak-integration.test.js  # Integration tests for memory stability
+├── test-fixes.js                    # Browser compatibility fixes validation
+├── test-url-transformation.js       # URL transformation functionality
+├── benchmark.js                     # Performance benchmarking
+├── debug-ddt.js                     # Debug utilities
+└── [other test files]               # Additional test suites
+```
+
+#### Memory Leak Prevention Tests
+
+**Unit Tests** (`memory-leak-cleanup.test.js`):
+- Tests all `setInterval()` cleanup methods in components
+- Verifies interval IDs are properly nulled after `clearInterval()`
+- Ensures graceful handling of multiple shutdown calls
+- Tests resource cleanup in PathRewriter, CacheManager, MetricsManager, etc.
+
+**Integration Tests** (`memory-leak-integration.test.js`):
+- Tests memory stability over time with simulated load
+- Verifies no dangling intervals after graceful shutdown
+- Tests multiple start/stop cycles without memory accumulation
+- Validates worker process cleanup in cluster mode
+
+**Example Test Output:**
+```bash
+✓ PathRewriter cleanup clears intervals (15ms)
+✓ CacheManager cleanup clears intervals (8ms)
+✓ MetricsManager cleanup clears intervals (12ms)
+✓ APIDiscoveryService cleanup clears intervals (9ms)
+✓ DashboardIntegration cleanup clears intervals (11ms)
+✓ Multiple create/destroy cycles show no memory growth (245ms)
+✓ No dangling intervals after shutdown (156ms)
+
+Test Suites: 2 passed, 2 total
+Tests: 13 passed, 13 total
+```
+
+#### Performance and Load Testing
+
+**Benchmark Tests:**
+```bash
+# Run performance benchmarks
+node tests/benchmark.js
+
+# Memory stress testing
+node -e "
+const { runMemoryStressTest } = require('./tests/benchmark');
+runMemoryStressTest(60000, 100); // 1 minute, 100 req/sec
+"
+```
+
+**Memory Monitoring During Development:**
+```bash
+# Monitor memory usage in real-time
+node --expose-gc --max-old-space-size=2048 src/cluster-manager.js &
+PID=$!
+
+# Track memory usage
+while kill -0 $PID 2>/dev/null; do
+  echo "Memory: $(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')"
+  sleep 10
+done
+```
+
+### Development Tools and Scripts
+
+#### Available Scripts
+
+```bash
+# Development
+npm run dev          # Start with nodemon auto-reload
+npm run debug-ddt    # Debug mode with enhanced logging
+npm start            # Production start with clustering
+
+# Testing
+npm test             # Run full test suite
+npm run lint         # ESLint code analysis
+npm run test:watch   # Watch mode for test development
+
+# Utilities
+node tests/debug-ddt.js              # Debug utilities
+node tests/benchmark.js              # Performance benchmarks
+node tests/diagnose-http-response.js # HTTP diagnostic tools
+```
+
+#### Development Configuration
+
+**Recommended Development Settings:**
+```bash
+# .env.development
+NODE_ENV=development
+LOG_LEVEL=debug
+PORT=3001
+ENABLE_CLUSTER=false
+CACHE_ENABLED=true
+MEMORY_MONITORING_ENABLED=true
+SHUTDOWN_LOG_ENABLED=true
+
+# Memory monitoring
+NODE_OPTIONS="--max-old-space-size=1024 --trace-warnings"
+MEMORY_ALERT_THRESHOLD=536870912    # 512MB
+MEMORY_CHECK_INTERVAL=30000         # 30 seconds
+
+# Enable all debug logging
+PATH_REWRITE_LOG_ENABLED=true
+FILE_RESOLUTION_LOG_ENABLED=true
+URL_TRANSFORM_DEBUG=true
+```
+
+#### Memory Leak Prevention in Development
+
+**Development Checklist:**
+- ✅ Always store interval IDs: `this.intervalId = setInterval(...)`
+- ✅ Implement shutdown methods that clear intervals: `clearInterval(this.intervalId)`
+- ✅ Null interval references after clearing: `this.intervalId = null`
+- ✅ Test cleanup methods with unit tests
+- ✅ Monitor memory usage during development
+- ✅ Use development memory alerts to catch leaks early
+
+**Anti-patterns to Avoid:**
+```javascript
+// ❌ Bad: Interval not stored or cleared
+setInterval(() => { /* task */ }, 1000);
+
+// ❌ Bad: Interval cleared but not nulled
+clearInterval(this.intervalId);
+
+// ❌ Bad: Event listeners not removed
+process.on('SIGTERM', handler);
+
+// ✅ Good: Proper resource management
+this.intervalId = setInterval(() => { /* task */ }, 1000);
+// Later in shutdown():
+if (this.intervalId) {
+  clearInterval(this.intervalId);
+  this.intervalId = null;
+}
+```
+
+### Debugging and Troubleshooting
+
+#### Memory Leak Debugging
+
+**Enable Debug Mode:**
+```bash
+# Start with memory monitoring
+NODE_OPTIONS="--expose-gc --trace-warnings" npm run dev
+
+# Enable debug logging
+LOG_LEVEL=debug MEMORY_MONITORING_ENABLED=true npm run dev
+```
+
+**Debug Tools:**
+```bash
+# Check for memory leaks
+curl http://localhost:3000/health | jq '.system.memory'
+
+# Monitor memory trends
+watch -n 5 'curl -s http://localhost:3000/health | jq ".system.memory.heapUsed"'
+
+# Check active intervals (requires debug mode)
+curl http://localhost:3000/api/debug/intervals
+```
+
+#### Development Health Checks
+
+**Validate Resource Cleanup:**
+```bash
+# Test graceful shutdown
+kill -TERM $(pgrep -f "node.*cluster-manager")
+
+# Check logs for cleanup messages
+grep -E "(cleanup.*completed|resources.*cleaned|shutting down)" logs/app.log
+```
+
+### Contributing
+
+When contributing to the project:
+
+1. **Run Tests:** Ensure all tests pass, especially memory leak tests
+2. **Memory Safety:** Follow resource cleanup patterns for any new intervals/timers
+3. **Documentation:** Update relevant documentation for new features
+4. **Performance:** Run benchmarks to ensure no performance regression
+
+**Pre-commit Checklist:**
+- [ ] All tests pass (`npm test`)
+- [ ] No ESLint violations (`npm run lint`)
+- [ ] Memory leak tests pass
+- [ ] Documentation updated
+- [ ] Manual testing performed
 
 ## Advanced Configuration
 

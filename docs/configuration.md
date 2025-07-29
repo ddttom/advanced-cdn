@@ -181,6 +181,89 @@ METRICS_PATH=/metrics         # Metrics endpoint path
 - `/metrics`: Prometheus-compatible metrics
 - `/api/cache/stats`: Cache statistics (local access only)
 
+## File Resolution Configuration
+
+The application includes a sophisticated file resolution system that automatically searches for files with different extensions when extensionless requests are made.
+
+```bash
+# Enable file resolution system
+FILE_RESOLUTION_ENABLED=false
+
+# Default file extensions to try (in priority order)
+FILE_RESOLUTION_DEFAULT_EXTENSIONS=html,md,json,csv,txt
+
+# Request timeout for file existence checks
+FILE_RESOLUTION_TIMEOUT=5000
+
+# Maximum concurrent file resolution requests
+FILE_RESOLUTION_MAX_CONCURRENT=10
+
+# Retry configuration
+FILE_RESOLUTION_RETRY_ATTEMPTS=2
+FILE_RESOLUTION_RETRY_DELAY=1000
+
+# Caching configuration
+FILE_RESOLUTION_CACHE_ENABLED=true
+FILE_RESOLUTION_CACHE_TTL=300
+
+# Content transformation
+FILE_RESOLUTION_TRANSFORMERS_ENABLED=true
+```
+
+**File Resolution Features:**
+
+- Automatically tries multiple file extensions for extensionless URLs
+- Transforms content (Markdown to HTML, CSV to tables, etc.)
+- Caches resolution results for performance
+- Circuit breaker protection for failing domains
+
+## URL Transformation Configuration
+
+The URL transformation system automatically rewrites URLs in HTML, JavaScript, and CSS content to route through the proxy server.
+
+```bash
+# Enable URL transformation
+URL_TRANSFORM_ENABLED=false
+
+# Content type transformations
+URL_TRANSFORM_HTML=true
+URL_TRANSFORM_JS=true
+URL_TRANSFORM_CSS=true
+URL_TRANSFORM_INLINE_STYLES=true
+URL_TRANSFORM_DATA_ATTRS=true
+
+# URL preservation options
+URL_PRESERVE_FRAGMENTS=true
+URL_PRESERVE_QUERY=true
+
+# Performance settings
+URL_TRANSFORM_MAX_SIZE=52428800
+URL_TRANSFORM_CACHE_SIZE=10000
+URL_TRANSFORM_DEBUG=false
+
+# Supported content types for transformation
+URL_TRANSFORM_CONTENT_TYPES=text/html,application/xhtml+xml,text/javascript,application/javascript,application/x-javascript,text/css
+```
+
+**URL Transformation Features:**
+
+- Comprehensive URL detection in HTML, JS, and CSS
+- Intelligent caching for performance
+- Preserves query parameters and fragments
+- Debug mode for development
+
+## Advanced Cache Configuration
+
+Additional cache configuration options for specific content types and status codes.
+
+```bash
+# Content types that should be cached
+CACHEABLE_CONTENT_TYPES=text/html,text/css,text/javascript,application/javascript,application/json,image/jpeg,image/png,image/gif,image/webp,image/svg+xml,application/font-woff,application/font-woff2,application/vnd.ms-fontobject,font/ttf,font/otf
+
+# HTTP status codes that should be cached
+CACHEABLE_STATUS_CODES=200,301,302,304
+```
+
 ## Domain-to-Path Prefix Mapping
 
 The application now includes comprehensive domain-based path rewriting functionality that allows you to map different domains to specific path prefixes on your backend server. This enables sophisticated routing scenarios where different domains can serve content from different sections of your backend.
@@ -193,11 +276,10 @@ Enable domain-to-path prefix mapping with these environment variables:
 # Enable path rewriting system
 PATH_REWRITE_ENABLED=true
 
-# Domain-to-path prefix mapping (JSON format)
-DOMAIN_PATH_MAPPING={"ddt.com": "/ddt", "blog.site.com": "/blog", "api.example.com": "/api"}
+# Domain-to-path prefix mapping (colon-separated format)
+DOMAIN_PATH_MAPPING=ddt.com:/ddt,blog.site.com:/blog,api.example.com:/api
 
-# Alternative: Simple comma-separated format
-# DOMAIN_PATH_MAPPING=ddt.com:/ddt,blog.site.com:/blog,api.example.com:/api
+# Note: JSON format is NOT supported - use colon-separated format only
 
 # Complex transformation rules (JSON format)
 PATH_REWRITE_RULES={"api.example.com": {"^/v1/(.*)": "/api/v1/$1", "^/v2/(.*)": "/api/v2/$1"}}
@@ -222,7 +304,7 @@ ORIGIN_DOMAIN=allabout.network
 TARGET_DOMAIN=main--allaboutv2--ddttom.hlx.live
 TARGET_HTTPS=true
 PATH_REWRITE_ENABLED=true
-DOMAIN_PATH_MAPPING={"ddt.com": "/ddt", "portfolio.allabout.network": "/portfolio", "blog.allabout.network": "/blog"}
+DOMAIN_PATH_MAPPING=ddt.com:/ddt,portfolio.allabout.network:/portfolio,blog.allabout.network:/blog
 ```
 
 **Request Transformations**:
@@ -241,7 +323,7 @@ DOMAIN_PATH_MAPPING={"ddt.com": "/ddt", "portfolio.allabout.network": "/portfoli
 ORIGIN_DOMAIN=mainstore.com
 TARGET_DOMAIN=backend.ecommerce.com
 PATH_REWRITE_ENABLED=true
-DOMAIN_PATH_MAPPING={"brand-a.com": "/brands/a", "brand-b.com": "/brands/b", "wholesale.mainstore.com": "/wholesale"}
+DOMAIN_PATH_MAPPING=brand-a.com:/brands/a,brand-b.com:/brands/b,wholesale.mainstore.com:/wholesale
 ```
 
 **Request Transformations**:
@@ -259,7 +341,7 @@ DOMAIN_PATH_MAPPING={"brand-a.com": "/brands/a", "brand-b.com": "/brands/b", "wh
 ORIGIN_DOMAIN=api.myservice.com
 TARGET_DOMAIN=backend.myservice.com
 PATH_REWRITE_ENABLED=true
-DOMAIN_PATH_MAPPING={"api-v1.myservice.com": "/api/v1", "api-v2.myservice.com": "/api/v2"}
+DOMAIN_PATH_MAPPING=api-v1.myservice.com:/api/v1,api-v2.myservice.com:/api/v2
 PATH_REWRITE_RULES={"api.myservice.com": {"^/v1/(.*)": "/api/v1/$1", "^/v2/(.*)": "/api/v2/$1", "^/(.*)": "/api/latest/$1"}}
 ```
 
@@ -279,7 +361,7 @@ PATH_REWRITE_RULES={"api.myservice.com": {"^/v1/(.*)": "/api/v1/$1", "^/v2/(.*)"
 ORIGIN_DOMAIN=mywebsite.com
 TARGET_DOMAIN=backend.mywebsite.com
 PATH_REWRITE_ENABLED=true
-DOMAIN_PATH_MAPPING={"cdn.mywebsite.com": "/static", "images.mywebsite.com": "/media/images", "videos.mywebsite.com": "/media/videos"}
+DOMAIN_PATH_MAPPING=cdn.mywebsite.com:/static,images.mywebsite.com:/media/images,videos.mywebsite.com:/media/videos
 DOMAIN_TARGETS={"cdn.mywebsite.com": "static-backend.mywebsite.com"}
 ```
 
@@ -298,7 +380,7 @@ DOMAIN_TARGETS={"cdn.mywebsite.com": "static-backend.mywebsite.com"}
 ORIGIN_DOMAIN=app.saasplatform.com
 TARGET_DOMAIN=backend.saasplatform.com
 PATH_REWRITE_ENABLED=true
-DOMAIN_PATH_MAPPING={"tenant1.saasplatform.com": "/tenants/tenant1", "tenant2.saasplatform.com": "/tenants/tenant2", "admin.saasplatform.com": "/admin"}
+DOMAIN_PATH_MAPPING=tenant1.saasplatform.com:/tenants/tenant1,tenant2.saasplatform.com:/tenants/tenant2,admin.saasplatform.com:/admin
 ```
 
 **Request Transformations**:
@@ -986,12 +1068,14 @@ SHUTDOWN_LOGGING_ENABLED=true
 ```
 
 **Memory Leak Indicators:**
+
 - Continuously increasing memory usage over time
 - Memory not being released after periods of low activity
 - High memory usage despite cache limits
 - Process crashes due to out-of-memory errors
 
 **Debug Steps:**
+
 1. Enable memory monitoring and observe usage patterns
 2. Check logs for cleanup operations during shutdown
 3. Monitor interval and cache cleanup in the logs

@@ -48,13 +48,11 @@ PATH_REWRITE_CACHE_SIZE=10000
 **Testing**:
 
 ```bash
-# Test transformation
-curl -X POST http://localhost:3000/api/domains/test-transformation \
-  -H "Content-Type: application/json" \
-  -d '{"domain": "ddt.com", "path": "/about"}'
-
-# Test actual request
+# Test actual request with domain mapping
 curl -H "Host: ddt.com" http://localhost:3000/about
+
+# Check domain configuration
+curl http://localhost:3000/api/domains
 ```
 
 ### Example 2: Blog Subdomain
