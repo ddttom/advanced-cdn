@@ -63,7 +63,6 @@ advanced-cdn/
 │   └── fixtures/
 ├── scripts/                     # Utility and setup scripts
 │   ├── setup-script.sh
-│   └── git-setup.sh
 ├── config/                      # Configuration files
 │   ├── env-example.txt
 │   └── production-package-json.json

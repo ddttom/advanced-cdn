@@ -49,9 +49,9 @@ echo -e "${GREEN}✓ npm ${NPM_VERSION} is installed${NC}"
 
 # Verify required files exist
 echo -e "\n${BOLD}Verifying required files...${NC}"
-REQUIRED_FILES=("app.js" "cache-manager.js" "cluster-manager.js" "config.js" "domain-manager.js" 
-               "path-rewriter.js" "env-example.txt" "health-manager.js" "index.js" "logger.js" 
-               "metrics-manager.js" "proxy-manager.js" "rate-limiter.js" "production-package-json.json")
+REQUIRED_FILES=("src/app.js" "src/cache/cache-manager.js" "src/cluster-manager.js" "src/config.js" "src/domain/domain-manager.js" 
+               "src/domain/path-rewriter.js" "config/env-example.txt" "src/monitoring/health-manager.js" "src/index.js" "src/logger.js" 
+               "src/monitoring/metrics-manager.js" "src/proxy/proxy-manager.js" "src/middleware/rate-limiter.js" "config/production-package-json.json")
 
 for file in "${REQUIRED_FILES[@]}"; do
   if [ ! -f "$file" ]; then
@@ -70,7 +70,7 @@ echo -e "${GREEN}✓ Created ssl directory${NC}"
 # Create .env file from example
 echo -e "\n${BOLD}Creating .env file...${NC}"
 if [ ! -f ".env" ]; then
-  cp env-example.txt .env
+  cp config/env-example.txt .env
   echo -e "${GREEN}✓ Created .env file from env-example.txt${NC}"
 else
   echo -e "${YELLOW}⚠ .env file already exists. Keeping existing file.${NC}"
@@ -79,7 +79,7 @@ fi
 # Setup proper package.json
 echo -e "\n${BOLD}Setting up package.json...${NC}"
 if [ ! -f "package.json" ]; then
-  cp production-package-json.json package.json
+  cp config/production-package-json.json package.json
   echo -e "${GREEN}✓ Created package.json from production-package-json.json${NC}"
 else
   echo -e "${YELLOW}⚠ package.json already exists. Keeping existing file.${NC}"
@@ -117,17 +117,10 @@ if [ -f "ssl/cert.pem" ] && [ -f "ssl/key.pem" ]; then
 fi
 
 # Make scripts executable
-chmod +x index.js app.js cluster-manager.js git-setup.sh
+chmod +x src/index.js src/app.js src/cluster-manager.js
 echo -e "${GREEN}✓ Made scripts executable${NC}"
 
-# Configure Git repository
-echo -e "\n${BOLD}Configuring Git repository...${NC}"
-if [ -f "git-setup.sh" ]; then
-  ./git-setup.sh
-  echo -e "${GREEN}✓ Git repository configured${NC}"
-else
-  echo -e "${YELLOW}⚠ git-setup.sh not found. Skipping Git configuration.${NC}"
-fi
+
 
 # Configure domain-to-path prefix mapping
 echo -e "\n${BOLD}Configuring domain-to-path prefix mapping...${NC}"
@@ -178,7 +171,7 @@ else
 fi
 
 # Test path rewriter module
-if node -e "require('./path-rewriter.js')" 2>/dev/null; then
+if node -e "require('./src/domain/path-rewriter.js')" 2>/dev/null; then
   echo -e "${GREEN}✓ Path rewriter module loads successfully${NC}"
 else
   echo -e "${RED}✗ Path rewriter module failed to load${NC}"
@@ -229,7 +222,7 @@ fi
 echo -e "\n${BOLD}${BLUE}Documentation:${NC}"
 echo -e "  User Manual: ${GREEN}docs/user-manual.md${NC}"
 echo -e "  API Docs: ${GREEN}docs/api-documentation.md${NC}"
-echo -e "  Examples: ${GREEN}examples.md${NC}"
+echo -e "  Examples: ${GREEN}docs/examples.md${NC}"
 echo -e "  Troubleshooting: ${GREEN}docs/troubleshooting-guide.md${NC}"
 
 echo -e "\n${BOLD}Enjoy your enhanced high-performance CDN with domain-to-path prefix mapping!${NC}"
