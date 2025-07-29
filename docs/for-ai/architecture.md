@@ -962,24 +962,24 @@ The URL transformation system implements sophisticated cache management with mul
 
 #### Cache Clearing Methods
 
-**1. API Endpoints (Recommended)**
+##### 1. API Endpoints (Recommended)
 
 - `DELETE /api/cache/url-transform` - Clear URL transformation cache
 - `GET /api/cache/url-transform/stats` - Get cache statistics and performance metrics
 
-**2. Automatic LRU Eviction**
+##### 2. Automatic LRU Eviction
 
 - Default maximum cache size: 10,000 entries (configurable via `URL_TRANSFORM_CACHE_SIZE`)
 - Automatic removal of oldest entries when cache reaches capacity
 - Intelligent cache key management for optimal performance
 
-**3. Application Shutdown Integration**
+##### 3. Application Shutdown Integration
 
 - Automatic cache clearing during graceful shutdown
 - Integrated with existing shutdown sequence in `proxy-manager.js`
 - Clean resource cleanup prevents memory leaks
 
-**4. Programmatic Access**
+##### 4. Programmatic Access
 
 ```javascript
 // Direct cache management
@@ -1621,7 +1621,7 @@ done
 
 The dashboard integration system implements comprehensive error handling and graceful degradation patterns to ensure the core CDN functionality remains unaffected by dashboard-related issues.
 
-#### Enhanced Error Handling Architecture
+#### Dashboard Error Handling Architecture
 
 **Purpose**: Robust dashboard integration with comprehensive error handling and graceful degradation
 

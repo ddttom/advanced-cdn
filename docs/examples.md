@@ -316,6 +316,8 @@ curl -H "Host: static.mywebsite.com" http://localhost:3000/css/main.css
 curl -H "Host: images.mywebsite.com" http://localhost:3000/banner.jpg
 ```
 
+## Geographic Routing
+
 ### Example 8: Geographic CDN Distribution
 
 **Scenario**: Route traffic based on geographic regions.
