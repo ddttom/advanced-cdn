@@ -9,7 +9,10 @@ const https = require('https');
 const path = require('path');
 
 // Load configuration and modules
+console.log('Loading configuration...');
 const config = require('./config');
+console.log('Configuration loaded successfully');
+// Restart trigger 2
 const logger = require('./logger');
 const cacheManager = require('./cache/cache-manager');
 const proxyManager = require('./proxy/proxy-manager');
@@ -148,13 +151,138 @@ app.get('/api/cache/url-transform/stats', (req, res) => {
   }
 });
 
+// File resolution cache management endpoints
+app.delete('/api/cache/file-resolution', (req, res) => {
+  try {
+    const fileResolutionCache = require('./cache/file-resolution-cache');
+    if (fileResolutionCache && typeof fileResolutionCache.clear === 'function') {
+      fileResolutionCache.clear();
+      res.status(200).json({ 
+        message: 'File resolution cache cleared successfully',
+        timestamp: new Date().toISOString()
+      });
+      logger.info('File resolution cache cleared via API');
+    } else {
+      res.status(404).json({ 
+        error: 'File resolution cache not available',
+        message: 'The file resolution cache module is not loaded or does not support clearing'
+      });
+    }
+  } catch (err) {
+    logger.error(`File resolution cache clear error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// File resolution cache stats endpoint
+app.get('/api/cache/file-resolution/stats', (req, res) => {
+  try {
+    const fileResolutionCache = require('./cache/file-resolution-cache');
+    if (fileResolutionCache && typeof fileResolutionCache.getStats === 'function') {
+      const stats = fileResolutionCache.getStats();
+      res.status(200).json(stats);
+    } else {
+      res.status(404).json({ 
+        error: 'File resolution cache not available',
+        message: 'The file resolution cache module is not loaded or does not support stats'
+      });
+    }
+  } catch (err) {
+    logger.error(`File resolution cache stats error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Nuclear cache clear endpoint - clears ALL caches system-wide
+app.delete('/api/cache/nuke', (req, res) => {
+  try {
+    logger.info('Nuclear cache clear initiated');
+    const clearedCaches = [];
+    const errors = [];
+
+    // Clear main cache
+    try {
+      const result = cacheManager.purge('*');
+      clearedCaches.push({
+        cache: 'main',
+        type: 'response-cache',
+        itemsCleared: result.purged || 0,
+        status: 'success'
+      });
+      logger.info('Main cache cleared');
+    } catch (error) {
+      errors.push({
+        cache: 'main',
+        error: error.message
+      });
+      logger.error('Failed to clear main cache', { error: error.message });
+    }
+
+    // Clear URL transformation cache
+    try {
+      proxyManager.urlTransformer.clearCache();
+      clearedCaches.push({
+        cache: 'url-transform',
+        type: 'transformation-cache',
+        status: 'success'
+      });
+      logger.info('URL transformation cache cleared');
+    } catch (error) {
+      errors.push({
+        cache: 'url-transform',
+        error: error.message
+      });
+      logger.error('Failed to clear URL transformation cache', { error: error.message });
+    }
+
+    // Clear file resolution cache if available
+    try {
+      const fileResolutionCache = require('./cache/file-resolution-cache');
+      if (fileResolutionCache && typeof fileResolutionCache.clear === 'function') {
+        fileResolutionCache.clear();
+        clearedCaches.push({
+          cache: 'file-resolution',
+          type: 'file-cache',
+          status: 'success'
+        });
+        logger.info('File resolution cache cleared');
+      }
+    } catch (error) {
+      // File resolution cache might not exist, that's okay
+      logger.debug('File resolution cache not available or failed to clear', { error: error.message });
+    }
+
+    const response = {
+      success: errors.length === 0,
+      message: errors.length === 0 ? 'All caches cleared successfully' : 'Some caches failed to clear',
+      data: {
+        clearedCaches,
+        totalCachesCleared: clearedCaches.length,
+        errors: errors.length > 0 ? errors : undefined,
+        timestamp: new Date().toISOString()
+      }
+    };
+
+    logger.info('Nuclear cache clear completed', {
+      success: response.success,
+      cachesCleared: clearedCaches.length,
+      errors: errors.length
+    });
+
+    res.status(errors.length === 0 ? 200 : 207).json(response); // 207 = Multi-Status
+  } catch (err) {
+    logger.error(`Nuclear cache clear error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Initialize dashboard integration BEFORE proxy middleware
 const dashboardIntegration = new DashboardIntegration(app);
 // Store globally for cleanup during shutdown
 global.dashboardIntegration = dashboardIntegration;
-dashboardIntegration.initialize().catch(err => {
-  logger.error('Failed to initialize dashboard integration', { error: err.message });
-});
+
+// Mount dashboard routes immediately (synchronously)
+app.use('/dashboard', dashboardIntegration.dashboardAPI.getRouter());
 
 // Add proxy middleware - this handles all other routes
 app.use(proxyManager.middleware.bind(proxyManager));
@@ -290,9 +418,24 @@ function gracefulShutdown(server, signal) {
 }
 
 // Start the server (if not in a cluster)
+console.log('Checking cluster configuration:', config.server.cluster.enabled);
 if (!config.server.cluster.enabled) {
-  startServer();
+  console.log('Starting server in non-cluster mode...');
+  logger.info('Starting server...');
+  
+  // Initialize dashboard integration before starting server
+  dashboardIntegration.initialize()
+    .then(() => {
+      logger.info('Dashboard integration initialized successfully');
+      startServer();
+    })
+    .catch(err => {
+      logger.error('Failed to initialize dashboard integration', { error: err.message });
+      // Start server anyway, just without dashboard
+      startServer();
+    });
 } else {
+  console.log('Cluster mode enabled, exporting app and startServer');
   // In cluster mode, the cluster-manager.js handles starting
   // This just exports the app and start function
   module.exports = { app, startServer };

@@ -21,13 +21,19 @@ class DashboardIntegration {
       logger.info('Initializing dashboard integration...');
 
       // Mount dashboard API routes
+      logger.debug('Mounting dashboard API routes...');
       this.app.use('/dashboard', this.dashboardAPI.getRouter());
+      logger.debug('Dashboard API routes mounted successfully');
 
       // Start API discovery service
+      logger.debug('Starting API discovery service...');
       await this.dashboardAPI.discoveryService.initialize();
+      logger.debug('API discovery service started successfully');
 
       // Setup periodic scanning
+      logger.debug('Setting up periodic scanning...');
       this.setupPeriodicScanning();
+      logger.debug('Periodic scanning setup complete');
 
       this.isInitialized = true;
       logger.info('Dashboard integration initialized successfully');
@@ -36,7 +42,7 @@ class DashboardIntegration {
       this.logDashboardEndpoints();
 
     } catch (error) {
-      logger.error('Failed to initialize dashboard integration', { error: error.message });
+      logger.error('Failed to initialize dashboard integration', { error: error.message, stack: error.stack });
       throw error;
     }
   }

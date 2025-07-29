@@ -13,8 +13,8 @@ class DashboardAPI {
   constructor() {
     this.router = express.Router();
     this.discoveryService = new APIDiscoveryService();
-    this.setupRoutes();
     this.setupMiddleware();
+    this.setupRoutes();
   }
 
   /**
@@ -226,27 +226,38 @@ class DashboardAPI {
    */
   async testEndpoint(req, res) {
     try {
+      logger.debug('Test endpoint request received', { body: req.body });
+      
       const { method, path, headers = {} } = req.body;
       
       if (!method || !path) {
+        logger.warn('Missing method or path in test request', { method, path });
         return res.status(400).json({
           success: false,
           error: 'Method and path are required'
         });
       }
 
+      logger.debug('Making test request', { method, path, headers });
+      
       // Make internal request to test endpoint
       const testResult = await this.makeTestRequest(method, path, headers);
+      
+      logger.debug('Test request completed', { testResult });
       
       res.json({
         success: true,
         data: testResult
       });
     } catch (error) {
-      logger.error('Error testing endpoint', { error: error.message });
+      logger.error('Error testing endpoint', { 
+        error: error.message, 
+        stack: error.stack,
+        body: req.body 
+      });
       res.status(500).json({
         success: false,
-        error: 'Failed to test endpoint'
+        error: `Failed to test endpoint: ${error.message}`
       });
     }
   }
@@ -378,6 +389,8 @@ class DashboardAPI {
     const http = require('http');
     const startTime = Date.now();
 
+    logger.debug('makeTestRequest called', { method, path, headers });
+
     return new Promise((resolve, reject) => {
       const options = {
         hostname: 'localhost',
@@ -390,10 +403,27 @@ class DashboardAPI {
         }
       };
 
+      logger.debug('HTTP request options', options);
+
       const req = http.request(options, (res) => {
+        logger.debug('HTTP response received', { 
+          statusCode: res.statusCode, 
+          headers: res.headers 
+        });
+        
         let data = '';
-        res.on('data', chunk => data += chunk);
+        res.on('data', chunk => {
+          data += chunk;
+          logger.debug('Received data chunk', { chunkLength: chunk.length });
+        });
+        
         res.on('end', () => {
+          logger.debug('HTTP response complete', { 
+            statusCode: res.statusCode,
+            bodyLength: data.length,
+            responseTime: Date.now() - startTime
+          });
+          
           resolve({
             statusCode: res.statusCode,
             headers: res.headers,
@@ -403,12 +433,18 @@ class DashboardAPI {
         });
       });
 
-      req.on('error', reject);
+      req.on('error', (error) => {
+        logger.error('HTTP request error', { error: error.message, stack: error.stack });
+        reject(error);
+      });
+      
       req.setTimeout(5000, () => {
+        logger.error('HTTP request timeout');
         req.destroy();
         reject(new Error('Request timeout'));
       });
       
+      logger.debug('Sending HTTP request');
       req.end();
     });
   }
