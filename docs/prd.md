@@ -115,13 +115,12 @@ To create a flexible, self-hosted CDN solution that provides core CDN functional
     - The system must complete in-flight requests during shutdown
     - The system must release resources properly on exit
     - The system must handle signals for controlled shutdown
-11. **URL Transformation**
+12. **URL Transformation**
      - The system must automatically detect and transform URLs in HTML, JavaScript, and CSS content
      - The system must route all URLs through the proxy server to obscure original domains
      - The system must preserve query parameters, fragments, and URL functionality
      - The system must support configurable transformation patterns and content types
      - The system must cache transformation results for optimal performance
-
 
 ### Non-Functional Requirements
 
@@ -326,11 +325,11 @@ The application follows a modular architecture with the following components:
 
 ## Domain-Based Path Rewriting System
 
-### Overview
+### System Overview
 
 The domain-based path rewriting system enables intelligent request routing based on the incoming domain, allowing different domains to map to different backend paths or entirely different backend servers. This functionality is essential for multi-tenant applications, API versioning, and content organization.
 
-### Core Requirements
+### Path Rewriting Requirements
 
 #### 1. Domain-to-Path Prefix Mapping
 
@@ -395,7 +394,7 @@ DOMAIN_ROUTING_RULES={"ddt.com": {"target": "allabout.network", "pathPrefix": "/
 - Memory usage: < 10MB for 1000 routing rules
 - Cache efficiency: > 95% hit rate for compiled rules
 
-### Technical Specification
+### Path Rewriting Technical Specification
 
 #### 1. Path Rewriter Engine
 
@@ -508,7 +507,7 @@ class PathRewriter {
 }
 ```
 
-### Implementation Requirements
+### Path Rewriting Implementation Requirements
 
 #### 1. Backward Compatibility
 
@@ -541,7 +540,7 @@ class PathRewriter {
 - Rate limiting for configuration updates
 - Audit logging for rule changes
 
-### Testing Requirements
+### Path Rewriting Testing Requirements
 
 #### 1. Unit Tests
 
@@ -570,7 +569,7 @@ class PathRewriter {
 - Cache hit rates with domain-specific keys
 - Concurrent request handling
 
-### Documentation Requirements
+### Path Rewriting Documentation Requirements
 
 #### 1. Configuration Guide
 
@@ -601,11 +600,11 @@ class PathRewriter {
 
 ## Cascading File Resolution System
 
-### Overview
+### File Resolution Overview
 
 The cascading file resolution system enables automatic file discovery and content transformation for extensionless requests. When a request is made for a path without a file extension, the system attempts to locate files with various extensions in a configurable priority order, then applies appropriate content transformations before serving the response.
 
-### Core Requirements
+### File Resolution Core Requirements
 
 #### 1. Extensionless File Resolution
 
@@ -724,7 +723,7 @@ FILE_RESOLUTION_TRANSFORMERS_api_site_com=json,csv
 - **Half-Open Test**: Single request to test recovery
 - **Success Threshold**: 3 consecutive successes to close circuit
 
-### Technical Specification
+### File Resolution Technical Specification
 
 #### 1. File Resolver Engine
 
@@ -909,7 +908,7 @@ class TransformerPlugin {
 - Cache hit/miss analysis
 - Performance bottleneck identification
 
-### Implementation Requirements
+### File Resolution Implementation Requirements
 
 #### 1. Configuration Management
 
@@ -966,7 +965,7 @@ FILE_RESOLUTION_TRANSFORMER_CACHE_TTL=7200
 - Transformer performance with various file sizes
 - Circuit breaker recovery time
 
-### Documentation Requirements
+### File Resolution Documentation Requirements
 
 #### 1. User Documentation
 
@@ -1009,6 +1008,7 @@ The following critical browser issues have been resolved in the current version:
 **Issue**: Module system mismatch causing runtime errors and preventing proper metrics collection.
 
 **Solution**: Converted ES modules to CommonJS for consistency across the codebase:
+
 - [`file-resolver.js`](../file-resolver.js) - Converted from ES modules to CommonJS
 - [`file-resolution-cache.js`](../file-resolution-cache.js) - Converted from ES modules to CommonJS  
 - [`transformers/index.js`](../transformers/index.js) - Converted from ES modules to CommonJS
@@ -1020,6 +1020,7 @@ The following critical browser issues have been resolved in the current version:
 **Issue**: CDN failing to properly decompress gzipped content from upstream servers, causing corrupted JavaScript files and browser syntax errors.
 
 **Solution**: Implemented robust error handling in [`proxy-manager.js`](../proxy-manager.js):
+
 - Enhanced decompression error handling with comprehensive logging
 - Added fallback mechanisms for failed decompression
 - Special protection for JavaScript files (returns 502 Bad Gateway instead of corrupted content)
@@ -1034,6 +1035,7 @@ The following critical browser issues have been resolved in the current version:
 **Root Cause**: When the proxy decompressed gzip content, the original Content-Length header (referring to compressed size) was sent with decompressed content, causing Node.js HTTP parser to expect more data than actually sent.
 
 **Solution**: Implemented comprehensive header management in [`proxy-manager.js`](../proxy-manager.js):
+
 - Conditional Content-Length header exclusion in `setupResponseHeaders()` for compressed responses
 - Proper Content-Length setting after decompression in `handleProxyResponse()`
 - Fallback to chunked transfer encoding when Content-Length cannot be determined
@@ -1102,25 +1104,28 @@ The following features may be considered for future versions:
    - DDoS protection with rate limiting and IP blocking
    - Web Application Firewall (WAF) integration
    - SSL certificate automation with Let's Encrypt
+
 ## URL Transformation System
 
-### Overview
+### Transformation Overview
 
 The URL transformation system provides comprehensive URL masking capabilities by automatically detecting and rewriting all URLs in HTML, JavaScript, and CSS responses. This ensures that all URLs are routed through the proxy server, completely obscuring the original server's domain, IP address, and path structure from end users while maintaining full functionality and session state.
 
-### Core Requirements
+### URL Transformation Core Requirements
 
 #### 1. Automatic URL Detection
 
 **Requirement**: The system must automatically detect URLs in various content types and contexts.
 
 **Supported Content Types**:
+
 - HTML content (href, src, action, data-* attributes)
 - JavaScript content (fetch calls, imports, location assignments, AJAX requests)
 - CSS content (url() functions, @import statements, font sources)
 - Inline styles and scripts within HTML
 
 **Detection Patterns**:
+
 - Absolute URLs: `https://example.com/path`
 - Relative URLs: `/path/to/resource`, `../relative/path`
 - Protocol-relative URLs: `//example.com/path`
@@ -1132,6 +1137,7 @@ The URL transformation system provides comprehensive URL masking capabilities by
 **Requirement**: The system must classify URLs and apply appropriate transformations based on their type and context.
 
 **URL Types**:
+
 - **External URLs**: Transform to route through proxy
 - **Internal URLs**: Preserve relative structure while ensuring proxy routing
 - **Fragment URLs**: Preserve functionality for single-page applications
@@ -1139,6 +1145,7 @@ The URL transformation system provides comprehensive URL masking capabilities by
 - **JavaScript URLs**: Handle special cases like `javascript:void(0)`
 
 **Transformation Logic**:
+
 ```javascript
 // Original URL in content
 https://backend.example.com/api/users
@@ -1152,12 +1159,14 @@ https://proxy.domain.com/api/users
 **Requirement**: The system must support transformation across multiple content types with context-aware processing.
 
 **HTML Transformation**:
+
 - Attribute-based URLs: `href`, `src`, `action`, `data-*`
 - Inline event handlers: `onclick`, `onload`, etc.
 - Meta refresh redirects
 - Base href elements
 
 **JavaScript Transformation**:
+
 - Fetch API calls: `fetch('/api/data')`
 - XMLHttpRequest URLs
 - Dynamic imports: `import('/module.js')`
@@ -1165,6 +1174,7 @@ https://proxy.domain.com/api/users
 - AJAX library calls (jQuery, Axios, etc.)
 
 **CSS Transformation**:
+
 - URL functions: `url('/images/bg.jpg')`
 - Import statements: `@import '/styles/theme.css'`
 - Font sources: `src: url('/fonts/font.woff')`
@@ -1174,6 +1184,7 @@ https://proxy.domain.com/api/users
 **Requirement**: The system must preserve URL functionality and parameters during transformation.
 
 **Preservation Requirements**:
+
 - Query parameters: `?search=term&page=2`
 - Fragment identifiers: `#section-anchor`
 - URL encoding: Maintain proper encoding/decoding
@@ -1185,12 +1196,14 @@ https://proxy.domain.com/api/users
 **Requirement**: The system must provide optimal performance through intelligent caching and optimization.
 
 **Caching Strategy**:
+
 - **Pattern Cache**: Cache compiled regex patterns for URL detection
 - **Transformation Cache**: Cache transformation results with LRU eviction
 - **Content Cache**: Cache transformed content with configurable TTL
 - **Negative Cache**: Cache failed transformation attempts
 
 **Performance Targets**:
+
 - URL detection: < 10ms for typical HTML pages
 - Content transformation: < 100ms for pages up to 1MB
 - Cache hit rate: > 90% for repeated content
@@ -1201,6 +1214,7 @@ https://proxy.domain.com/api/users
 **Requirement**: The system must implement security measures to prevent malicious URL manipulation.
 
 **Security Features**:
+
 - URL validation to prevent XSS attacks
 - Content-type verification for transformed content
 - Input sanitization for URL parameters
@@ -1208,18 +1222,20 @@ https://proxy.domain.com/api/users
 - Audit logging for security events
 
 **Validation Rules**:
+
 - Reject malicious URL patterns
 - Validate URL structure and encoding
 - Prevent path traversal attacks
 - Sanitize user-provided URL components
 
-### Technical Specification
+### URL Transformation Technical Specification
 
 #### 1. URL Transformer Engine
 
 **Component**: `url-transformer.js`
 
 **Responsibilities**:
+
 - Execute URL detection using compiled regex patterns
 - Perform URL classification and transformation logic
 - Manage transformation cache and performance optimization
@@ -1227,6 +1243,7 @@ https://proxy.domain.com/api/users
 - Integrate with existing path-rewriter and domain-manager
 
 **API Interface**:
+
 ```javascript
 class URLTransformer {
   // Transform content with URL rewriting
@@ -1249,18 +1266,21 @@ class URLTransformer {
 #### 2. Integration Points
 
 **Proxy Manager Integration**:
+
 - URL transformation executes during response processing
 - Automatic content-type detection and transformation
 - Maintains response headers and status codes
 - Async/await support for transformation pipeline
 
 **Configuration Integration**:
+
 - Environment variable support for all transformation options
 - Per-domain transformation settings
 - Content-type filtering and exclusion rules
 - Performance tuning parameters
 
 **Monitoring Integration**:
+
 - Transformation attempt counters and success rates
 - Cache hit/miss statistics for transformation operations
 - Performance metrics for transformation latency
@@ -1269,6 +1289,7 @@ class URLTransformer {
 #### 3. Configuration Options
 
 **Environment Variables**:
+
 ```bash
 # Enable URL transformation
 URL_TRANSFORM_ENABLED=true
@@ -1291,6 +1312,7 @@ URL_TRANSFORM_DEBUG=false
 ```
 
 **Advanced Configuration**:
+
 ```javascript
 {
   "urlTransformation": {
@@ -1324,6 +1346,7 @@ URL_TRANSFORM_DEBUG=false
 #### 4. Error Handling and Fallbacks
 
 **Error Scenarios**:
+
 1. **Malformed Content**: Invalid HTML, JavaScript, or CSS syntax
 2. **Transformation Failures**: Regex compilation or execution errors
 3. **Memory Limits**: Content size exceeding configured limits
@@ -1331,6 +1354,7 @@ URL_TRANSFORM_DEBUG=false
 5. **Security Violations**: Malicious URL patterns or injection attempts
 
 **Fallback Mechanisms**:
+
 - Graceful degradation to original content on transformation failure
 - Configurable fallback behavior per content type
 - Error logging with detailed context for debugging
@@ -1340,6 +1364,7 @@ URL_TRANSFORM_DEBUG=false
 #### 5. Monitoring and Observability
 
 **Metrics Collection**:
+
 - `url_transform_attempts_total{content_type, domain}`: Total transformation attempts
 - `url_transform_cache_hits_total{cache_type}`: Cache hit statistics
 - `url_transform_duration_seconds{content_type}`: Transformation latency
@@ -1347,34 +1372,39 @@ URL_TRANSFORM_DEBUG=false
 - `url_transform_urls_processed_total{url_type}`: URL processing statistics
 
 **Health Indicators**:
+
 - URL transformation success rate > 98%
 - Average transformation time < 100ms
 - Cache hit rate > 90%
 - Error rate < 2%
 
 **Debug Information**:
+
 - Detailed transformation logs with URL patterns
 - Cache performance analysis and optimization suggestions
 - Content size and complexity metrics
 - Security event logging and analysis
 
-### Implementation Requirements
+### URL Transformation Implementation Requirements
 
 #### 1. Testing and Validation
 
 **Unit Test Coverage**:
+
 - URL detection patterns: 100%
 - Transformation logic: 100%
 - Error handling: 100%
 - Security validation: 100%
 
 **Integration Test Scenarios**:
+
 - End-to-end content transformation with various content types
 - Cache performance under load conditions
 - Security validation with malicious input
 - Fallback behavior during failure conditions
 
 **Performance Test Benchmarks**:
+
 - Transformation latency under concurrent load
 - Memory usage with large content and cache sizes
 - Cache efficiency with various content patterns
@@ -1383,18 +1413,20 @@ URL_TRANSFORM_DEBUG=false
 #### 2. Documentation Requirements
 
 **User Documentation**:
+
 - Configuration guide with examples for common scenarios
 - Troubleshooting guide for transformation issues
 - Performance tuning recommendations
 - Security best practices and considerations
 
 **Developer Documentation**:
+
 - URL transformation system architecture and design
 - Integration patterns and extension points
 - Testing and validation procedures
 - Performance optimization techniques
 
-### Success Criteria
+### URL Transformation Success Criteria
 
 1. **Functionality**: Complete URL masking with 100% domain obscuration
 2. **Performance**: < 100ms transformation overhead for typical content
@@ -1404,7 +1436,7 @@ URL_TRANSFORM_DEBUG=false
 
 ## Enhanced Cache Management System
 
-### Overview
+### Cache Management Overview
 
 The Advanced CDN application implements a comprehensive multi-tier cache management system that provides specialized caching for different types of operations, including response caching, URL transformation caching, and file resolution caching. The system includes advanced features such as nuclear cache clearing, detailed performance monitoring, and enhanced error handling.
 
@@ -1415,11 +1447,13 @@ The Advanced CDN application implements a comprehensive multi-tier cache managem
 **Requirement**: The system must support multiple specialized cache types with independent management capabilities.
 
 **Cache Types**:
+
 - **Main Response Cache**: HTTP response caching with domain-aware keys
 - **URL Transformation Cache**: Caching of URL transformation results for performance
 - **File Resolution Cache**: Specialized caching for file resolution operations with dual TTL support
 
 **Cache Isolation**:
+
 - Each cache type must operate independently
 - Cache failures in one type must not affect others
 - Separate configuration and management for each cache type
@@ -1429,16 +1463,19 @@ The Advanced CDN application implements a comprehensive multi-tier cache managem
 **Requirement**: The system must provide specialized cache management for file resolution operations with dual TTL support for positive and negative results.
 
 **API Endpoints**:
+
 - `DELETE /api/cache/file-resolution` - Clear file resolution cache
 - `GET /api/cache/file-resolution/stats` - Get file resolution cache statistics
 
 **Features**:
+
 - **Dual TTL System**: Different TTL for positive vs negative results
 - **LRU Eviction**: Automatic cleanup when cache reaches capacity
 - **Statistics Tracking**: Comprehensive metrics for positive/negative hit rates
 - **Memory Management**: Detailed memory usage tracking and optimization
 
 **Performance Requirements**:
+
 - Cache hit rate: > 90% for optimal performance
 - Memory usage: < 100MB for file resolution cache
 - Cache lookup time: < 1ms for cached entries
@@ -1449,15 +1486,18 @@ The Advanced CDN application implements a comprehensive multi-tier cache managem
 **Requirement**: The system must provide system-wide cache clearing capabilities that coordinate across all cache types with comprehensive error handling and detailed feedback.
 
 **API Endpoint**:
+
 - `DELETE /api/cache/nuke` - Clear ALL caches system-wide
 
 **Features**:
+
 - **Multi-Cache Coordination**: Clears all cache types in a single operation
 - **Error Isolation**: Individual cache failures don't prevent other caches from clearing
 - **Comprehensive Logging**: Detailed operation logging for each cache type
 - **Status Aggregation**: Multi-status response handling for partial failures
 
 **Response Format**:
+
 ```javascript
 {
   "success": true,
@@ -1492,6 +1532,7 @@ The Advanced CDN application implements a comprehensive multi-tier cache managem
 **Requirement**: The system must provide enhanced dashboard integration with comprehensive error handling and graceful degradation capabilities.
 
 **Error Handling Features**:
+
 - **Initialization Error Recovery**: Application continues if dashboard fails to initialize
 - **Resource Cleanup**: Proper cleanup of intervals and resources during shutdown
 - **Error Isolation**: Dashboard errors don't affect core CDN functionality
@@ -1499,6 +1540,7 @@ The Advanced CDN application implements a comprehensive multi-tier cache managem
 - **Graceful Degradation**: System remains functional without dashboard features
 
 **Dashboard Integration Process**:
+
 ```javascript
 // Enhanced initialization with error handling
 dashboardIntegration.initialize()
@@ -1518,27 +1560,31 @@ dashboardIntegration.initialize()
 **Requirement**: The system must provide detailed parameter validation and comprehensive user feedback for all cache management operations.
 
 **Parameter Validation Features**:
+
 - **Input Validation**: Comprehensive validation of all API parameters
 - **Error Messages**: Clear, actionable error messages with context
 - **Request Tracking**: Detailed logging of request processing steps
 - **Response Metadata**: Additional context in API responses for debugging
 
 **User Feedback Improvements**:
+
 - **Detailed Error Responses**: Comprehensive error information with context
 - **Operation Status**: Clear indication of operation success/failure
 - **Timing Information**: Response time and processing duration
 - **Resource Information**: Cache sizes, hit rates, and performance metrics
 
-### Technical Specifications
+### Cache Management Technical Specifications
 
 #### 1. Cache Architecture
 
 **Cache Key Strategies**:
+
 - **Main Cache**: `{method}:{domain}:{transformedPath}:{varyHeaders}`
 - **URL Transformation Cache**: `{url}:{proxyHost}:{pathTransformation.target}`
 - **File Resolution Cache**: `file-resolution:{domain}:{path}`
 
 **Performance Targets**:
+
 - Cache lookup time: < 1ms for all cache types
 - Cache clearing time: < 100ms for individual caches
 - Nuclear cache clear time: < 500ms for all caches
@@ -1547,6 +1593,7 @@ dashboardIntegration.initialize()
 #### 2. Security and Access Control
 
 **Security Requirements**:
+
 - **Local Access Only**: All cache management APIs restricted to localhost
 - **Comprehensive Audit Trail**: All cache operations logged with detailed context
 - **Error Handling**: Graceful handling of unavailable cache modules
@@ -1555,18 +1602,20 @@ dashboardIntegration.initialize()
 #### 3. Monitoring and Observability
 
 **Metrics Collection**:
+
 - Cache hit/miss ratios for all cache types
 - Memory usage and performance statistics
 - Operation timing and success rates
 - Error rates and debugging information
 
 **Health Indicators**:
+
 - Overall cache system health > 95%
 - Individual cache performance within targets
 - Error rates < 1% for all cache operations
 - Memory usage within configured limits
 
-### Cache Management
+### URL Transformation Cache Management
 
 The URL transformation system implements comprehensive cache management with multiple clearing mechanisms and performance optimization features.</search>
 </search_and_replace>
@@ -1574,18 +1623,21 @@ The URL transformation system implements comprehensive cache management with mul
 #### Cache Clearing Requirements
 
 **API Endpoints**:
+
 - The system must provide REST API endpoints for cache management
 - `DELETE /api/cache/url-transform` - Clear entire URL transformation cache
 - `GET /api/cache/url-transform/stats` - Retrieve cache performance statistics
 - All cache management APIs must be restricted to localhost access only
 
 **Automatic Cache Management**:
+
 - The system must implement LRU (Least Recently Used) eviction policy
 - Default maximum cache size: 10,000 entries (configurable via environment variables)
 - Automatic removal of oldest entries when cache reaches capacity
 - Graceful cache clearing during application shutdown
 
 **Performance Monitoring**:
+
 - The system must track cache hit/miss ratios for performance optimization
 - Memory usage monitoring with configurable limits
 - Transformation timing metrics for performance analysis
@@ -1594,11 +1646,13 @@ The URL transformation system implements comprehensive cache management with mul
 #### Cache Key Strategy
 
 **Cache Key Format**:
+
 ```bash
 {url}:{proxyHost}:{pathTransformation.target}
 ```
 
 **Cache Isolation**:
+
 - URL transformation cache must be separate from main application cache
 - Cache keys must include context for proper domain isolation
 - No cross-contamination between different transformation contexts
@@ -1606,6 +1660,7 @@ The URL transformation system implements comprehensive cache management with mul
 #### Security Requirements
 
 **Access Control**:
+
 - Cache management APIs must be restricted to localhost (127.0.0.1, ::1)
 - Comprehensive error handling and logging for cache operations
 - Audit trail for cache clearing operations
@@ -1614,22 +1669,24 @@ The URL transformation system implements comprehensive cache management with mul
 #### Performance Requirements
 
 **Cache Performance Targets**:
+
 - Cache hit rate: > 90% for optimal performance
 - Memory usage: < 50MB for transformation cache
 - Cache lookup time: < 1ms for cached entries
 - Cache clearing time: < 100ms for complete cache clear
 
 **Scalability Requirements**:
+
 - Support for 10,000+ cached transformation results
 - Efficient memory management with automatic cleanup
 - Configurable cache size limits based on available memory
 - Performance degradation protection through size limits
 
-6. **Maintainability**: Clear code organization and comprehensive documentation
+**Maintainability**: Clear code organization and comprehensive documentation
 
-   - Content Security Policy (CSP) generation and enforcement
+- Content Security Policy (CSP) generation and enforcement
 
-10. **Monitoring and Observability**
+**Monitoring and Observability**
     - Distributed tracing with OpenTelemetry
     - Real-time alerting with custom thresholds
     - Performance profiling with flame graphs
