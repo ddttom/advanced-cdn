@@ -215,6 +215,7 @@ The application uses environment variables for configuration with comprehensive 
 - **/health**: Health check with detailed system status
 - **/metrics**: Prometheus-compatible metrics
 - **/api/cache**: Cache management (clear, stats)
+- **/api/cache/keys**: List all cache keys with optional pattern filtering
 - **/api/cache/url-transform**: URL transformation cache management
 - **/api/domains**: Domain configuration management
 - **/api/file-resolution**: File resolution system management

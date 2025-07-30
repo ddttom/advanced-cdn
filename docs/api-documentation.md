@@ -189,6 +189,98 @@ curl -X GET http://localhost:3000/api/cache/stats
 }
 ```
 
+### GET /api/cache/keys
+
+Returns all cache keys from each of the application's caches with optional pattern filtering.
+
+**Request (All Keys):**
+
+```bash
+curl -X GET http://localhost:3000/api/cache/keys
+```
+
+**Request (With Pattern Filter):**
+
+```bash
+curl -X GET "http://localhost:3000/api/cache/keys?pattern=*ddt.com*"
+```
+
+**Request (With Wildcard Pattern):**
+
+```bash
+curl -X GET "http://localhost:3000/api/cache/keys?pattern=GET:*:/images/*"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Cache keys retrieved successfully",
+  "data": {
+    "caches": {
+      "main": [
+        "GET:ddt.com:/about:transformed=/ddt/about:target=main--allaboutv2--ddttom.hlx.live",
+        "GET:blog.allabout.network:/posts:transformed=/blog/posts:target=main--allaboutv2--ddttom.hlx.live",
+        "GET:allabout.network:/images/logo.png"
+      ],
+      "urlTransform": [
+        "transform:ddt.com:https://main--allaboutv2--ddttom.hlx.live/ddt/about",
+        "transform:blog.allabout.network:https://main--allaboutv2--ddttom.hlx.live/blog/posts"
+      ],
+      "fileResolution": [
+        "file:docs.example.com:/getting-started:md,html,txt",
+        "file:api.example.com:/v1/users:json,xml"
+      ]
+    },
+    "summary": {
+      "main": 3,
+      "urlTransform": 2,
+      "fileResolution": 2,
+      "total": 7
+    },
+    "timestamp": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+**Response (With Pattern Filter):**
+
+```json
+{
+  "success": true,
+  "message": "Cache keys retrieved successfully",
+  "data": {
+    "caches": {
+      "main": [
+        "GET:ddt.com:/about:transformed=/ddt/about:target=main--allaboutv2--ddttom.hlx.live"
+      ],
+      "urlTransform": [
+        "transform:ddt.com:https://main--allaboutv2--ddttom.hlx.live/ddt/about"
+      ],
+      "fileResolution": []
+    },
+    "summary": {
+      "main": 1,
+      "urlTransform": 1,
+      "fileResolution": 0,
+      "total": 2
+    },
+    "timestamp": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+**Query Parameters:**
+
+- `pattern` (optional): Pattern to filter cache keys. Supports wildcards (`*`) and exact matches.
+
+**Cache Types:**
+
+- `main`: General response cache with domain and path transformation information
+- `urlTransform`: URL transformation cache for rewritten URLs
+- `fileResolution`: File resolution cache for extensionless file lookups
+
 ### DELETE /api/cache
 
 Purges cache entries with optional pattern matching and domain filtering.
