@@ -380,6 +380,41 @@ class FileResolutionCache extends EventEmitter {
     }
     
     /**
+     * Get all cache keys
+     * @param {string} pattern - Optional pattern to filter keys
+     * @returns {Array} Array of cache keys
+     */
+    getKeys(pattern = null) {
+        if (!this.config.enabled) {
+            return [];
+        }
+        
+        try {
+            const keys = Array.from(this.cache.keys());
+            
+            if (!pattern) {
+                return keys;
+            }
+            
+            // Apply pattern filtering if specified
+            return keys.filter(key => {
+                if (pattern === '*') {
+                    return true;
+                } else if (pattern.includes('*')) {
+                    // Convert glob pattern to regex
+                    const regexPattern = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+                    return regexPattern.test(key);
+                } else {
+                    return key.includes(pattern);
+                }
+            });
+        } catch (err) {
+            logger.error(`File resolution cache keys retrieval error: ${err.message}`);
+            return [];
+        }
+    }
+
+    /**
      * Get cache entries for debugging
      * @param {number} limit - Maximum number of entries to return
      * @returns {Array} Array of cache entries

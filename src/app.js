@@ -193,6 +193,116 @@ app.get('/api/cache/file-resolution/stats', (req, res) => {
   }
 });
 
+// Cache keys listing endpoint - lists keys in all caches
+app.get('/api/cache/keys', (req, res) => {
+  try {
+    const cacheKeys = {
+      main: [],
+      urlTransform: [],
+      fileResolution: []
+    };
+    const errors = [];
+
+    // Get main cache keys
+    try {
+      cacheKeys.main = cacheManager.getKeys(req.query.pattern) || [];
+    } catch (error) {
+      errors.push({
+        cache: 'main',
+        error: error.message
+      });
+      logger.error('Failed to get main cache keys', { error: error.message });
+    }
+
+    // Get URL transformation cache keys
+    try {
+      if (proxyManager.urlTransformer && typeof proxyManager.urlTransformer.getKeys === 'function') {
+        cacheKeys.urlTransform = proxyManager.urlTransformer.getKeys(req.query.pattern);
+      } else if (proxyManager.urlTransformer && proxyManager.urlTransformer.cache) {
+        // Fallback: try to access cache directly if getKeys method doesn't exist
+        let keys = Array.from(proxyManager.urlTransformer.cache.keys() || []);
+        // Apply pattern filtering if specified
+        if (req.query.pattern && req.query.pattern !== '*') {
+          const pattern = req.query.pattern;
+          keys = keys.filter(key => {
+            if (pattern.includes('*')) {
+              const regexPattern = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+              return regexPattern.test(key);
+            } else {
+              return key.includes(pattern);
+            }
+          });
+        }
+        cacheKeys.urlTransform = keys;
+      }
+    } catch (error) {
+      errors.push({
+        cache: 'urlTransform',
+        error: error.message
+      });
+      logger.error('Failed to get URL transformation cache keys', { error: error.message });
+    }
+
+    // Get file resolution cache keys
+    try {
+      const fileResolutionCache = require('./cache/file-resolution-cache');
+      if (fileResolutionCache && typeof fileResolutionCache.getKeys === 'function') {
+        cacheKeys.fileResolution = fileResolutionCache.getKeys(req.query.pattern) || [];
+      } else if (fileResolutionCache && fileResolutionCache.cache) {
+        // Fallback for older versions
+        let keys = Array.from(fileResolutionCache.cache.keys() || []);
+        // Apply pattern filtering if specified
+        if (req.query.pattern && req.query.pattern !== '*') {
+          const pattern = req.query.pattern;
+          keys = keys.filter(key => {
+            if (pattern.includes('*')) {
+              const regexPattern = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+              return regexPattern.test(key);
+            } else {
+              return key.includes(pattern);
+            }
+          });
+        }
+        cacheKeys.fileResolution = keys;
+      }
+    } catch (error) {
+      errors.push({
+        cache: 'fileResolution',
+        error: error.message
+      });
+      logger.error('Failed to get file resolution cache keys', { error: error.message });
+    }
+
+    const response = {
+      success: errors.length === 0,
+      message: errors.length === 0 ? 'Cache keys retrieved successfully' : 'Some cache keys failed to retrieve',
+      data: {
+        caches: cacheKeys,
+        summary: {
+          main: cacheKeys.main.length,
+          urlTransform: cacheKeys.urlTransform.length,
+          fileResolution: cacheKeys.fileResolution.length,
+          total: cacheKeys.main.length + cacheKeys.urlTransform.length + cacheKeys.fileResolution.length
+        },
+        errors: errors.length > 0 ? errors : undefined,
+        timestamp: new Date().toISOString()
+      }
+    };
+
+    logger.info('Cache keys retrieved', {
+      mainKeys: cacheKeys.main.length,
+      urlTransformKeys: cacheKeys.urlTransform.length,
+      fileResolutionKeys: cacheKeys.fileResolution.length,
+      errors: errors.length
+    });
+
+    res.status(errors.length === 0 ? 200 : 207).json(response); // 207 = Multi-Status for partial success
+  } catch (err) {
+    logger.error(`Cache keys retrieval error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Nuclear cache clear endpoint - clears ALL caches system-wide
 app.delete('/api/cache/nuke', (req, res) => {
   try {

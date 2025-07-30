@@ -361,6 +361,40 @@ class CacheManager {
   }
   
   /**
+   * Get all cache keys
+   * @param {String} pattern - Optional pattern to filter keys
+   * @returns {Array} Array of cache keys
+   */
+  getKeys(pattern = null) {
+    if (!this.enabled) return [];
+    
+    try {
+      const keys = this.cache.keys();
+      
+      if (!pattern) {
+        return keys;
+      }
+      
+      // Apply pattern filtering if specified
+      return keys.filter(key => {
+        if (pattern === '*') {
+          return true;
+        } else if (pattern.includes('*')) {
+          // Convert glob pattern to regex
+          const regexPattern = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+          return regexPattern.test(key);
+        } else {
+          return key.includes(pattern);
+        }
+      });
+    } catch (err) {
+      this.stats.errors++;
+      logger.error(`Cache keys retrieval error: ${err.message}`);
+      return [];
+    }
+  }
+
+  /**
    * Get cache statistics
    * @returns {Object} Cache statistics
    */
