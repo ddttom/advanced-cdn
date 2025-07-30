@@ -11,7 +11,7 @@ This is a production-quality Node.js application that provides advanced CDN func
 - **Cascading File Resolution**: Automatically resolves extensionless requests by trying multiple file extensions in priority order
 - **Content Transformation**: Built-in transformers for Markdown to HTML, JSON formatting, CSV to HTML tables, and more
 - **Advanced Caching**: Intelligent in-memory caching with TTL management and cache control support
-- **URL Transformation**: Comprehensive URL masking that automatically detects and rewrites all URLs in HTML, JavaScript, and CSS content
+- **URL Transformation**: Comprehensive URL masking that automatically detects and rewrites all URLs in HTML, JavaScript, and CSS content with protocol-aware transformation (HTTP→HTTP, HTTPS→HTTPS)
 - **Circuit Breaker Protection**: Automatic protection against failing domains with configurable thresholds and recovery
 - **Clustering Support**: Multi-process operation for optimal performance on multi-core systems
 - **Production Readiness**: Graceful shutdown, error handling, and performance optimizations

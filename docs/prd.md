@@ -121,6 +121,9 @@ To create a flexible, self-hosted CDN solution that provides core CDN functional
      - The system must preserve query parameters, fragments, and URL functionality
      - The system must support configurable transformation patterns and content types
      - The system must cache transformation results for optimal performance
+     - The system must implement protocol-aware transformation (HTTP requests → HTTP URLs, HTTPS requests → HTTPS URLs)
+     - The system must handle JavaScript string literals without corrupting syntax
+     - The system must provide protocol-aware caching to prevent HTTP/HTTPS cache conflicts
 
 ### Non-Functional Requirements
 
@@ -1120,7 +1123,7 @@ The URL transformation system provides comprehensive URL masking capabilities by
 **Supported Content Types**:
 
 - HTML content (href, src, action, data-* attributes)
-- JavaScript content (fetch calls, imports, location assignments, AJAX requests)
+- JavaScript content (fetch calls, imports, location assignments, AJAX requests, string literals)
 - CSS content (url() functions, @import statements, font sources)
 - Inline styles and scripts within HTML
 
@@ -1131,6 +1134,8 @@ The URL transformation system provides comprehensive URL masking capabilities by
 - Protocol-relative URLs: `//example.com/path`
 - Fragment identifiers: `#section`
 - Query parameters: `?param=value&other=data`
+
+**JavaScript String Literals**: Fixed regex pattern `/(["'`])(https?:\/\/[^"'`\s]+)\1/gi` to properly capture URLs without syntax corruption
 
 #### 2. URL Classification and Transformation
 

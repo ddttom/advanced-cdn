@@ -35,6 +35,7 @@ class ProxyManager {
     
     // Initialize URL transformer
     this.urlTransformer = new URLTransformer(config.urlTransformation || {});
+    this.logURLTransformationStatus();
     
     // Initialize compute function manager
     this.computeFunctionManager = null;
@@ -47,6 +48,52 @@ class ProxyManager {
     this.proxy = this.createProxyMiddleware();
   }
   
+  /**
+   * Check if a request is for a JavaScript file
+   * @param {Object} req - Express request
+   * @returns {Boolean} True if requesting JavaScript
+   */
+  isJavaScriptRequest(req) {
+    const url = req.url || req.path || '';
+    const acceptHeader = req.headers.accept || '';
+    
+    // Check file extension
+    if (url.endsWith('.js') || url.endsWith('.mjs') || url.endsWith('.jsx')) {
+      return true;
+    }
+    
+    // Check Accept header for JavaScript MIME types
+    if (acceptHeader.includes('application/javascript') || 
+        acceptHeader.includes('text/javascript') || 
+        acceptHeader.includes('application/x-javascript')) {
+      return true;
+    }
+    
+    return false;
+  }
+
+  /**
+   * Check if a request is for a CSS file
+   * @param {Object} req - Express request
+   * @returns {Boolean} True if requesting CSS
+   */
+  isCSSRequest(req) {
+    const url = req.url || req.path || '';
+    const acceptHeader = req.headers.accept || '';
+    
+    // Check file extension
+    if (url.endsWith('.css')) {
+      return true;
+    }
+    
+    // Check Accept header for CSS MIME types
+    if (acceptHeader.includes('text/css')) {
+      return true;
+    }
+    
+    return false;
+  }
+
   /**
    * Get target URL for a request based on domain routing
    * @param {Object} req - Express request
@@ -160,6 +207,27 @@ class ProxyManager {
       
       // Handle response from target
       onProxyRes: (proxyRes, req, res) => {
+        // Handle 404 responses for JavaScript and CSS files to prevent browser syntax errors
+        if (proxyRes.statusCode === 404) {
+          if (this.isJavaScriptRequest(req)) {
+            logger.debug(`Handling 404 for JavaScript file: ${req.url}`);
+            res.status(404);
+            res.setHeader('Content-Type', 'application/javascript');
+            res.setHeader('X-Served-By', config.cdn.cdnName);
+            res.setHeader('X-Cache', 'MISS');
+            res.end('/* File not found: ' + req.url + ' */');
+            return;
+          } else if (this.isCSSRequest(req)) {
+            logger.debug(`Handling 404 for CSS file: ${req.url}`);
+            res.status(404);
+            res.setHeader('Content-Type', 'text/css');
+            res.setHeader('X-Served-By', config.cdn.cdnName);
+            res.setHeader('X-Cache', 'MISS');
+            res.end('/* File not found: ' + req.url + ' */');
+            return;
+          }
+        }
+        
         // Set up response headers
         this.setupResponseHeaders(proxyRes, req, res);
         
@@ -244,6 +312,9 @@ class ProxyManager {
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('X-XSS-Protection', '1; mode=block');
       res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+      
+      // Origin-Agent-Cluster header to prevent browser warnings
+      res.setHeader('Origin-Agent-Cluster', '?1');
       
       // Content Security Policy if configured
       if (config.security.contentSecurityPolicy) {
@@ -442,6 +513,16 @@ class ProxyManager {
             domainManager: domainManager
           };
           
+          // Log request-level transformation attempt
+          if (config.urlTransformation?.debugMode) {
+            logger.info(`🔍 [URL-TRANSFORM] Processing request: ${req.method} ${req.url}`, {
+              contentType,
+              contentSize: responseData.length,
+              proxyHost: req.headers.host,
+              pathTransformation: req.pathTransformation ? 'enabled' : 'disabled'
+            });
+          }
+          
           const transformResult = await this.urlTransformer.transformContent(
             responseData,
             contentType,
@@ -452,18 +533,24 @@ class ProxyManager {
             responseData = transformResult.content;
             body = Buffer.from(responseData, 'utf8');
             
-            logger.debug('URL transformation applied', {
-              url: req.url,
+            logger.info(`✅ [URL-TRANSFORM] Applied to ${req.url}`, {
               urlsTransformed: transformResult.urlsTransformed,
               originalSize: transformResult.originalSize,
-              transformedSize: transformResult.transformedSize
+              transformedSize: transformResult.transformedSize,
+              contentType
+            });
+          } else if (config.urlTransformation?.debugMode) {
+            logger.debug(`⏭️  [URL-TRANSFORM] Skipped ${req.url}`, {
+              reason: transformResult.reason || transformResult.error || 'No URLs to transform',
+              contentType,
+              contentSize: responseData.length
             });
           }
         } catch (transformError) {
-          logger.error('URL transformation error', {
-            url: req.url,
+          logger.error(`❌ [URL-TRANSFORM] Error processing ${req.url}`, {
             error: transformError.message,
-            contentType
+            contentType,
+            stack: transformError.stack
           });
           // Continue with original content on transformation error
         }
@@ -936,6 +1023,43 @@ class ProxyManager {
     return stats;
   }
   
+  /**
+   * Log URL transformation configuration status
+   */
+  logURLTransformationStatus() {
+    const urlConfig = config.urlTransformation;
+    const stats = this.urlTransformer.getStats();
+    
+    logger.info('🔧 URL Transformation Configuration:');
+    logger.info(`   - Status: ${urlConfig.enabled ? '✅ ENABLED' : '❌ DISABLED'} (URL_TRANSFORM_ENABLED=${urlConfig.enabled})`);
+    
+    if (urlConfig.enabled) {
+      logger.info(`   - HTML transformation: ${urlConfig.transformHTML ? '✅ ENABLED' : '❌ DISABLED'}`);
+      logger.info(`   - JavaScript transformation: ${urlConfig.transformJavaScript ? '✅ ENABLED' : '❌ DISABLED'}`);
+      logger.info(`   - CSS transformation: ${urlConfig.transformCSS ? '✅ ENABLED' : '❌ DISABLED'}`);
+      logger.info(`   - Inline styles transformation: ${urlConfig.transformInlineStyles ? '✅ ENABLED' : '❌ DISABLED'}`);
+      logger.info(`   - Data attributes transformation: ${urlConfig.transformDataAttributes ? '✅ ENABLED' : '❌ DISABLED'}`);
+      logger.info(`   - Debug mode: ${urlConfig.debugMode ? '✅ ENABLED' : '❌ DISABLED'}`);
+      logger.info(`   - Origin domain: ${config.cdn.originDomain}`);
+      logger.info(`   - Target domain: ${config.cdn.targetDomain}`);
+      logger.info(`   - Max content size: ${(urlConfig.maxContentSize / 1024 / 1024).toFixed(1)}MB`);
+      logger.info(`   - Cache size: ${urlConfig.maxCacheSize.toLocaleString()} entries`);
+      logger.info(`   - Preserve fragments: ${urlConfig.preserveFragments ? '✅ YES' : '❌ NO'}`);
+      logger.info(`   - Preserve query params: ${urlConfig.preserveQueryParams ? '✅ YES' : '❌ NO'}`);
+      
+      if (urlConfig.transformableContentTypes && urlConfig.transformableContentTypes.length > 0) {
+        logger.info(`   - Transformable content types: ${urlConfig.transformableContentTypes.join(', ')}`);
+      }
+      
+      if (urlConfig.debugMode) {
+        logger.info('🔍 URL Transformation Debug Mode: Detailed logging enabled for all transformation operations');
+      }
+    } else {
+      logger.warn('⚠️  URL Transformation is DISABLED - URLs will not be transformed to route through proxy');
+      logger.info('   To enable: Set URL_TRANSFORM_ENABLED=true in your .env file');
+    }
+  }
+
   /**
    * Clean up resources
    */

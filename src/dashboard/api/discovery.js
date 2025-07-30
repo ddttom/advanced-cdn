@@ -228,7 +228,6 @@ class APIDiscoveryService {
   async scanFile(filePath) {
     try {
       const content = fs.readFileSync(filePath, 'utf8');
-      const lines = content.split('\n');
       
       // Regex patterns for different endpoint definitions
       const patterns = [
@@ -237,32 +236,54 @@ class APIDiscoveryService {
       ];
 
       patterns.forEach(pattern => {
-        let match;
-        while ((match = pattern.exec(content)) !== null) {
-          const method = match[1].toUpperCase();
-          const path = match[2];
-          const key = `${method}:${path}`;
+        try {
+          let match;
+          // Reset regex lastIndex to ensure clean scanning
+          pattern.lastIndex = 0;
           
-          if (!this.endpoints.has(key)) {
-            this.endpoints.set(key, {
-              method,
-              path,
-              description: `Auto-discovered ${method} endpoint`,
-              category: this.categorizeEndpoint(path),
-              source: 'auto-discovered',
-              file: path.relative(this.rootPath, filePath),
-              discovered: new Date().toISOString(),
-              executable: this.isExecutable(method, path),
-              safeToExecute: this.isSafeToExecute(method, path),
-              requiresAuth: this.requiresAuth(path),
-              confirmationRequired: this.requiresConfirmation(method)
-            });
+          while ((match = pattern.exec(content)) !== null) {
+            try {
+              const method = match[1].toUpperCase();
+              const path = match[2];
+              const key = `${method}:${path}`;
+              
+              if (!this.endpoints.has(key)) {
+                this.endpoints.set(key, {
+                  method,
+                  path,
+                  description: `Auto-discovered ${method} endpoint`,
+                  category: this.categorizeEndpoint(path),
+                  source: 'auto-discovered',
+                  file: path.relative(this.rootPath, filePath),
+                  discovered: new Date().toISOString(),
+                  executable: this.isExecutable(method, path),
+                  safeToExecute: this.isSafeToExecute(method, path),
+                  requiresAuth: this.requiresAuth(path),
+                  confirmationRequired: this.requiresConfirmation(method)
+                });
+              }
+            } catch (matchError) {
+              logger.debug(`Error processing regex match in ${filePath}`, { 
+                error: matchError.message,
+                match: match ? match[0] : 'null'
+              });
+            }
           }
+        } catch (patternError) {
+          logger.debug(`Error with regex pattern in ${filePath}`, { 
+            error: patternError.message,
+            pattern: pattern.toString()
+          });
         }
       });
       
+      logger.debug(`Successfully scanned ${filePath} for API endpoints`);
+      
     } catch (error) {
-      logger.warn(`Error scanning file ${filePath}`, { error: error.message });
+      logger.warn(`Error scanning file ${filePath}`, { 
+        error: error.message,
+        stack: error.stack
+      });
     }
   }
 

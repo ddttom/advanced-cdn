@@ -956,6 +956,15 @@ The browser issue fixes introduce comprehensive layered error handling:
 
 ### Overview
 
+The URL Transformation System provides comprehensive URL rewriting capabilities that automatically detect and transform all URLs in HTML, JavaScript, and CSS responses to route through the proxy server, completely obscuring the original server's domain, IP address, and path structure from end users.
+
+**Key Features Implemented:**
+- **Protocol-Aware Transformation**: HTTP requests transform URLs to HTTP, HTTPS requests transform URLs to HTTPS
+- **JavaScript String Literals Support**: Fixed regex patterns to properly handle JavaScript URLs without syntax corruption
+- **Protocol-Aware Caching**: Separate cache entries for HTTP and HTTPS transformations
+- **Comprehensive Error Handling**: Robust error recovery and validation
+- **Performance Optimization**: High-performance caching with LRU eviction
+
 ### Cache Management
 
 The URL transformation system implements sophisticated cache management with multiple clearing mechanisms:

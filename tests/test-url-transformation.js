@@ -1,5 +1,5 @@
 // test-url-transformation.js
-const URLTransformer = require('./url-transformer');
+const URLTransformer = require('../src/transform/url-transformer');
 const assert = require('assert');
 
 /**

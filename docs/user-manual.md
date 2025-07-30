@@ -377,7 +377,7 @@ The caching system provides multiple cache layers:
 
 ### URL Transformation
 
-URL transformation provides comprehensive URL masking to completely obscure backend domains from end users.
+URL transformation provides comprehensive URL masking to completely obscure backend domains from end users with protocol-aware transformation capabilities.
 
 #### URL Transformation Configuration
 
@@ -396,6 +396,9 @@ URL_TRANSFORM_DATA_ATTRS=true             # Transform data-* attributes
 URL_PRESERVE_FRAGMENTS=true               # Preserve #fragments
 URL_PRESERVE_QUERY=true                   # Preserve ?query parameters
 
+# Protocol-aware transformation (NEW)
+URL_TRANSFORM_PROTOCOL_AWARE=true         # Match request protocol (HTTP→HTTP, HTTPS→HTTPS)
+
 # Performance settings
 URL_TRANSFORM_MAX_SIZE=52428800           # 50MB max content size
 URL_TRANSFORM_CACHE_SIZE=10000            # Cache size
@@ -412,20 +415,45 @@ URL_TRANSFORM_SANITIZE_INPUT=true         # Sanitize input parameters
 The system automatically detects and transforms URLs in:
 
 - **HTML content**: `href`, `src`, `action`, `data-*` attributes
-- **JavaScript content**: `fetch()` calls, imports, location assignments, AJAX requests
+- **JavaScript content**: `fetch()` calls, imports, location assignments, AJAX requests, string literals
 - **CSS content**: `url()` functions, `@import` statements, font sources
 - **Inline styles and scripts**: Within HTML documents
 
-**Example transformation:**
+**Protocol-Aware Transformation:**
+- HTTP requests transform URLs to HTTP protocol
+- HTTPS requests transform URLs to HTTPS protocol
+- Maintains protocol consistency for security and functionality
+
+**Example transformations:**
 
 ```html
 <!-- Before transformation -->
 <a href="https://backend.example.com/page">Link</a>
 <img src="https://backend.example.com/image.jpg" />
 
-<!-- After transformation -->
+<!-- After transformation (HTTPS request) -->
 <a href="https://your-cdn.example.com/page">Link</a>
 <img src="https://your-cdn.example.com/image.jpg" />
+
+<!-- After transformation (HTTP request) -->
+<a href="http://your-cdn.example.com/page">Link</a>
+<img src="http://your-cdn.example.com/image.jpg" />
+```
+
+**JavaScript String Literals:**
+
+```javascript
+// Before transformation
+window.finalHost = 'https://allabout.network/';
+fetch('https://allabout.network/api/data');
+
+// After transformation (HTTP request)
+window.finalHost = 'http://example.ddt.com:3000/';
+fetch('http://example.ddt.com:3000/api/data');
+
+// After transformation (HTTPS request)
+window.finalHost = 'https://example.ddt.com:3000/';
+fetch('https://example.ddt.com:3000/api/data');
 ```
 
 ### File Resolution

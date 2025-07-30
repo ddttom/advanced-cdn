@@ -88,13 +88,16 @@ class URLTransformer {
         poster: /(\s+poster\s*=\s*["']?)([^"'\s>]+)(["']?)/gi,
         
         // Manifest and other special attributes
-        manifest: /(\s+manifest\s*=\s*["']?)([^"'\s>]+)(["']?)/gi
+        manifest: /(\s+manifest\s*=\s*["']?)([^"'\s>]+)(["']?)/gi,
+        
+        // Text content URLs (URLs that appear as text, not in attributes)
+        textUrls: /(^|[^"'=])(https?:\/\/[^\s<>"']+)/gi
       },
       
       // JavaScript patterns
       javascript: {
-        // String literals with URLs
-        stringLiterals: /(["'`])((https?:)?\/\/[^"'`\s]+)\1/gi,
+        // String literals with URLs - Fixed to properly capture complete URLs
+        stringLiterals: /(["'`])(https?:\/\/[^"'`\s]+)\1/gi,
         
         // Common API patterns
         fetch: /(fetch\s*\(\s*["'`])([^"'`]+)(["'`])/gi,
@@ -151,6 +154,7 @@ class URLTransformer {
    */
   async transformContent(content, contentType, requestContext) {
     if (!this.config.enabled) {
+      logger.warn('URL transformation is disabled', { enabled: this.config.enabled });
       return {
         content,
         transformed: false,
@@ -158,8 +162,22 @@ class URLTransformer {
       };
     }
     
+    // Debug logging for transformation entry point
+    if (this.config.debugMode) {
+      logger.info('🔍 [URL-TRANSFORM] transformContent called', {
+        contentType,
+        contentLength: content ? content.length : 0,
+        requestContext: {
+          originalUrl: requestContext?.originalUrl,
+          proxyHost: requestContext?.proxyHost,
+          protocol: requestContext?.protocol
+        }
+      });
+    }
+    
     // Validate request context
     if (!requestContext) {
+      logger.error('Invalid request context: requestContext is null or undefined');
       return {
         content,
         transformed: false,
@@ -215,13 +233,22 @@ class URLTransformer {
       
       this.stats.urlsTransformed += urlsTransformed;
       
-      if (this.config.debugMode && urlsTransformed > 0) {
-        logger.debug('URL transformation completed', {
-          originalUrl: requestContext.originalUrl,
-          contentType,
-          urlsTransformed,
-          contentSize: contentString.length
-        });
+      if (this.config.debugMode) {
+        if (urlsTransformed > 0) {
+          logger.info(`🔍 [URL-TRANSFORM] Transformation completed for ${requestContext.originalUrl}`, {
+            contentType,
+            urlsTransformed,
+            originalSize: contentString.length,
+            transformedSize: transformedContent.length,
+            proxyHost: requestContext.proxyHost
+          });
+        } else {
+          logger.debug(`🔍 [URL-TRANSFORM] No URLs transformed for ${requestContext.originalUrl}`, {
+            contentType,
+            contentSize: contentString.length,
+            reason: 'No matching URLs found'
+          });
+        }
       }
       
       return {
@@ -359,34 +386,91 @@ class URLTransformer {
     
     const transformedContent = content.replace(pattern, (match, prefix, url, suffix) => {
       try {
-        // Skip if URL is already transformed or invalid
-        if (!url || this.isAlreadyTransformed(url, requestContext) || this.isInvalidURL(url)) {
-          return match;
-        }
-        
-        const transformedURL = this.transformURL(url, requestContext);
-        if (transformedURL !== url) {
-          urlsTransformed++;
+        // Handle textUrls pattern which has different capture groups
+        if (patternName === 'textUrls') {
+          // For textUrls: match, prefix (non-attribute context), url
+          const actualUrl = url;
+          const actualPrefix = prefix;
           
-          if (this.config.debugMode) {
-            logger.debug('URL transformed', {
-              contentType,
-              patternName,
-              original: url,
-              transformed: transformedURL,
-              context: requestContext.originalUrl
-            });
+          // Skip if URL is already transformed or invalid
+          if (!actualUrl || this.isAlreadyTransformed(actualUrl, requestContext) || this.isInvalidURL(actualUrl)) {
+            return match;
           }
           
-          return `${prefix}${transformedURL}${suffix || ''}`;
+          const transformedURL = this.transformURL(actualUrl, requestContext);
+          if (transformedURL !== actualUrl) {
+            urlsTransformed++;
+            
+            if (this.config.debugMode) {
+              logger.info(`🔗 [URL-TRANSFORM] Text URL transformed in ${contentType}:${patternName}`, {
+                original: actualUrl,
+                transformed: transformedURL,
+                context: requestContext.originalUrl,
+                proxyHost: requestContext.proxyHost
+              });
+            }
+            
+            return `${actualPrefix}${transformedURL}`;
+          }
+          
+          return match;
+        } else if (patternName === 'stringLiterals') {
+          // Handle JavaScript string literals: match, quote, url
+          const quote = prefix; // First capture group is the quote
+          const actualUrl = url; // Second capture group is the URL
+          
+          // Skip if URL is already transformed or invalid
+          if (!actualUrl || this.isAlreadyTransformed(actualUrl, requestContext) || this.isInvalidURL(actualUrl)) {
+            return match;
+          }
+          
+          const transformedURL = this.transformURL(actualUrl, requestContext);
+          if (transformedURL !== actualUrl) {
+            urlsTransformed++;
+            
+            if (this.config.debugMode) {
+              logger.info(`🔗 [URL-TRANSFORM] URL transformed in ${contentType}:${patternName}`, {
+                original: actualUrl,
+                transformed: transformedURL,
+                context: requestContext.originalUrl,
+                proxyHost: requestContext.proxyHost
+              });
+            }
+            
+            return `${quote}${transformedURL}${quote}`;
+          }
+          
+          return match;
+        } else {
+          // Handle standard attribute patterns with 3 capture groups
+          // Skip if URL is already transformed or invalid
+          if (!url || this.isAlreadyTransformed(url, requestContext) || this.isInvalidURL(url)) {
+            return match;
+          }
+          
+          const transformedURL = this.transformURL(url, requestContext);
+          if (transformedURL !== url) {
+            urlsTransformed++;
+            
+            if (this.config.debugMode) {
+              logger.info(`🔗 [URL-TRANSFORM] URL transformed in ${contentType}:${patternName}`, {
+                original: url,
+                transformed: transformedURL,
+                context: requestContext.originalUrl,
+                proxyHost: requestContext.proxyHost
+              });
+            }
+            
+            return `${prefix}${transformedURL}${suffix || ''}`;
+          }
+          
+          return match;
         }
-        
-        return match;
       } catch (error) {
         logger.warn('Pattern application error', {
           error: error.message,
           pattern: patternName,
-          url,
+          url: url || 'undefined',
           contentType
         });
         return match;
@@ -406,8 +490,25 @@ class URLTransformer {
    * @returns {String} Transformed URL
    */
   transformURL(url, requestContext) {
-    // Check cache first
-    const cacheKey = `${url}:${requestContext.proxyHost}:${requestContext.pathTransformation?.target || ''}`;
+    if (this.config.debugMode) {
+      logger.debug('🔄 [URL-TRANSFORM] transformURL called', {
+        url,
+        requestContext: {
+          proxyHost: requestContext?.proxyHost,
+          protocol: requestContext?.protocol,
+          originalUrl: requestContext?.originalUrl
+        }
+      });
+    }
+
+    // Validate input URL
+    if (!url || typeof url !== 'string') {
+      logger.warn('Invalid URL provided for transformation', { url, type: typeof url });
+      return url || '';
+    }
+    
+    // Check cache first - include protocol for protocol-aware caching
+    const cacheKey = `${url}:${requestContext.proxyHost}:${requestContext.protocol || 'https'}:${requestContext.pathTransformation?.target || ''}`;
     if (this.transformationCache.has(cacheKey)) {
       this.stats.cacheHits++;
       return this.transformationCache.get(cacheKey);
@@ -417,6 +518,21 @@ class URLTransformer {
     
     try {
       const transformedURL = this.buildProxyURL(url, requestContext);
+      
+      // Validate the transformed URL before caching
+      if (transformedURL && transformedURL !== url) {
+        try {
+          // Test if the transformed URL is valid
+          new URL(transformedURL);
+        } catch (validationError) {
+          logger.warn('Transformed URL is invalid, returning original', {
+            original: url,
+            transformed: transformedURL,
+            error: validationError.message
+          });
+          return url;
+        }
+      }
       
       // Cache the result
       if (this.transformationCache.size >= this.maxCacheSize) {
@@ -431,7 +547,8 @@ class URLTransformer {
       logger.warn('URL transformation error', {
         error: error.message,
         url,
-        context: requestContext.originalUrl
+        context: requestContext.originalUrl,
+        stack: error.stack
       });
       return url; // Return original URL on error
     }
@@ -446,14 +563,23 @@ class URLTransformer {
   buildProxyURL(originalURL, requestContext) {
     const { proxyHost, pathTransformation, protocol } = requestContext;
     
+    if (this.config.debugMode) {
+      logger.debug('🔗 [URL-TRANSFORM] buildProxyURL called', {
+        originalURL,
+        proxyHost,
+        protocol,
+        pathTransformation: pathTransformation ? 'present' : 'missing'
+      });
+    }
+    
     // Handle different URL types
     if (originalURL.startsWith('//')) {
       // Protocol-relative URL
       const fullURL = `${protocol}:${originalURL}`;
-      return this.buildAbsoluteProxyURL(fullURL, proxyHost, pathTransformation);
+      return this.buildAbsoluteProxyURL(fullURL, proxyHost, pathTransformation, requestContext);
     } else if (originalURL.startsWith('http://') || originalURL.startsWith('https://')) {
       // Absolute URL
-      return this.buildAbsoluteProxyURL(originalURL, proxyHost, pathTransformation);
+      return this.buildAbsoluteProxyURL(originalURL, proxyHost, pathTransformation, requestContext);
     } else if (originalURL.startsWith('/')) {
       // Root-relative URL
       return this.buildRelativeProxyURL(originalURL, proxyHost, pathTransformation);
@@ -473,17 +599,28 @@ class URLTransformer {
    * @param {Object} pathTransformation - Path transformation info
    * @returns {String} Proxy URL
    */
-  buildAbsoluteProxyURL(absoluteURL, proxyHost, pathTransformation) {
+  buildAbsoluteProxyURL(absoluteURL, proxyHost, pathTransformation, requestContext) {
     try {
+      // Add validation for required parameters
+      if (!absoluteURL || !proxyHost) {
+        logger.warn('Missing required parameters for buildAbsoluteProxyURL', {
+          absoluteURL,
+          proxyHost,
+          pathTransformation
+        });
+        return absoluteURL;
+      }
+      
       const parsedURL = new URL(absoluteURL);
       const hostname = parsedURL.hostname;
       
       if (this.config.debugMode) {
-        logger.debug('Building proxy URL', {
-          originalURL: absoluteURL,
+        const shouldProxy = this.shouldProxyDomain(hostname, pathTransformation);
+        logger.debug(`🔗 [URL-TRANSFORM] Analyzing URL: ${absoluteURL}`, {
           hostname,
           proxyHost,
-          shouldProxy: this.shouldProxyDomain(hostname, pathTransformation)
+          shouldProxy,
+          reason: shouldProxy ? 'Domain matches transformation rules' : 'External domain - no transformation'
         });
       }
       
@@ -494,14 +631,41 @@ class URLTransformer {
         const queryString = this.config.preserveQueryParams ? parsedURL.search : '';
         const fragment = this.config.preserveFragments ? parsedURL.hash : '';
         
-        const proxyURL = `${parsedURL.protocol}//${proxyHost}${transformedPath}${queryString}${fragment}`;
+        // Fix: Use request protocol for consistency (HTTP/HTTPS matching)
+        // If user arrives via HTTP, transform URLs to HTTP; if HTTPS, transform to HTTPS
+        const requestProtocol = requestContext?.protocol || 'https'; // Default to https if not specified
+        const proxyURL = `${requestProtocol}://${proxyHost}${transformedPath}${queryString}${fragment}`;
+        
+        if (this.config.debugMode) {
+          logger.debug('Building proxy URL with protocol matching', {
+            originalURL: absoluteURL,
+            requestProtocol,
+            proxyHost,
+            transformedPath,
+            proxyURL
+          });
+        }
+        
+        // Validate the constructed URL to ensure it's well-formed
+        try {
+          new URL(proxyURL); // This will throw if the URL is malformed
+        } catch (validationError) {
+          logger.warn('Constructed proxy URL is malformed, returning original', {
+            original: absoluteURL,
+            attempted: proxyURL,
+            error: validationError.message
+          });
+          return absoluteURL;
+        }
         
         if (this.config.debugMode) {
           logger.debug('URL transformed', {
             original: absoluteURL,
             transformed: proxyURL,
             transformedPath,
-            hostname
+            hostname,
+            protocol: parsedURL.protocol,
+            proxyHost
           });
         }
         
@@ -518,7 +682,18 @@ class URLTransformer {
       
       return absoluteURL;
     } catch (error) {
-      logger.warn('Error parsing absolute URL', { url: absoluteURL, error: error.message });
+      logger.warn('Error parsing absolute URL', { 
+        url: absoluteURL, 
+        error: error.message,
+        stack: error.stack,
+        proxyHost,
+        pathTransformation,
+        requestContext: {
+          originalUrl: requestContext?.originalUrl,
+          proxyHost: requestContext?.proxyHost,
+          protocol: requestContext?.protocol
+        }
+      });
       return absoluteURL;
     }
   }
