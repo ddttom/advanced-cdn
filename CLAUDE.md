@@ -27,7 +27,15 @@ advanced-cdn/
 │   ├── index.js                 # Application entry point
 │   ├── cluster-manager.js       # Cluster management
 │   ├── config.js                # Configuration management
-│   ├── logger.js                # Logging utilities
+│   ├── logger.js                # Basic logging utilities
+│   ├── logging/                 # Advanced logging infrastructure
+│   │   ├── detailed-logger.js
+│   │   ├── log-manager.js
+│   │   ├── log-stream-server.js
+│   │   ├── log-api.js
+│   │   ├── log-stream-service.js
+│   │   ├── subsystem-integration.js
+│   │   └── index.js
 │   ├── cache/                   # Cache-related modules
 │   │   ├── cache-manager.js
 │   │   └── file-resolution-cache.js
@@ -100,10 +108,20 @@ advanced-cdn/
 - **src/monitoring/metrics-manager.js**: Prometheus-compatible metrics collection with path rewriting tracking
 - **src/monitoring/health-manager.js**: Application health monitoring with domain routing checks
 
+### Logging Infrastructure (src/logging/)
+
+- **src/logging/detailed-logger.js**: Enhanced Winston logger with structured output and multiple transports
+- **src/logging/log-manager.js**: Centralized log file management with rotation and archiving
+- **src/logging/log-stream-server.js**: Real-time log streaming via Server-Sent Events (SSE)
+- **src/logging/log-api.js**: RESTful API for log access, search, and management
+- **src/logging/log-stream-service.js**: Winston transport integration for real-time streaming
+- **src/logging/subsystem-integration.js**: Integration layer for existing logging systems
+- **src/logging/index.js**: Main logging module exports and configuration
+
 ### Dashboard & Management (src/dashboard/)
 
 - **src/dashboard/dashboard-integration.js**: Web-based management dashboard integration
-- **src/dashboard/api/dashboard-api.js**: API endpoints for dashboard functionality
+- **src/dashboard/api/dashboard-api.js**: API endpoints for dashboard functionality with log viewing integration
 - **src/dashboard/api/discovery.js**: Service discovery and configuration endpoints
 - **src/dashboard/public/**: Static assets for web dashboard (HTML, CSS, JS)
 

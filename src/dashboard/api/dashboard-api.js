@@ -15,6 +15,18 @@ class DashboardAPI {
     this.discoveryService = new APIDiscoveryService();
     this.setupMiddleware();
     this.setupRoutes();
+    this.initializeDiscoveryService();
+  }
+
+  /**
+   * Initialize the discovery service
+   */
+  async initializeDiscoveryService() {
+    try {
+      await this.discoveryService.initialize();
+    } catch (error) {
+      logger.error('Failed to initialize discovery service', { error: error.message });
+    }
   }
 
   /**
@@ -69,6 +81,17 @@ class DashboardAPI {
     // Dashboard management
     this.router.get('/api/dashboard/status', this.getDashboardStatus.bind(this));
     this.router.get('/api/dashboard/config', this.getDashboardConfig.bind(this));
+
+    // Cache management
+    this.router.get('/api/cache/keys', this.getCacheKeys.bind(this));
+
+    // Log management
+    this.router.get('/api/logs/files', this.getLogFiles.bind(this));
+    this.router.get('/api/logs/files/:filename', this.getLogFile.bind(this));
+    this.router.get('/api/logs/download/:filename', this.downloadLogFile.bind(this));
+    this.router.get('/api/logs/stream', this.getLogStream.bind(this));
+    this.router.post('/api/logs/search', this.searchLogs.bind(this));
+    this.router.get('/api/logs/stream/stats', this.getLogStreamStats.bind(this));
 
     // Serve dashboard frontend
     this.router.get('/', this.serveDashboard.bind(this));
@@ -228,7 +251,7 @@ class DashboardAPI {
     try {
       logger.debug('Test endpoint request received', { body: req.body });
       
-      const { method, path, headers = {} } = req.body;
+      const { method, path, headers = {}, parameters = {} } = req.body;
       
       if (!method || !path) {
         logger.warn('Missing method or path in test request', { method, path });
@@ -238,12 +261,65 @@ class DashboardAPI {
         });
       }
 
-      logger.debug('Making test request', { method, path, headers });
+      // Process parameters to build the actual request
+      let finalPath = path;
+      let requestHeaders = { ...headers };
+      let requestBody = null;
+
+      logger.debug('Processing parameters', { parameters });
+
+      // Handle path parameters
+      if (parameters.path) {
+        logger.debug('Processing path parameters', { pathParams: parameters.path });
+        Object.entries(parameters.path).forEach(([key, value]) => {
+          const oldPath = finalPath;
+          finalPath = finalPath.replace(`:${key}`, encodeURIComponent(value));
+          logger.debug('Path parameter replacement', { key, value, oldPath, newPath: finalPath });
+        });
+      }
+
+      // Handle query parameters
+      if (parameters.query && Object.keys(parameters.query).length > 0) {
+        logger.debug('Processing query parameters', { queryParams: parameters.query });
+        const queryParams = new URLSearchParams();
+        Object.entries(parameters.query).forEach(([key, value]) => {
+          if (value !== null && value !== undefined && value !== '') {
+            queryParams.append(key, value);
+            logger.debug('Added query parameter', { key, value });
+          }
+        });
+        const queryString = queryParams.toString();
+        if (queryString) {
+          finalPath += (finalPath.includes('?') ? '&' : '?') + queryString;
+          logger.debug('Final path with query string', { finalPath });
+        }
+      }
+
+      // Handle body parameters
+      if (parameters._body && ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase())) {
+        logger.debug('Processing body parameters', { bodyParams: parameters._body });
+        requestHeaders['Content-Type'] = 'application/json';
+        requestBody = JSON.stringify(parameters._body);
+        logger.debug('Request body prepared', { bodyLength: requestBody.length });
+      }
+
+      logger.info('Making test request', { 
+        method, 
+        originalPath: path, 
+        finalPath, 
+        headers: requestHeaders, 
+        hasBody: !!requestBody,
+        bodyLength: requestBody ? requestBody.length : 0
+      });
       
       // Make internal request to test endpoint
-      const testResult = await this.makeTestRequest(method, path, headers);
+      const testResult = await this.makeTestRequest(method, finalPath, requestHeaders, requestBody);
       
-      logger.debug('Test request completed', { testResult });
+      logger.info('Test request completed successfully', { 
+        statusCode: testResult.statusCode,
+        responseTime: testResult.responseTime,
+        bodyLength: testResult.body ? testResult.body.length : 0
+      });
       
       res.json({
         success: true,
@@ -253,11 +329,14 @@ class DashboardAPI {
       logger.error('Error testing endpoint', { 
         error: error.message, 
         stack: error.stack,
-        body: req.body 
+        body: req.body,
+        url: req.url,
+        method: req.method
       });
       res.status(500).json({
         success: false,
-        error: `Failed to test endpoint: ${error.message}`
+        error: `Failed to test endpoint: ${error.message}`,
+        details: error.stack
       });
     }
   }
@@ -359,6 +438,249 @@ class DashboardAPI {
   }
 
   /**
+   * Get cache keys from all cache systems
+   */
+  async getCacheKeys(req, res) {
+    try {
+      const { pattern } = req.query;
+      
+      // Make internal request to the main cache keys API
+      const result = await this.makeTestRequest('GET', `/api/cache/keys${pattern ? `?pattern=${encodeURIComponent(pattern)}` : ''}`);
+      
+      if (result.statusCode === 200) {
+        const data = JSON.parse(result.body);
+        res.json(data);
+      } else {
+        res.status(result.statusCode).json({
+          success: false,
+          error: 'Failed to retrieve cache keys'
+        });
+      }
+    } catch (error) {
+      logger.error('Error getting cache keys', { error: error.message });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve cache keys'
+      });
+    }
+  }
+
+  /**
+   * Get log files
+   */
+  async getLogFiles(req, res) {
+    try {
+      const result = await this.makeTestRequest('GET', '/api/logs/files');
+      
+      if (result.statusCode === 200) {
+        const data = JSON.parse(result.body);
+        res.json(data);
+      } else {
+        res.status(result.statusCode).json({
+          success: false,
+          error: 'Failed to retrieve log files'
+        });
+      }
+    } catch (error) {
+      logger.error('Error getting log files', { error: error.message });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve log files'
+      });
+    }
+  }
+
+  /**
+   * Get specific log file
+   */
+  async getLogFile(req, res) {
+    try {
+      const { filename } = req.params;
+      const queryParams = new URLSearchParams(req.query);
+      const result = await this.makeTestRequest('GET', `/api/logs/files/${filename}?${queryParams}`);
+      
+      if (result.statusCode === 200) {
+        const data = JSON.parse(result.body);
+        res.json(data);
+      } else {
+        res.status(result.statusCode).json({
+          success: false,
+          error: 'Failed to retrieve log file'
+        });
+      }
+    } catch (error) {
+      logger.error('Error getting log file', { 
+        filename: req.params.filename,
+        error: error.message 
+      });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve log file'
+      });
+    }
+  }
+
+  /**
+   * Search logs
+   */
+  async searchLogs(req, res) {
+    try {
+      const result = await this.makeTestRequest('POST', '/api/logs/search', {
+        'Content-Type': 'application/json'
+      }, JSON.stringify(req.body));
+      
+      if (result.statusCode === 200) {
+        const data = JSON.parse(result.body);
+        res.json(data);
+      } else {
+        res.status(result.statusCode).json({
+          success: false,
+          error: 'Failed to search logs'
+        });
+      }
+    } catch (error) {
+      logger.error('Error searching logs', { error: error.message });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to search logs'
+      });
+    }
+  }
+
+  /**
+   * Get log stream statistics
+   */
+  async getLogStreamStats(req, res) {
+    try {
+      const result = await this.makeTestRequest('GET', '/api/logs/stream/stats');
+      
+      if (result.statusCode === 200) {
+        const data = JSON.parse(result.body);
+        res.json(data);
+      } else {
+        res.status(result.statusCode).json({
+          success: false,
+          error: 'Failed to retrieve log stream statistics'
+        });
+      }
+    } catch (error) {
+      logger.error('Error getting log stream stats', { error: error.message });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve log stream statistics'
+      });
+    }
+  }
+
+  /**
+   * Download log file
+   */
+  async downloadLogFile(req, res) {
+    try {
+      const { filename } = req.params;
+      const result = await this.makeTestRequest('GET', `/api/logs/download/${filename}`);
+      
+      if (result.statusCode === 200) {
+        // Forward the file download response
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', result.headers['content-type'] || 'application/octet-stream');
+        res.send(result.body);
+      } else {
+        res.status(result.statusCode).json({
+          success: false,
+          error: 'Failed to download log file'
+        });
+      }
+    } catch (error) {
+      logger.error('Error downloading log file', { 
+        filename: req.params.filename,
+        error: error.message 
+      });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to download log file'
+      });
+    }
+  }
+
+  /**
+   * Get log stream (Server-Sent Events)
+   */
+  async getLogStream(req, res) {
+    try {
+      // Set up SSE headers
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control'
+      });
+
+      // Forward query parameters for filtering
+      const queryParams = new URLSearchParams(req.query);
+      
+      // Make request to the main log stream endpoint
+      const http = require('http');
+      const options = {
+        hostname: 'localhost',
+        port: 3000,
+        path: `/api/logs/stream?${queryParams}`,
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Dashboard-API-Stream/1.0'
+        }
+      };
+
+      const proxyReq = http.request(options, (proxyRes) => {
+        logger.debug('Proxy response received', { statusCode: proxyRes.statusCode });
+        
+        // Forward the stream response
+        proxyRes.on('data', (chunk) => {
+          logger.debug('Forwarding chunk', { size: chunk.length });
+          res.write(chunk);
+          // Flush the response to ensure immediate delivery
+          if (res.flush) {
+            res.flush();
+          }
+        });
+
+        proxyRes.on('end', () => {
+          logger.debug('Proxy stream ended');
+          res.end();
+        });
+
+        proxyRes.on('error', (error) => {
+          logger.error('Proxy response error', { error: error.message });
+          res.end();
+        });
+      });
+
+      proxyReq.on('error', (error) => {
+        logger.error('Error proxying log stream', { error: error.message });
+        res.write(`data: ${JSON.stringify({ error: 'Stream connection failed' })}\n\n`);
+        res.end();
+      });
+
+      // Handle client disconnect
+      req.on('close', () => {
+        logger.debug('Client disconnected, destroying proxy request');
+        proxyReq.destroy();
+      });
+
+      // Start the proxy request but keep it open for streaming
+      logger.debug('Starting proxy request for log stream');
+      proxyReq.end();
+    } catch (error) {
+      logger.error('Error setting up log stream', { error: error.message });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to setup log stream'
+      });
+    }
+  }
+
+  /**
    * Serve dashboard frontend
    */
   async serveDashboard(req, res) {
@@ -385,67 +707,105 @@ class DashboardAPI {
   /**
    * Make internal test request
    */
-  async makeTestRequest(method, path, headers = {}) {
+  async makeTestRequest(method, path, headers = {}, body = null) {
     const http = require('http');
     const startTime = Date.now();
 
-    logger.debug('makeTestRequest called', { method, path, headers });
+    logger.info('makeTestRequest called', { method, path, headers, hasBody: !!body });
 
     return new Promise((resolve, reject) => {
-      const options = {
-        hostname: 'localhost',
-        port: 3000,
-        path,
-        method: method.toUpperCase(),
-        headers: {
-          'User-Agent': 'Dashboard-API-Tester/1.0',
-          ...headers
+      try {
+        const options = {
+          hostname: 'localhost',
+          port: 3000,
+          path,
+          method: method.toUpperCase(),
+          headers: {
+            'User-Agent': 'Dashboard-API-Tester/1.0',
+            ...headers
+          }
+        };
+
+        // Add Content-Length header if body is provided
+        if (body) {
+          options.headers['Content-Length'] = Buffer.byteLength(body);
         }
-      };
 
-      logger.debug('HTTP request options', options);
+        logger.info('HTTP request options', { 
+          hostname: options.hostname,
+          port: options.port,
+          path: options.path,
+          method: options.method,
+          headers: options.headers
+        });
 
-      const req = http.request(options, (res) => {
-        logger.debug('HTTP response received', { 
-          statusCode: res.statusCode, 
-          headers: res.headers 
-        });
-        
-        let data = '';
-        res.on('data', chunk => {
-          data += chunk;
-          logger.debug('Received data chunk', { chunkLength: chunk.length });
-        });
-        
-        res.on('end', () => {
-          logger.debug('HTTP response complete', { 
-            statusCode: res.statusCode,
-            bodyLength: data.length,
-            responseTime: Date.now() - startTime
+        const req = http.request(options, (res) => {
+          logger.info('HTTP response received', { 
+            statusCode: res.statusCode, 
+            headers: res.headers 
           });
           
-          resolve({
-            statusCode: res.statusCode,
-            headers: res.headers,
-            body: data,
-            responseTime: Date.now() - startTime
+          let data = '';
+          res.on('data', chunk => {
+            data += chunk;
+            logger.debug('Received data chunk', { chunkLength: chunk.length });
+          });
+          
+          res.on('end', () => {
+            const responseTime = Date.now() - startTime;
+            logger.info('HTTP response complete', { 
+              statusCode: res.statusCode,
+              bodyLength: data.length,
+              responseTime
+            });
+            
+            resolve({
+              statusCode: res.statusCode,
+              headers: res.headers,
+              body: data,
+              responseTime
+            });
+          });
+
+          res.on('error', (error) => {
+            logger.error('HTTP response stream error', { error: error.message, stack: error.stack });
+            reject(error);
           });
         });
-      });
 
-      req.on('error', (error) => {
-        logger.error('HTTP request error', { error: error.message, stack: error.stack });
+        req.on('error', (error) => {
+          logger.error('HTTP request error', { 
+            error: error.message, 
+            stack: error.stack,
+            code: error.code,
+            errno: error.errno,
+            syscall: error.syscall,
+            address: error.address,
+            port: error.port
+          });
+          reject(error);
+        });
+        
+        req.setTimeout(10000, () => {
+          logger.error('HTTP request timeout after 10 seconds', { method, path });
+          req.destroy();
+          reject(new Error(`Request timeout after 10 seconds for ${method} ${path}`));
+        });
+        
+        logger.info('Sending HTTP request', { method, path, hasBody: !!body });
+        
+        // Write body if provided
+        if (body) {
+          logger.debug('Writing request body', { bodyLength: body.length });
+          req.write(body);
+        }
+        
+        req.end();
+        logger.debug('HTTP request sent');
+      } catch (error) {
+        logger.error('Error setting up HTTP request', { error: error.message, stack: error.stack });
         reject(error);
-      });
-      
-      req.setTimeout(5000, () => {
-        logger.error('HTTP request timeout');
-        req.destroy();
-        reject(new Error('Request timeout'));
-      });
-      
-      logger.debug('Sending HTTP request');
-      req.end();
+      }
     });
   }
 

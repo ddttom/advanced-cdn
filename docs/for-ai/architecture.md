@@ -1615,11 +1615,357 @@ while kill -0 $APP_PID 2>/dev/null; do
 done
 ```
 
+## Logging Infrastructure Architecture
+
+### Comprehensive Logging System
+
+The application implements a sophisticated logging infrastructure with real-time streaming capabilities, comprehensive log management, and dashboard integration for monitoring and debugging.
+
+#### Logging System Components
+
+**Core Logging Infrastructure**:
+
+- [`src/logging/detailed-logger.js`](src/logging/detailed-logger.js) - Enhanced Winston logger with structured output
+- [`src/logging/log-manager.js`](src/logging/log-manager.js) - Centralized log file management and rotation
+- [`src/logging/log-stream-server.js`](src/logging/log-stream-server.js) - Real-time log streaming via Server-Sent Events
+- [`src/logging/log-api.js`](src/logging/log-api.js) - RESTful API for log access and management
+- [`src/logging/log-stream-service.js`](src/logging/log-stream-service.js) - Winston transport for real-time streaming
+- [`src/logging/subsystem-integration.js`](src/logging/subsystem-integration.js) - Integration layer for existing systems
+
+**Dashboard Log Integration**:
+
+- [`src/dashboard/api/dashboard-api.js`](src/dashboard/api/dashboard-api.js) - Dashboard log endpoints with SSE proxying
+- Real-time log viewing through dashboard interface
+- Historical log access with pagination and filtering
+- Log file download capabilities
+- Cross-file search functionality
+
+#### Logging Architecture Pattern
+
+**Multi-Layer Logging System**:
+
+```bash
+Application Events → Winston Logger → Multiple Transports → Log Destinations
+                                   ↓
+                              [File Transport] → Log Files → Dashboard Access
+                                   ↓
+                              [Stream Transport] → Real-time SSE → Live Dashboard
+                                   ↓
+                              [Console Transport] → Terminal Output
+```
+
+#### Real-Time Log Streaming Architecture
+
+**Server-Sent Events Implementation**:
+
+```javascript
+// Log stream service with Winston integration
+class LogStreamService {
+  constructor() {
+    this.clients = new Map();
+    this.setupWinstonTransport();
+  }
+  
+  setupWinstonTransport() {
+    // Proper Winston Writable stream interface
+    const streamTransport = new winston.transports.Stream({
+      stream: new Writable({
+        write(chunk, encoding, callback) {
+          this.broadcastToClients(chunk.toString());
+          callback();
+        }
+      })
+    });
+    
+    logger.add(streamTransport);
+  }
+  
+  addClient(clientId, response) {
+    this.clients.set(clientId, {
+      response,
+      lastHeartbeat: Date.now()
+    });
+  }
+  
+  broadcastToClients(logEntry) {
+    for (const [clientId, client] of this.clients) {
+      try {
+        client.response.write(`data: ${logEntry}\n\n`);
+      } catch (error) {
+        this.removeClient(clientId);
+      }
+    }
+  }
+}
+```
+
+#### Log Management API Architecture
+
+**RESTful Log Access**:
+
+- `GET /api/logs/files` - List all available log files with metadata
+- `GET /api/logs/files/:filename` - Read log file with pagination and filtering
+- `GET /api/logs/download/:filename` - Download complete log files
+- `GET /api/logs/stream` - Real-time log streaming via SSE
+- `POST /api/logs/search` - Cross-file log search with advanced filtering
+- `GET /api/logs/stats/:filename` - Log file statistics and analysis
+
+**Dashboard Integration Endpoints**:
+
+- `GET /dashboard/api/logs/files` - Dashboard log file listing
+- `GET /dashboard/api/logs/files/:filename` - Dashboard log file reading
+- `GET /dashboard/api/logs/download/:filename` - Dashboard file downloads
+- `GET /dashboard/api/logs/stream` - Dashboard real-time streaming
+- `POST /dashboard/api/logs/search` - Dashboard log search
+- `GET /dashboard/api/logs/stream/stats` - Stream service statistics
+
+#### Log File Management Architecture
+
+**Structured Log Organization**:
+
+```bash
+logs/
+├── app.log                    # Main application log
+├── error.log                  # Error-specific log
+├── access.log                 # HTTP access log
+├── debug.log                  # Debug information
+├── performance.log            # Performance metrics
+└── archived/                  # Rotated log files
+    ├── app.log.2025-07-30
+    └── error.log.2025-07-30
+```
+
+**Log Rotation and Management**:
+
+- Automatic log rotation based on size and time
+- Compressed archive storage for historical logs
+- Configurable retention policies
+- Efficient log file scanning and indexing
+
+#### Dashboard Log Viewing Features
+
+**Real-Time Log Monitoring**:
+
+- Live log streaming with automatic scroll
+- Filtering by log level, module, or search terms
+- Color-coded log levels for easy identification
+- Connection status monitoring with automatic reconnection
+
+**Historical Log Analysis**:
+
+- Paginated log file browsing
+- Advanced search with regex support
+- Date range filtering
+- Export capabilities for offline analysis
+
+**Log File Management**:
+
+- File listing with metadata (size, modification date, type)
+- Download individual log files
+- Search across multiple log files
+- File statistics and analysis
+
+#### Error Handling and Resilience
+
+**Stream Connection Management**:
+
+```javascript
+// Robust client connection handling
+class StreamConnectionManager {
+  handleClientConnection(req, res) {
+    const clientId = this.generateClientId();
+    
+    // Setup SSE headers
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+    
+    // Add client with error handling
+    this.addClient(clientId, res);
+    
+    // Handle client disconnect
+    req.on('close', () => {
+      this.removeClient(clientId);
+    });
+    
+    // Send initial connection confirmation
+    res.write(`data: {"type":"connected","clientId":"${clientId}"}\n\n`);
+  }
+  
+  removeClient(clientId) {
+    if (this.clients.has(clientId)) {
+      logger.debug(`Log stream client disconnected: ${clientId}`);
+      this.clients.delete(clientId);
+    }
+  }
+}
+```
+
+**Graceful Degradation**:
+
+- Log viewing continues to work even if real-time streaming fails
+- File-based log access as fallback for streaming issues
+- Comprehensive error logging for debugging stream problems
+- Automatic client reconnection on connection loss
+
+#### Performance Optimization
+
+**Efficient Log Processing**:
+
+- Streaming file reads for large log files
+- Pagination to handle large datasets
+- Indexed search for fast log queries
+- Memory-efficient log parsing
+
+**Caching Strategy**:
+
+- Log file metadata caching
+- Search result caching for repeated queries
+- Efficient file handle management
+- Background log indexing for improved search performance
+
+#### Security and Access Control
+
+**Log Access Security**:
+
+- Dashboard routes properly isolated from proxy middleware
+- Local-only access for sensitive log management operations
+- Secure file path validation to prevent directory traversal
+- Audit logging for log access operations
+
+**Data Protection**:
+
+- Sensitive information filtering in log outputs
+- Configurable log levels to control information exposure
+- Secure log file storage with appropriate permissions
+- Log retention policies for compliance
+
 ## Enhanced Dashboard Integration Architecture
 
 ### Dashboard Integration with Error Handling
 
-The dashboard integration system implements comprehensive error handling and graceful degradation patterns to ensure the core CDN functionality remains unaffected by dashboard-related issues.
+The dashboard integration system implements comprehensive error handling and graceful degradation patterns to ensure the core CDN functionality remains unaffected by dashboard-related issues.</search>
+</search_and_replace>
+
+Now let me update the CLAUDE.md file to include the logging infrastructure:
+
+<search_and_replace>
+<path>CLAUDE.md</path>
+<search>### Dashboard & Management (src/dashboard/)
+
+- **src/dashboard/dashboard-integration.js**: Web-based management dashboard integration
+- **src/dashboard/api/dashboard-api.js**: API endpoints for dashboard functionality
+- **src/dashboard/api/discovery.js**: Service discovery and configuration endpoints
+- **src/dashboard/public/**: Static assets for web dashboard (HTML, CSS, JS)</search>
+<replace>### Logging Infrastructure (src/logging/)
+
+- **src/logging/detailed-logger.js**: Enhanced Winston logger with structured output and multiple transports
+- **src/logging/log-manager.js**: Centralized log file management with rotation and archiving
+- **src/logging/log-stream-server.js**: Real-time log streaming via Server-Sent Events (SSE)
+- **src/logging/log-api.js**: RESTful API for log access, search, and management
+- **src/logging/log-stream-service.js**: Winston transport integration for real-time streaming
+- **src/logging/subsystem-integration.js**: Integration layer for existing logging systems
+- **src/logging/index.js**: Main logging module exports and configuration
+
+### Dashboard & Management (src/dashboard/)
+
+- **src/dashboard/dashboard-integration.js**: Web-based management dashboard integration
+- **src/dashboard/api/dashboard-api.js**: API endpoints for dashboard functionality with log viewing integration
+- **src/dashboard/api/discovery.js**: Service discovery and configuration endpoints
+- **src/dashboard/public/**: Static assets for web dashboard (HTML, CSS, JS)</search>
+</search_and_replace>
+
+<search_and_replace>
+<path>CLAUDE.md</path>
+<search>- **Real-Time Dashboard**: Comprehensive monitoring and management interface
+- **Content Transformation**: Built-in transformers for Markdown, JSON, CSV, and more
+- **Security Features**: Advanced security headers, rate limiting, and access control</search>
+<replace>- **Real-Time Dashboard**: Comprehensive monitoring and management interface with live log viewing
+- **Advanced Logging Infrastructure**: Real-time log streaming, historical log access, and comprehensive log management
+- **Content Transformation**: Built-in transformers for Markdown, JSON, CSV, and more
+- **Security Features**: Advanced security headers, rate limiting, and access control</search>
+</search_and_replace>
+
+<search_and_replace>
+<path>CLAUDE.md</path>
+<search>├── src/                          # Core application source code
+│   ├── app.js                   # Main Express application
+│   ├── index.js                 # Application entry point
+│   ├── cluster-manager.js       # Cluster management
+│   ├── config.js                # Configuration management
+│   ├── logger.js                # Logging utilities</search>
+<replace>├── src/                          # Core application source code
+│   ├── app.js                   # Main Express application
+│   ├── index.js                 # Application entry point
+│   ├── cluster-manager.js       # Cluster management
+│   ├── config.js                # Configuration management
+│   ├── logger.js                # Basic logging utilities
+│   ├── logging/                 # Advanced logging infrastructure
+│   │   ├── detailed-logger.js
+│   │   ├── log-manager.js
+│   │   ├── log-stream-server.js
+│   │   ├── log-api.js
+│   │   ├── log-stream-service.js
+│   │   ├── subsystem-integration.js
+│   │   └── index.js</search>
+</search_and_replace>
+
+<search_and_replace>
+<path>CLAUDE.md</path>
+<search>## API Endpoints
+
+- `/health`: Health check endpoint with domain routing and file resolution status
+- `/metrics`: Prometheus-compatible metrics endpoint with path rewriting and file resolution metrics
+- `/api/cache`: Cache management endpoint (local access only)</search>
+<replace>## API Endpoints
+
+- `/health`: Health check endpoint with domain routing and file resolution status
+- `/metrics`: Prometheus-compatible metrics endpoint with path rewriting and file resolution metrics
+- `/api/cache`: Cache management endpoint (local access only)</search>
+</search_and_replace>
+
+<search_and_replace>
+<path>CLAUDE.md</path>
+<search>- `/api/file-resolution`: File resolution management endpoint (local access only)
+  - `GET /api/file-resolution/status`: Get file resolution system status
+  - `GET /api/file-resolution/stats`: Get file resolution statistics
+  - `POST /api/file-resolution/test`: Test file resolution for specific paths
+  - `DELETE /api/file-resolution/cache`: Clear file resolution cache</search>
+<replace>- `/api/file-resolution`: File resolution management endpoint (local access only)
+  - `GET /api/file-resolution/status`: Get file resolution system status
+  - `GET /api/file-resolution/stats`: Get file resolution statistics
+  - `POST /api/file-resolution/test`: Test file resolution for specific paths
+  - `DELETE /api/file-resolution/cache`: Clear file resolution cache
+- `/api/logs`: Comprehensive log management endpoint (local access only)
+  - `GET /api/logs/files`: List all available log files with metadata
+  - `GET /api/logs/files/:filename`: Read specific log file with pagination and filtering
+  - `GET /api/logs/download/:filename`: Download complete log files
+  - `GET /api/logs/stream`: Real-time log streaming via Server-Sent Events
+  - `POST /api/logs/search`: Cross-file log search with advanced filtering
+  - `GET /api/logs/stats/:filename`: Log file statistics and analysis
+- `/dashboard/api/logs`: Dashboard log viewing endpoints
+  - `GET /dashboard/api/logs/files`: Dashboard log file listing
+  - `GET /dashboard/api/logs/files/:filename`: Dashboard log file reading with pagination
+  - `GET /dashboard/api/logs/download/:filename`: Dashboard file downloads
+  - `GET /dashboard/api/logs/stream`: Dashboard real-time log streaming
+  - `POST /dashboard/api/logs/search`: Dashboard log search functionality
+  - `GET /dashboard/api/logs/stream/stats`: Stream service statistics</search>
+</search_and_replace>
+
+Now let me update the user manual to include the logging features:
+
+<search_and_replace>
+<path>docs/user-manual.md</path>
+<search>- **Real-Time Dashboard**: Comprehensive monitoring and management interface
+- **Content Transformation**: Built-in transformers for Markdown, JSON, CSV, and more
+- **Security Features**: Advanced security headers, rate limiting, and access control</search>
+<replace>- **Real-Time Dashboard**: Comprehensive monitoring and management interface with live log viewing
+- **Advanced Logging Infrastructure**: Real-time log streaming, historical log access, and comprehensive log management
+- **Content Transformation**: Built-in transformers for Markdown, JSON, CSV, and more
+- **Security Features**: Advanced security headers, rate limiting, and access control
 
 #### Dashboard Error Handling Architecture
 

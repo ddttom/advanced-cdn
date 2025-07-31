@@ -181,6 +181,218 @@ class APIDiscoveryService {
           200: { description: 'All caches cleared successfully' },
           500: { description: 'Failed to clear all caches' }
         }
+      },
+      {
+        method: 'GET',
+        path: '/api/cache/keys',
+        description: 'List cache keys from all cache systems with optional pattern filtering',
+        category: 'cache',
+        handler: 'cacheManager.getCacheKeys',
+        executable: true,
+        safeToExecute: true,
+        requiresAuth: false,
+        parameters: {
+          query: {
+            pattern: { 
+              type: 'string', 
+              description: 'Optional pattern to filter cache keys (supports wildcards)',
+              required: false
+            }
+          }
+        },
+        responses: {
+          200: { description: 'Cache keys retrieved successfully' },
+          500: { description: 'Failed to retrieve cache keys' }
+        }
+      },
+      {
+        method: 'GET',
+        path: '/api/logs/stream',
+        description: 'Real-time log streaming via Server-Sent Events',
+        category: 'logging',
+        handler: 'logStreamService.streamLogs',
+        executable: true,
+        safeToExecute: true,
+        requiresAuth: false,
+        parameters: {
+          query: {
+            level: { 
+              type: 'string', 
+              description: 'Filter by log level (error, warn, info, debug, etc.)',
+              required: false
+            },
+            module: { 
+              type: 'string', 
+              description: 'Filter by module name',
+              required: false
+            },
+            search: { 
+              type: 'string', 
+              description: 'Search term to filter log messages',
+              required: false
+            }
+          }
+        },
+        responses: {
+          200: { description: 'Server-Sent Events stream of log entries' }
+        }
+      },
+      {
+        method: 'GET',
+        path: '/api/logs/files',
+        description: 'List available log files with metadata',
+        category: 'logging',
+        handler: 'logFilesService.getLogFiles',
+        executable: true,
+        safeToExecute: true,
+        requiresAuth: false,
+        responses: {
+          200: { description: 'List of available log files' },
+          500: { description: 'Failed to retrieve log files' }
+        }
+      },
+      {
+        method: 'GET',
+        path: '/api/logs/files/:filename',
+        description: 'Read specific log file with pagination and filtering',
+        category: 'logging',
+        handler: 'logFilesService.readLogFile',
+        executable: true,
+        safeToExecute: true,
+        requiresAuth: false,
+        parameters: {
+          path: {
+            filename: { 
+              type: 'string', 
+              description: 'Name of the log file to read',
+              required: true
+            }
+          },
+          query: {
+            page: { 
+              type: 'number', 
+              description: 'Page number for pagination (default: 1)',
+              required: false
+            },
+            limit: { 
+              type: 'number', 
+              description: 'Number of log entries per page (default: 100)',
+              required: false
+            },
+            search: { 
+              type: 'string', 
+              description: 'Search term to filter log entries',
+              required: false
+            },
+            level: { 
+              type: 'string', 
+              description: 'Filter by log level',
+              required: false
+            },
+            startDate: { 
+              type: 'string', 
+              description: 'Start date for filtering (ISO format)',
+              required: false
+            },
+            endDate: { 
+              type: 'string', 
+              description: 'End date for filtering (ISO format)',
+              required: false
+            }
+          }
+        },
+        responses: {
+          200: { description: 'Log file contents with pagination' },
+          404: { description: 'Log file not found' },
+          500: { description: 'Failed to read log file' }
+        }
+      },
+      {
+        method: 'POST',
+        path: '/api/logs/search',
+        description: 'Search across multiple log files',
+        category: 'logging',
+        handler: 'logFilesService.searchLogs',
+        executable: true,
+        safeToExecute: true,
+        requiresAuth: false,
+        parameters: {
+          body: {
+            searchTerm: { 
+              type: 'string', 
+              description: 'Term to search for in log entries',
+              required: true
+            },
+            files: { 
+              type: 'array', 
+              description: 'Array of log file names to search in',
+              required: false
+            },
+            level: { 
+              type: 'string', 
+              description: 'Filter by log level',
+              required: false
+            },
+            startDate: { 
+              type: 'string', 
+              description: 'Start date for filtering',
+              required: false
+            },
+            endDate: { 
+              type: 'string', 
+              description: 'End date for filtering',
+              required: false
+            },
+            limit: { 
+              type: 'number', 
+              description: 'Maximum number of results (default: 500)',
+              required: false
+            }
+          }
+        },
+        responses: {
+          200: { description: 'Search results from log files' },
+          400: { description: 'Invalid search parameters' },
+          500: { description: 'Search failed' }
+        }
+      },
+      {
+        method: 'GET',
+        path: '/api/logs/download/:filename',
+        description: 'Download complete log file',
+        category: 'logging',
+        handler: 'logFilesService.downloadLogFile',
+        executable: true,
+        safeToExecute: true,
+        requiresAuth: false,
+        parameters: {
+          path: {
+            filename: { 
+              type: 'string', 
+              description: 'Name of the log file to download',
+              required: true
+            }
+          }
+        },
+        responses: {
+          200: { description: 'Log file download' },
+          404: { description: 'Log file not found' },
+          500: { description: 'Download failed' }
+        }
+      },
+      {
+        method: 'GET',
+        path: '/api/logs/stream/stats',
+        description: 'Get log streaming service statistics',
+        category: 'logging',
+        handler: 'logStreamService.getStats',
+        executable: true,
+        safeToExecute: true,
+        requiresAuth: false,
+        responses: {
+          200: { description: 'Log streaming statistics' },
+          500: { description: 'Failed to retrieve statistics' }
+        }
       }
     ];
 
@@ -458,8 +670,10 @@ class APIDiscoveryService {
    */
   startPeriodicScan() {
     // Initial scan (run asynchronously to avoid blocking)
-    this.scanForEndpoints().catch(error => {
-      logger.error('Initial endpoint scan failed', { error: error.message });
+    setImmediate(() => {
+      this.scanForEndpoints().catch(error => {
+        logger.error('Initial endpoint scan failed', { error: error.message });
+      });
     });
     
     // Periodic scans

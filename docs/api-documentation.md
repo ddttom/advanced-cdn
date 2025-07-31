@@ -841,6 +841,331 @@ curl -X GET http://localhost:3000/api/dashboard/config
 }
 ```
 
+## Dashboard Log Management Endpoints
+
+The dashboard provides comprehensive log viewing and management capabilities through dedicated API endpoints.
+
+### GET /dashboard/api/logs/files
+
+Returns a list of all available log files with metadata.
+
+**Request:**
+
+```bash
+curl -X GET http://localhost:3000/dashboard/api/logs/files
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "name": "app.log",
+      "size": 540467,
+      "modified": "2025-07-30T16:53:54.476Z",
+      "created": "2025-07-29T11:42:39.381Z",
+      "type": "application"
+    },
+    {
+      "name": "error.log",
+      "size": 3529,
+      "modified": "2025-07-29T12:09:41.239Z",
+      "created": "2025-07-29T11:42:39.381Z",
+      "type": "error"
+    },
+    {
+      "name": "access.log",
+      "size": 913604,
+      "modified": "2025-07-30T16:54:01.468Z",
+      "created": "2025-07-29T11:42:39.381Z",
+      "type": "access"
+    }
+  ],
+  "meta": {
+    "total": 5,
+    "timestamp": "2025-07-30T16:54:10.934Z"
+  }
+}
+```
+
+### GET /dashboard/api/logs/files/:filename
+
+Reads a specific log file with pagination and filtering support.
+
+**Request:**
+
+```bash
+curl -X GET "http://localhost:3000/dashboard/api/logs/files/app.log?page=1&limit=10&level=error"
+```
+
+**Query Parameters:**
+
+- `page` (optional): Page number for pagination (default: 1)
+- `limit` (optional): Number of entries per page (default: 100)
+- `search` (optional): Search term to filter log entries
+- `level` (optional): Filter by log level (error, warn, info, debug, etc.)
+- `startDate` (optional): Filter entries after this date (ISO 8601 format)
+- `endDate` (optional): Filter entries before this date (ISO 8601 format)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "filename": "app.log",
+    "lines": [
+      {
+        "timestamp": "2025-07-30 17:53:54",
+        "level": "info",
+        "message": "Cache initialized with TTL: 300s, max items: 1000",
+        "module": "cache-manager",
+        "meta": {},
+        "raw": "{\"level\":\"info\",\"message\":\"Cache initialized with TTL: 300s, max items: 1000\",\"module\":\"cache-manager\",\"timestamp\":\"2025-07-30 17:53:54\"}"
+      },
+      {
+        "timestamp": "2025-07-30 17:53:54",
+        "level": "error",
+        "message": "Failed to connect to database",
+        "module": "database",
+        "meta": {
+          "error": "Connection timeout",
+          "host": "localhost",
+          "port": 5432
+        },
+        "raw": "{\"level\":\"error\",\"message\":\"Failed to connect to database\",\"module\":\"database\",\"meta\":{\"error\":\"Connection timeout\",\"host\":\"localhost\",\"port\":5432},\"timestamp\":\"2025-07-30 17:53:54\"}"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "totalLines": 2857,
+      "totalPages": 286,
+      "hasNext": true,
+      "hasPrev": false
+    },
+    "filters": {
+      "search": "",
+      "level": "error",
+      "startDate": "",
+      "endDate": ""
+    }
+  }
+}
+```
+
+### GET /dashboard/api/logs/stream
+
+Provides real-time log streaming using Server-Sent Events (SSE) for live monitoring.
+
+**Request:**
+
+```bash
+curl -X GET "http://localhost:3000/dashboard/api/logs/stream?level=error&module=system"
+```
+
+**Query Parameters:**
+
+- `level` (optional): Filter by log level (default: all)
+- `module` (optional): Filter by module name (default: all)
+- `search` (optional): Search term to filter log messages
+- `since` (optional): Only show logs after this timestamp
+
+**Response (Server-Sent Events):**
+
+```bash
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Connection: keep-alive
+
+data: {"timestamp":"2025-07-30 18:06:12","level":"info","message":"HTTP server running on 0.0.0.0:3000","module":"system","meta":{},"stack":null,"id":1753895172251.4263}
+
+data: {"timestamp":"2025-07-30 18:06:12","level":"error","message":"Database connection failed","module":"database","meta":{"error":"ECONNREFUSED","host":"localhost","port":5432},"stack":"Error: connect ECONNREFUSED 127.0.0.1:5432","id":1753895172253.8271}
+
+: heartbeat
+```
+
+**JavaScript Client Example:**
+
+```javascript
+const eventSource = new EventSource('/dashboard/api/logs/stream?level=error');
+
+eventSource.onmessage = function(event) {
+  const logEntry = JSON.parse(event.data);
+  console.log('New log entry:', logEntry);
+};
+
+eventSource.onerror = function(event) {
+  console.error('SSE connection error:', event);
+};
+```
+
+### GET /dashboard/api/logs/download/:filename
+
+Downloads a complete log file for offline analysis.
+
+**Request:**
+
+```bash
+curl -X GET http://localhost:3000/dashboard/api/logs/download/app.log -O
+```
+
+**Response:**
+
+Returns the raw log file content with appropriate headers for file download:
+
+```bash
+Content-Disposition: attachment; filename="app.log"
+Content-Type: text/plain
+Content-Length: 540467
+
+2025-07-30 17:53:54 info: Cache initialized with TTL: 300s, max items: 1000
+2025-07-30 17:53:54 info: FileResolver initialized
+2025-07-30 17:53:54 error: Database connection failed
+...
+```
+
+### POST /dashboard/api/logs/search
+
+Searches for specific terms across multiple log files.
+
+**Request:**
+
+```bash
+curl -X POST http://localhost:3000/dashboard/api/logs/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "searchTerm": "database error",
+    "files": ["app.log", "error.log"],
+    "level": "error",
+    "startDate": "2025-07-30T00:00:00Z",
+    "endDate": "2025-07-30T23:59:59Z",
+    "limit": 50
+  }'
+```
+
+**Request Body Parameters:**
+
+- `searchTerm` (required): The term to search for across log files
+- `files` (optional): Array of specific log files to search (default: all files)
+- `level` (optional): Filter by log level
+- `startDate` (optional): Search entries after this date
+- `endDate` (optional): Search entries before this date
+- `limit` (optional): Maximum number of results to return (default: 500)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "file": "app.log",
+      "timestamp": "2025-07-30 17:53:54",
+      "level": "error",
+      "message": "Database connection failed: ECONNREFUSED",
+      "module": "database",
+      "meta": {
+        "error": "ECONNREFUSED",
+        "host": "localhost",
+        "port": 5432
+      },
+      "raw": "{\"level\":\"error\",\"message\":\"Database connection failed: ECONNREFUSED\",\"module\":\"database\",\"timestamp\":\"2025-07-30 17:53:54\"}"
+    },
+    {
+      "file": "error.log",
+      "timestamp": "2025-07-30 17:45:12",
+      "level": "error",
+      "message": "Database query timeout after 30 seconds",
+      "module": "database",
+      "meta": {
+        "query": "SELECT * FROM users",
+        "timeout": 30000
+      },
+      "raw": "{\"level\":\"error\",\"message\":\"Database query timeout after 30 seconds\",\"module\":\"database\",\"timestamp\":\"2025-07-30 17:45:12\"}"
+    }
+  ],
+  "meta": {
+    "searchTerm": "database error",
+    "resultCount": 2,
+    "timestamp": "2025-07-30T17:08:00.000Z"
+  }
+}
+```
+
+### GET /dashboard/api/logs/stream/stats
+
+Provides statistics about the log streaming service.
+
+**Request:**
+
+```bash
+curl -X GET http://localhost:3000/dashboard/api/logs/stream/stats
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "connectedClients": 3,
+    "bufferSize": 150,
+    "maxBufferSize": 1000,
+    "isInitialized": true,
+    "modules": [
+      "system",
+      "cache-manager",
+      "dashboard-discovery",
+      "database",
+      "file-resolver"
+    ],
+    "levels": [
+      "error",
+      "warn", 
+      "info",
+      "http",
+      "verbose",
+      "debug",
+      "silly"
+    ]
+  }
+}
+```
+
+### GET /dashboard/api/logs/stats/:filename
+
+Returns detailed statistics for a specific log file.
+
+**Request:**
+
+```bash
+curl -X GET http://localhost:3000/dashboard/api/logs/stats/app.log
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "filename": "app.log",
+    "size": 540467,
+    "totalLines": 2857,
+    "levelCounts": {
+      "error": 45,
+      "warn": 123,
+      "info": 2456,
+      "debug": 233
+    },
+    "modified": "2025-07-30T16:53:54.476Z",
+    "created": "2025-07-29T11:42:39.381Z"
+  }
+}
+```
+
 ## Error Responses
 
 All endpoints return consistent error responses:

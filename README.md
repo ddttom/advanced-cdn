@@ -13,6 +13,7 @@ A production-quality Node.js application that provides advanced CDN functionalit
 - **Circuit Breaker Protection**: Automatic protection against failing domains with configurable thresholds and recovery
 - **Clustering Support**: Multi-process operation for optimal performance on multi-core systems
 - **Comprehensive Monitoring**: Health checks, metrics collection, and detailed logging with domain-aware tracking
+- **Advanced Logging Infrastructure**: Real-time log streaming, historical log access, and comprehensive log management
 - **Security Features**: Rate limiting, security headers, and domain validation
 - **Production Readiness**: Graceful shutdown, error handling, and performance optimizations
 - **Configurable**: All settings externalizable via environment variables
@@ -283,6 +284,20 @@ For production deployment, consider the following:
   - `GET /api/file-resolution/stats`: Get file resolution statistics
   - `POST /api/file-resolution/test`: Test file resolution for specific paths
   - `DELETE /api/file-resolution/cache`: Clear file resolution cache
+- `/api/logs`: Comprehensive log management endpoint (local access only)
+  - `GET /api/logs/files`: List all available log files with metadata
+  - `GET /api/logs/files/:filename`: Read specific log file with pagination and filtering
+  - `GET /api/logs/download/:filename`: Download complete log files
+  - `GET /api/logs/stream`: Real-time log streaming via Server-Sent Events
+  - `POST /api/logs/search`: Cross-file log search with advanced filtering
+  - `GET /api/logs/stats/:filename`: Log file statistics and analysis
+- `/dashboard/api/logs`: Dashboard log viewing endpoints
+  - `GET /dashboard/api/logs/files`: Dashboard log file listing
+  - `GET /dashboard/api/logs/files/:filename`: Dashboard log file reading with pagination
+  - `GET /dashboard/api/logs/download/:filename`: Dashboard file downloads
+  - `GET /dashboard/api/logs/stream`: Dashboard real-time log streaming
+  - `POST /dashboard/api/logs/search`: Dashboard log search functionality
+  - `GET /dashboard/api/logs/stream/stats`: Stream service statistics
 
 ## Domain-to-Path Prefix Mapping Examples
 
@@ -1132,6 +1147,75 @@ This version includes critical fixes for browser compatibility issues:
 ### Testing and Validation
 - **Integration Tests**: [`test-fixes.js`](test-fixes.js) validates both fixes
 - **Documentation**: Detailed fix documentation in [`docs/browser-issue-fixes.md`](docs/browser-issue-fixes.md)
+
+## Advanced Logging Infrastructure
+
+The application includes a comprehensive logging infrastructure with real-time streaming capabilities, historical log access, and dashboard integration for monitoring and debugging.
+
+### Logging Features
+
+**Real-Time Log Streaming:**
+
+- **Server-Sent Events**: Live log streaming via SSE for real-time monitoring
+- **Dashboard Integration**: Built-in log viewer in the web dashboard
+- **Filtering**: Filter logs by level, module, or search terms
+- **Connection Management**: Automatic reconnection and connection status monitoring
+
+**Historical Log Access:**
+
+- **File Management**: Browse and access all log files with metadata
+- **Pagination**: Efficient navigation through large log files
+- **Search**: Advanced search across multiple log files with regex support
+- **Download**: Download log files for offline analysis
+
+**API-Based Log Access:**
+
+- **RESTful Endpoints**: Complete API for log management and access
+- **Cross-File Search**: Search across multiple log files simultaneously
+- **Statistics**: Detailed log file statistics and analysis
+- **Stream Management**: Real-time streaming service with client management
+
+### Logging Configuration
+
+```bash
+# Advanced logging configuration
+LOG_LEVEL=info
+LOG_FORMAT=combined
+ACCESS_LOG_ENABLED=true
+ERROR_LOG_ENABLED=true
+LOG_DIR=./logs
+LOG_TO_CONSOLE=true
+LOG_TO_FILE=true
+
+# Real-time streaming
+LOG_STREAM_ENABLED=true
+LOG_STREAM_BUFFER_SIZE=1000
+LOG_STREAM_HEARTBEAT_INTERVAL=30000
+```
+
+### Accessing Logs
+
+**Dashboard Log Viewer:**
+
+Navigate to: `http://localhost:3000/dashboard` and access the log viewing section
+
+**API Access:**
+
+```bash
+# List all log files
+curl http://localhost:3000/api/logs/files
+
+# Read recent log entries
+curl "http://localhost:3000/api/logs/files/app.log?lines=100"
+
+# Real-time log streaming
+curl -N http://localhost:3000/api/logs/stream
+
+# Search across log files
+curl -X POST http://localhost:3000/api/logs/search \
+  -H "Content-Type: application/json" \
+  -d '{"query": "ERROR", "files": ["app.log", "error.log"]}'
+```
 
 ## Dashboard Integration
 

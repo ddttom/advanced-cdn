@@ -193,6 +193,235 @@ app.get('/api/cache/file-resolution/stats', (req, res) => {
   }
 });
 
+// Initialize log services
+console.log('DEBUG: Loading log services...');
+const logStreamService = require('./logging/log-stream-service');
+const LogFilesService = require('./logging/log-files-service');
+const logFilesService = new LogFilesService(config.logging.logDir);
+
+// Initialize log streaming with the main logger
+console.log('DEBUG: Initializing log streaming...');
+logStreamService.initialize(logger);
+console.log('DEBUG: Log streaming initialized');
+
+// Log streaming endpoint - Server-Sent Events for real-time logs
+app.get('/api/logs/stream', (req, res) => {
+  const clientId = `client_${Date.now()}_${Math.random()}`;
+  const filters = {
+    level: req.query.level || 'all',
+    module: req.query.module || 'all',
+    search: req.query.search || '',
+    since: req.query.since || ''
+  };
+
+  // Set up SSE headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Cache-Control'
+  });
+
+  // Add client to stream service
+  const client = logStreamService.addClient(clientId, filters);
+
+  // Send initial connection confirmation with proper SSE format
+  res.write(`: Connected to log stream\n\n`);
+  res.write(`data: ${JSON.stringify({
+    type: 'connection',
+    message: 'Connected to log stream',
+    timestamp: new Date().toISOString()
+  })}\n\n`);
+  
+  // Send initial recent logs
+  const recentLogs = logStreamService.getFilteredLogs(filters);
+  recentLogs.slice(-50).forEach(log => {
+    res.write(`data: ${JSON.stringify(log)}\n\n`);
+  });
+  
+  // Ensure the response is flushed
+  if (res.flush) {
+    res.flush();
+  }
+
+  // Listen for new logs
+  const logHandler = (logEntry) => {
+    // Apply client filters
+    if (filters.level !== 'all' && logEntry.level !== filters.level) return;
+    if (filters.module !== 'all' && logEntry.module !== filters.module) return;
+    if (filters.search && !logEntry.message.toLowerCase().includes(filters.search.toLowerCase())) return;
+
+    res.write(`data: ${JSON.stringify(logEntry)}\n\n`);
+  };
+
+  logStreamService.on('log', logHandler);
+
+  // Handle client disconnect
+  req.on('close', () => {
+    logStreamService.removeListener('log', logHandler);
+    logStreamService.removeClient(clientId);
+  });
+
+  // Send heartbeat every 30 seconds
+  const heartbeat = setInterval(() => {
+    res.write(': heartbeat\n\n');
+  }, 30000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+  });
+});
+
+// Log files listing endpoint
+app.get('/api/logs/files', async (req, res) => {
+  try {
+    const files = await logFilesService.getLogFiles();
+    res.json({
+      success: true,
+      data: files,
+      meta: {
+        total: files.length,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    logger.error('Failed to get log files', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve log files'
+    });
+  }
+});
+
+// Read specific log file with pagination
+app.get('/api/logs/files/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const options = {
+      page: parseInt(req.query.page || '1', 10),
+      limit: parseInt(req.query.limit || '100', 10),
+      search: req.query.search || '',
+      level: req.query.level || '',
+      startDate: req.query.startDate || '',
+      endDate: req.query.endDate || ''
+    };
+
+    const result = await logFilesService.readLogFile(filename, options);
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    logger.error('Failed to read log file', { 
+      filename: req.params.filename,
+      error: error.message 
+    });
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Search logs across files
+app.post('/api/logs/search', async (req, res) => {
+  try {
+    const { searchTerm, files, level, startDate, endDate, limit } = req.body;
+    
+    if (!searchTerm) {
+      return res.status(400).json({
+        success: false,
+        error: 'Search term is required'
+      });
+    }
+
+    const results = await logFilesService.searchLogs(searchTerm, {
+      files,
+      level,
+      startDate,
+      endDate,
+      limit
+    });
+
+    res.json({
+      success: true,
+      data: results,
+      meta: {
+        searchTerm,
+        resultCount: results.length,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    logger.error('Failed to search logs', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to search logs'
+    });
+  }
+});
+
+// Download log file
+app.get('/api/logs/download/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const fileInfo = await logFilesService.downloadLogFile(filename);
+    
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', fileInfo.mimeType);
+    res.sendFile(path.resolve(fileInfo.filePath));
+  } catch (error) {
+    logger.error('Failed to download log file', { 
+      filename: req.params.filename,
+      error: error.message 
+    });
+    res.status(404).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Log file statistics
+app.get('/api/logs/stats/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const stats = await logFilesService.getLogFileStats(filename);
+    
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    logger.error('Failed to get log file stats', { 
+      filename: req.params.filename,
+      error: error.message 
+    });
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Log stream statistics
+app.get('/api/logs/stream/stats', (req, res) => {
+  try {
+    const stats = logStreamService.getStats();
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    logger.error('Failed to get log stream stats', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve log stream statistics'
+    });
+  }
+});
+
 // Cache keys listing endpoint - lists keys in all caches
 app.get('/api/cache/keys', (req, res) => {
   try {
@@ -387,12 +616,17 @@ app.delete('/api/cache/nuke', (req, res) => {
 });
 
 // Initialize dashboard integration BEFORE proxy middleware
+console.log('DEBUG: Creating dashboard integration...');
 const dashboardIntegration = new DashboardIntegration(app);
 // Store globally for cleanup during shutdown
 global.dashboardIntegration = dashboardIntegration;
+console.log('DEBUG: Dashboard integration created');
 
-// Mount dashboard routes immediately (synchronously)
-app.use('/dashboard', dashboardIntegration.dashboardAPI.getRouter());
+// Mount dashboard routes BEFORE proxy middleware to prevent proxying
+app.use('/dashboard', (req, res, next) => {
+  req.skipProxy = true;
+  next();
+});
 
 // Add proxy middleware - this handles all other routes
 app.use(proxyManager.middleware.bind(proxyManager));
@@ -533,15 +767,21 @@ if (!config.server.cluster.enabled) {
   console.log('Starting server in non-cluster mode...');
   logger.info('Starting server...');
   
+  console.log('DEBUG: About to initialize dashboard integration...');
   // Initialize dashboard integration before starting server
   dashboardIntegration.initialize()
     .then(() => {
+      console.log('DEBUG: Dashboard integration initialized successfully');
       logger.info('Dashboard integration initialized successfully');
+      console.log('DEBUG: About to start server...');
       startServer();
     })
     .catch(err => {
-      logger.error('Failed to initialize dashboard integration', { error: err.message });
+      console.log('DEBUG: Dashboard integration failed:', err.message);
+      logger.error('Failed to initialize dashboard integration', { error: err.message, stack: err.stack });
+      logger.warn('Starting server without dashboard functionality');
       // Start server anyway, just without dashboard
+      console.log('DEBUG: Starting server without dashboard...');
       startServer();
     });
 } else {

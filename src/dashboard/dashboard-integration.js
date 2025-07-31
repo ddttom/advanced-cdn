@@ -25,21 +25,24 @@ class DashboardIntegration {
       this.app.use('/dashboard', this.dashboardAPI.getRouter());
       logger.debug('Dashboard API routes mounted successfully');
 
-      // Start API discovery service
+      // Initialize API discovery service (non-blocking)
       logger.debug('Starting API discovery service...');
-      await this.dashboardAPI.discoveryService.initialize();
-      logger.debug('API discovery service started successfully');
-
-      // Setup periodic scanning
-      logger.debug('Setting up periodic scanning...');
-      this.setupPeriodicScanning();
-      logger.debug('Periodic scanning setup complete');
+      this.dashboardAPI.discoveryService.initialize().catch(error => {
+        logger.error('API discovery service initialization failed', { error: error.message });
+      });
+      logger.debug('API discovery service initialization started (non-blocking)');
 
       this.isInitialized = true;
       logger.info('Dashboard integration initialized successfully');
 
       // Log available dashboard endpoints
       this.logDashboardEndpoints();
+
+      // Start background scanning after initialization
+      setImmediate(() => {
+        this.setupPeriodicScanning();
+        logger.debug('Periodic scanning setup complete');
+      });
 
     } catch (error) {
       logger.error('Failed to initialize dashboard integration', { error: error.message, stack: error.stack });

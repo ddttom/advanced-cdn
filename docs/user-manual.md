@@ -26,7 +26,8 @@ The Advanced CDN Application is a production-ready Node.js application that prov
 - **URL Transformation**: Comprehensive URL masking for complete domain obscuration
 - **Multi-Layer Caching**: Sophisticated caching system with TTL management and cache control
 - **Circuit Breaker Protection**: Automatic protection against failing backends
-- **Real-Time Dashboard**: Comprehensive monitoring and management interface
+- **Real-Time Dashboard**: Comprehensive monitoring and management interface with live log viewing
+- **Advanced Logging Infrastructure**: Real-time log streaming, historical log access, and comprehensive log management
 - **Content Transformation**: Built-in transformers for Markdown, JSON, CSV, and more
 - **Security Features**: Advanced security headers, rate limiting, and access control
 
@@ -519,10 +520,12 @@ Navigate to: `http://localhost:3000/dashboard`
 
 #### API Explorer
 
-- **Endpoint Discovery**: Automatic detection of available endpoints
-- **Interactive Testing**: Built-in API testing interface
-- **Documentation**: Auto-generated API documentation
-- **Response Inspection**: Detailed response analysis
+- **Endpoint Discovery**: Automatic detection of available endpoints with parameter metadata
+- **Smart Parameter Detection**: Intelligent parameter forms based on endpoint definitions
+- **Interactive Testing**: Built-in API testing interface with parameter validation
+- **Parameter Type Support**: Automatic handling of query, path, and body parameters
+- **Documentation**: Auto-generated API documentation with parameter descriptions
+- **Response Inspection**: Detailed response analysis with timing and headers
 
 #### Dashboard Cache Management
 
@@ -531,6 +534,15 @@ Navigate to: `http://localhost:3000/dashboard`
 - **Performance Analysis**: Hit/miss rates and optimization suggestions
 - **Content Analysis**: View cached content and metadata
 - **Memory Usage**: Detailed memory usage tracking and alerts
+
+#### Dashboard Log Management
+
+- **Real-Time Log Streaming**: Live log viewing with automatic updates via Server-Sent Events
+- **Historical Log Access**: Browse and search through archived log files with pagination
+- **Log File Management**: Download, analyze, and manage log files through the dashboard
+- **Advanced Search**: Cross-file search with filtering by date, level, module, and custom patterns
+- **Log Statistics**: Detailed analytics on log patterns, error rates, and system activity
+- **Stream Monitoring**: Real-time connection status and streaming performance metrics
 
 #### Configuration Management
 
@@ -969,20 +981,106 @@ done
 
 ### Log Analysis
 
+#### Dashboard Log Viewing
+
+**Access Log Viewer:**
+
+Navigate to: `http://localhost:3000/dashboard` and access the log viewing section
+
+**Real-Time Log Monitoring:**
+
+- **Live Stream**: View logs as they happen with automatic scrolling
+- **Filtering**: Filter by log level (DEBUG, INFO, WARN, ERROR)
+- **Search**: Real-time search within streaming logs
+- **Connection Status**: Monitor streaming connection health
+
+**Historical Log Analysis:**
+
+- **File Browser**: Browse all available log files with metadata
+- **Pagination**: Navigate through large log files efficiently
+- **Advanced Search**: Search across multiple log files with regex support
+- **Date Filtering**: Filter logs by specific date ranges
+- **Export**: Download log files for offline analysis
+
+#### API-Based Log Access
+
+**List Available Log Files:**
+
+```bash
+# Get all log files with metadata
+curl http://localhost:3000/api/logs/files
+
+# Response includes file sizes, dates, and types
+{
+  "success": true,
+  "data": {
+    "files": [
+      {
+        "name": "app.log",
+        "size": 1048576,
+        "modified": "2025-07-30T17:00:00.000Z",
+        "type": "application"
+      }
+    ]
+  }
+}
+```
+
+**Read Log Files with Pagination:**
+
+```bash
+# Read recent entries from app.log
+curl "http://localhost:3000/api/logs/files/app.log?lines=100&page=1"
+
+# Filter by log level
+curl "http://localhost:3000/api/logs/files/app.log?level=ERROR&lines=50"
+
+# Search within log file
+curl "http://localhost:3000/api/logs/files/app.log?search=cache&lines=100"
+```
+
+**Real-Time Log Streaming:**
+
+```bash
+# Stream logs via Server-Sent Events
+curl -N http://localhost:3000/api/logs/stream
+
+# Example streaming output:
+data: {"timestamp":"2025-07-30T17:00:00.000Z","level":"info","message":"Server started","module":"app"}
+
+data: {"timestamp":"2025-07-30T17:00:01.000Z","level":"debug","message":"Cache hit","module":"cache"}
+```
+
+**Cross-File Log Search:**
+
+```bash
+# Search across all log files
+curl -X POST http://localhost:3000/api/logs/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "ERROR",
+    "files": ["app.log", "error.log"],
+    "dateFrom": "2025-07-30T00:00:00.000Z",
+    "dateTo": "2025-07-30T23:59:59.000Z"
+  }'
+```
+
 #### Common Log Patterns
 
 ```bash
-# Find errors
-grep "ERROR" logs/app.log
+# Find errors via API
+curl "http://localhost:3000/api/logs/files/app.log?level=ERROR&lines=100"
 
-# Monitor cache performance
-grep "cache" logs/app.log | grep -E "(hit|miss)"
+# Monitor cache performance via dashboard search
+# Use dashboard search: "cache" AND ("hit" OR "miss")
 
-# Track slow requests
-grep "request completed" logs/app.log | jq '.metadata.responseTime' | awk '$1 > 1000'
+# Track slow requests via API search
+curl -X POST http://localhost:3000/api/logs/search \
+  -H "Content-Type: application/json" \
+  -d '{"query": "request completed.*responseTime.*[5-9][0-9]{3,}"}'
 
 # Monitor circuit breaker events
-grep "circuit breaker" logs/app.log
+curl "http://localhost:3000/api/logs/files/app.log?search=circuit%20breaker"
 ```
 
 #### Log Rotation Setup

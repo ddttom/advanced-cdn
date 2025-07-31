@@ -1540,3 +1540,368 @@ FILE_RESOLUTION_CACHE_STATS_ENABLED=true
 ```
 
 This comprehensive error handling and logging system ensures robust operation of both the domain-to-path prefix rewriting and file resolution functionality while providing detailed insights for debugging and monitoring.
+
+## Dashboard Log Viewing Integration
+
+The CDN application now includes a comprehensive dashboard integration for real-time log viewing and management. This provides a web-based interface for monitoring application logs, viewing historical log files, and streaming live logs.
+
+### Dashboard Log Endpoints
+
+The dashboard provides the following log management endpoints:
+
+#### 1. Log Files Listing
+
+**Endpoint:** `GET /dashboard/api/logs/files`
+
+Lists all available log files with metadata including size, modification time, and file type.
+
+```javascript
+// Example Response
+{
+  "success": true,
+  "data": [
+    {
+      "name": "app.log",
+      "size": 540467,
+      "modified": "2025-07-30T16:53:54.476Z",
+      "created": "2025-07-29T11:42:39.381Z",
+      "type": "application"
+    },
+    {
+      "name": "error.log",
+      "size": 3529,
+      "modified": "2025-07-29T12:09:41.239Z",
+      "created": "2025-07-29T11:42:39.381Z",
+      "type": "error"
+    }
+  ],
+  "meta": {
+    "total": 5,
+    "timestamp": "2025-07-30T16:54:10.934Z"
+  }
+}
+```
+
+#### 2. Log File Reading with Pagination
+
+**Endpoint:** `GET /dashboard/api/logs/files/:filename`
+
+Reads a specific log file with pagination and filtering support.
+
+**Query Parameters:**
+- `page` - Page number (default: 1)
+- `limit` - Number of entries per page (default: 100)
+- `search` - Search term to filter log entries
+- `level` - Filter by log level (error, warn, info, debug, etc.)
+- `startDate` - Filter entries after this date
+- `endDate` - Filter entries before this date
+
+```javascript
+// Example Response
+{
+  "success": true,
+  "data": {
+    "filename": "app.log",
+    "lines": [
+      {
+        "timestamp": "2025-07-30 17:53:54",
+        "level": "info",
+        "message": "Cache initialized with TTL: 300s, max items: 1000",
+        "module": "cache-manager",
+        "meta": {},
+        "raw": "{\"level\":\"info\",\"message\":\"Cache initialized with TTL: 300s, max items: 1000\",\"module\":\"cache-manager\",\"timestamp\":\"2025-07-30 17:53:54\"}"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 5,
+      "totalLines": 2857,
+      "totalPages": 572,
+      "hasNext": true,
+      "hasPrev": false
+    },
+    "filters": {
+      "search": "",
+      "level": "",
+      "startDate": "",
+      "endDate": ""
+    }
+  }
+}
+```
+
+#### 3. Real-time Log Streaming
+
+**Endpoint:** `GET /dashboard/api/logs/stream`
+
+Provides real-time log streaming using Server-Sent Events (SSE) for live monitoring.
+
+**Query Parameters:**
+- `level` - Filter by log level (default: all)
+- `module` - Filter by module name (default: all)
+- `search` - Search term to filter log messages
+- `since` - Only show logs after this timestamp
+
+```javascript
+// Example SSE Stream Output
+data: {"timestamp":"2025-07-30 18:06:12","level":"info","message":"HTTP server running on 0.0.0.0:3000","module":"system","meta":{},"stack":null,"id":1753895172251.4263}
+
+data: {"timestamp":"2025-07-30 18:06:12","level":"warn","message":"Error scanning file /Users/tomcranstoun/Documents/GitHub/advanced-cdn/src/app.js","module":"dashboard-discovery","meta":{},"stack":null,"id":1753895172253.8271}
+```
+
+#### 4. Log File Download
+
+**Endpoint:** `GET /dashboard/api/logs/download/:filename`
+
+Downloads a complete log file for offline analysis.
+
+```bash
+# Example Usage
+curl -O http://localhost:3000/dashboard/api/logs/download/app.log
+```
+
+#### 5. Log Search Across Files
+
+**Endpoint:** `POST /dashboard/api/logs/search`
+
+Searches for specific terms across multiple log files.
+
+**Request Body:**
+```javascript
+{
+  "searchTerm": "error",
+  "files": ["app.log", "error.log"],
+  "level": "error",
+  "startDate": "2025-07-30T00:00:00Z",
+  "endDate": "2025-07-30T23:59:59Z",
+  "limit": 100
+}
+```
+
+#### 6. Log Stream Statistics
+
+**Endpoint:** `GET /dashboard/api/logs/stream/stats`
+
+Provides statistics about the log streaming service.
+
+```javascript
+// Example Response
+{
+  "success": true,
+  "data": {
+    "connectedClients": 2,
+    "bufferSize": 150,
+    "maxBufferSize": 1000,
+    "isInitialized": true,
+    "modules": ["system", "cache-manager", "dashboard-discovery"],
+    "levels": ["error", "warn", "info", "http", "verbose", "debug", "silly"]
+  }
+}
+```
+
+### Dashboard Log Viewing Features
+
+#### 1. Real-time Log Monitoring
+
+The dashboard provides real-time log streaming capabilities:
+
+- **Live Updates**: Logs are streamed in real-time using Server-Sent Events
+- **Filtering**: Filter logs by level, module, or search terms
+- **Auto-scroll**: Automatically scroll to show newest log entries
+- **Connection Management**: Automatic reconnection on connection loss
+
+#### 2. Historical Log Analysis
+
+Browse and analyze historical log files:
+
+- **Pagination**: Navigate through large log files efficiently
+- **Search**: Full-text search across log entries
+- **Filtering**: Filter by date range, log level, or module
+- **Export**: Download log files for offline analysis
+
+#### 3. Log File Management
+
+Manage log files through the dashboard:
+
+- **File Listing**: View all available log files with metadata
+- **File Statistics**: See file sizes, modification dates, and types
+- **Download**: Download individual log files
+- **Search**: Search across multiple log files simultaneously
+
+### Dashboard Integration Architecture
+
+#### 1. Log Stream Service
+
+The log stream service captures logs from the Winston logger and provides real-time streaming:
+
+```javascript
+// Log Stream Service Features
+- Winston Transport Integration
+- Real-time Event Emission
+- Client Connection Management
+- Log Filtering and Buffering
+- Performance Monitoring
+```
+
+#### 2. Log Files Service
+
+The log files service provides access to historical log files:
+
+```javascript
+// Log Files Service Features
+- File System Integration
+- Pagination Support
+- Search and Filtering
+- Content Parsing
+- Security Validation
+```
+
+#### 3. Dashboard API Integration
+
+The dashboard API provides a unified interface for log management:
+
+```javascript
+// Dashboard API Features
+- RESTful Endpoints
+- Proxy to Main API
+- Error Handling
+- CORS Support
+- Request Validation
+```
+
+### Configuration for Dashboard Logging
+
+#### Enable Dashboard Log Integration
+
+```bash
+# Environment variables for dashboard log integration
+DASHBOARD_ENABLED=true
+DASHBOARD_LOG_STREAMING=true
+DASHBOARD_LOG_FILES_ACCESS=true
+DASHBOARD_LOG_SEARCH=true
+DASHBOARD_LOG_DOWNLOAD=true
+```
+
+#### Log Stream Configuration
+
+```bash
+# Log streaming settings
+LOG_STREAM_ENABLED=true
+LOG_STREAM_BUFFER_SIZE=1000
+LOG_STREAM_CLIENT_TIMEOUT=300000
+LOG_STREAM_HEARTBEAT_INTERVAL=30000
+```
+
+#### Security Configuration
+
+```bash
+# Dashboard security settings
+DASHBOARD_ACCESS_RESTRICTION=local
+DASHBOARD_API_RATE_LIMITING=true
+DASHBOARD_LOG_ACCESS_CONTROL=true
+```
+
+### Troubleshooting Dashboard Log Integration
+
+#### 1. Log Stream Not Working
+
+**Symptoms:**
+- Dashboard shows "No logs available"
+- Real-time logs not updating
+- Connection errors in browser console
+
+**Debugging Steps:**
+
+```bash
+# Check log stream service status
+curl http://localhost:3000/api/logs/stream/stats
+
+# Test direct log stream endpoint
+curl http://localhost:3000/api/logs/stream --max-time 5
+
+# Check server logs for stream service errors
+grep "log-stream-service" app.log
+```
+
+**Common Solutions:**
+- Verify Winston transport is properly configured
+- Check that log stream service is initialized
+- Ensure proper CORS headers for SSE
+- Verify client connection management
+
+#### 2. Log Files Not Loading
+
+**Symptoms:**
+- Empty file list in dashboard
+- 404 errors when accessing log files
+- Permission denied errors
+
+**Debugging Steps:**
+
+```bash
+# Check log files endpoint
+curl http://localhost:3000/api/logs/files
+
+# Verify log directory permissions
+ls -la logs/
+
+# Check file resolution service
+grep "log-files-service" app.log
+```
+
+**Common Solutions:**
+- Verify log directory exists and is readable
+- Check file permissions
+- Ensure log files service is properly initialized
+- Verify file path configuration
+
+#### 3. Dashboard Routes Not Working
+
+**Symptoms:**
+- 404 errors for dashboard endpoints
+- Dashboard routes being proxied instead of handled locally
+- Cannot GET /dashboard/api/logs/* errors
+
+**Debugging Steps:**
+
+```bash
+# Test dashboard route precedence
+curl http://localhost:3000/dashboard/api/logs/files
+
+# Check route mounting order in logs
+grep "dashboard.*route" app.log
+
+# Verify proxy middleware configuration
+grep "skipProxy" app.log
+```
+
+**Common Solutions:**
+- Ensure dashboard routes are mounted before proxy middleware
+- Verify `req.skipProxy = true` is set for dashboard routes
+- Check dashboard integration initialization
+- Verify route precedence in Express app
+
+### Best Practices for Dashboard Log Management
+
+#### 1. Performance Optimization
+
+- **Pagination**: Always use pagination for large log files
+- **Filtering**: Apply filters to reduce data transfer
+- **Caching**: Cache frequently accessed log data
+- **Compression**: Enable compression for log file downloads
+
+#### 2. Security Considerations
+
+- **Access Control**: Restrict dashboard access to authorized users
+- **Rate Limiting**: Implement rate limiting for log endpoints
+- **Input Validation**: Validate all search and filter parameters
+- **File Path Security**: Prevent directory traversal attacks
+
+#### 3. Monitoring and Alerting
+
+- **Connection Monitoring**: Monitor SSE connection health
+- **Performance Metrics**: Track log streaming performance
+- **Error Tracking**: Monitor dashboard API error rates
+- **Resource Usage**: Monitor memory usage for log buffering
+
+This dashboard log viewing integration provides a comprehensive solution for real-time log monitoring and historical log analysis, making it easier to debug issues and monitor application health through a user-friendly web interface.
