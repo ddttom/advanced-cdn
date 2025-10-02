@@ -178,7 +178,7 @@ pm2 startup
 ```nginx
 upstream advanced_cdn {
     least_conn;
-    server 127.0.0.1:3000 max_fails=3 fail_timeout=30s;
+    server 127.0.0.1:8080 max_fails=3 fail_timeout=30s;
     keepalive 32;
 }
 
@@ -472,7 +472,7 @@ Set up external monitoring:
 
 ```bash
 # Example health check script for external monitoring
-curl -f http://localhost:3000/health || exit 1
+curl -f http://localhost:8080/health || exit 1
 ```
 
 ### Log Monitoring

@@ -25,14 +25,14 @@ Before diving into specific issues, run through this quick checklist:
 
    ```bash
    # Test a simple transformation
-   curl -H "Host: ddt.com" http://localhost:3000/test
+   curl -H "Host: ddt.com" http://localhost:8080/test
    ```
 
 4. **Check Health Status**
 
    ```bash
    # Check application health
-   curl http://localhost:3000/health
+   curl http://localhost:8080/health
    ```
 
 ## Common Issues and Solutions
@@ -49,10 +49,10 @@ Before diving into specific issues, run through this quick checklist:
 
 ```bash
 # Check if path rewriting is enabled
-curl http://localhost:3000/api/domains | jq '.pathRewritingEnabled'
+curl http://localhost:8080/api/domains | jq '.pathRewritingEnabled'
 
 # Check if domain is configured
-curl http://localhost:3000/api/domains | jq '.domains["ddt.com"]'
+curl http://localhost:8080/api/domains | jq '.domains["ddt.com"]'
 
 # Check application logs for domain validation
 grep "No routing configuration found" logs/app.log
@@ -130,7 +130,7 @@ export ADDITIONAL_DOMAINS="ddt.com"
 
 ```bash
 # Test specific transformation
-curl -X POST http://localhost:3000/api/domains/test-transformation \
+curl -X POST http://localhost:8080/api/domains/test-transformation \
   -H "Content-Type: application/json" \
   -d '{"domain": "ddt.com", "path": "/about"}'
 
@@ -147,7 +147,7 @@ grep "Path transformation" logs/app.log | grep "ddt.com"
 
 ```bash
 # Check current mapping
-curl http://localhost:3000/api/domains/ddt.com | jq '.pathPrefix'
+curl http://localhost:8080/api/domains/ddt.com | jq '.pathPrefix'
 
 # Should return: "/ddt"
 # If incorrect, update configuration:
@@ -185,15 +185,15 @@ export PATH_REWRITE_FALLBACK_PREFIX="/default"
 echo "Testing ddt.com/about transformation..."
 
 # 1. Check domain configuration
-curl -s http://localhost:3000/api/domains/ddt.com | jq '.'
+curl -s http://localhost:8080/api/domains/ddt.com | jq '.'
 
 # 2. Test transformation
-curl -s -X POST http://localhost:3000/api/domains/test-transformation \
+curl -s -X POST http://localhost:8080/api/domains/test-transformation \
   -H "Content-Type: application/json" \
   -d '{"domain": "ddt.com", "path": "/about"}' | jq '.'
 
 # 3. Check actual request
-curl -v -H "Host: ddt.com" http://localhost:3000/about
+curl -v -H "Host: ddt.com" http://localhost:8080/about
 ```
 
 ### 3. Performance Issues
@@ -209,13 +209,13 @@ curl -v -H "Host: ddt.com" http://localhost:3000/about
 
 ```bash
 # Check performance metrics
-curl http://localhost:3000/metrics | grep path_rewrite
+curl http://localhost:8080/metrics | grep path_rewrite
 
 # Check transformation times
 grep "Slow path transformation" logs/app.log
 
 # Check memory usage
-curl http://localhost:3000/health | jq '.system.memory'
+curl http://localhost:8080/health | jq '.system.memory'
 
 # Run performance benchmark
 node benchmark.js
@@ -227,7 +227,7 @@ node benchmark.js
 
 ```bash
 # Check for complex regex rules
-curl http://localhost:3000/api/domains | jq '.domains[].regexRules'
+curl http://localhost:8080/api/domains | jq '.domains[].regexRules'
 
 # Solution: Optimize regex patterns
 # Before (slow):
@@ -241,7 +241,7 @@ export PATH_REWRITE_RULES='{"api.example.com": {"^/v1/users/([0-9]+)": "/api/v1/
 
 ```bash
 # Check cache performance
-curl http://localhost:3000/api/cache/stats | jq '.hitRate'
+curl http://localhost:8080/api/cache/stats | jq '.hitRate'
 
 # Should be > 0.8 (80%)
 # Solution: Increase cache size or check for cache invalidation issues
@@ -253,7 +253,7 @@ export PATH_REWRITE_CACHE_SIZE=50000
 ```bash
 # Monitor memory over time
 while true; do
-  curl -s http://localhost:3000/health | jq '.system.memory.heapUsed'
+  curl -s http://localhost:8080/health | jq '.system.memory.heapUsed'
   sleep 10
 done
 
@@ -274,7 +274,7 @@ export NODE_OPTIONS="--max-old-space-size=2048"
 
 ```bash
 # Check cache statistics
-curl http://localhost:3000/api/cache/stats
+curl http://localhost:8080/api/cache/stats
 
 # Check cache configuration
 echo $CACHE_ENABLED
@@ -282,7 +282,7 @@ echo $CACHE_DEFAULT_TTL
 echo $PATH_REWRITE_CACHE_ENABLED
 
 # Clear cache and test
-curl -X DELETE http://localhost:3000/api/cache
+curl -X DELETE http://localhost:8080/api/cache
 ```
 
 **Common Causes and Solutions:**
@@ -303,7 +303,7 @@ export PATH_REWRITE_CACHE_ENABLED=true
 
 ```bash
 # Check cache size and usage
-curl http://localhost:3000/api/cache/stats | jq '.totalItems, .maxItems'
+curl http://localhost:8080/api/cache/stats | jq '.totalItems, .maxItems'
 
 # Solution: Increase cache size
 export CACHE_MAX_ITEMS=10000
@@ -314,7 +314,7 @@ export PATH_REWRITE_CACHE_SIZE=10000
 
 ```bash
 # Check for domain-specific cache issues
-curl http://localhost:3000/api/cache/stats | jq '.domainStats'
+curl http://localhost:8080/api/cache/stats | jq '.domainStats'
 
 # Solution: Enable domain-aware caching
 export CACHE_DOMAIN_AWARE=true
@@ -333,10 +333,10 @@ export CACHE_PATH_PREFIX_AWARE=true
 
 ```bash
 # Check circuit breaker status
-curl http://localhost:3000/health | jq '.pathRewriting.circuitBreakers'
+curl http://localhost:8080/health | jq '.pathRewriting.circuitBreakers'
 
 # Check error rates
-curl http://localhost:3000/api/domains | jq '.domains[].statistics.errorRate'
+curl http://localhost:8080/api/domains | jq '.domains[].statistics.errorRate'
 
 # Check circuit breaker logs
 grep "Circuit breaker" logs/app.log
@@ -384,13 +384,13 @@ export PATH_REWRITE_CIRCUIT_BREAKER_TIMEOUT=60000  # 60 seconds
 
 ```bash
 # Test configuration reload
-curl -X POST http://localhost:3000/api/domains/reload
+curl -X POST http://localhost:8080/api/domains/reload
 
 # Check for validation errors
 grep "Rule validation failed" logs/error.log
 
 # Verify new configuration
-curl http://localhost:3000/api/domains
+curl http://localhost:8080/api/domains
 ```
 
 **Common Causes and Solutions:**
@@ -409,7 +409,7 @@ export DOMAIN_PATH_MAPPING='{"ddt.com": "/ddt", "blog.example.com": "/blog"}'
 
 ```bash
 # Check if reload endpoint is accessible
-curl -v -X POST http://localhost:3000/api/domains/reload
+curl -v -X POST http://localhost:8080/api/domains/reload
 
 # Solution: Ensure request is from localhost or configure authentication
 ```
@@ -439,21 +439,21 @@ grep "cache.*hit\|cache.*miss" logs/app.log | tail -20
 
 ```bash
 # Test domain configuration
-curl -s http://localhost:3000/api/domains | jq '.domains | keys'
+curl -s http://localhost:8080/api/domains | jq '.domains | keys'
 
 # Test specific domain
-curl -s http://localhost:3000/api/domains/ddt.com | jq '.'
+curl -s http://localhost:8080/api/domains/ddt.com | jq '.'
 
 # Test transformation
-curl -s -X POST http://localhost:3000/api/domains/test-transformation \
+curl -s -X POST http://localhost:8080/api/domains/test-transformation \
   -H "Content-Type: application/json" \
   -d '{"domain": "ddt.com", "path": "/test"}' | jq '.'
 
 # Check health status
-curl -s http://localhost:3000/health | jq '.pathRewriting'
+curl -s http://localhost:8080/health | jq '.pathRewriting'
 
 # Get performance metrics
-curl -s http://localhost:3000/metrics | grep path_rewrite
+curl -s http://localhost:8080/metrics | grep path_rewrite
 ```
 
 ### 3. Configuration Validation
@@ -485,12 +485,12 @@ test_performance() {
   
   # Warm up
   for i in {1..10}; do
-    curl -s -H "Host: $domain" http://localhost:3000$path > /dev/null
+    curl -s -H "Host: $domain" http://localhost:8080$path > /dev/null
   done
   
   # Measure
   time for i in {1..100}; do
-    curl -s -H "Host: $domain" http://localhost:3000$path > /dev/null
+    curl -s -H "Host: $domain" http://localhost:8080$path > /dev/null
   done
 }
 
@@ -541,16 +541,16 @@ cat > maintenance.sh << 'EOF'
 echo "Running path rewriter maintenance..."
 
 # Check health
-curl -s http://localhost:3000/health | jq '.pathRewriting'
+curl -s http://localhost:8080/health | jq '.pathRewriting'
 
 # Check cache performance
-CACHE_HIT_RATE=$(curl -s http://localhost:3000/api/cache/stats | jq -r '.hitRate')
+CACHE_HIT_RATE=$(curl -s http://localhost:8080/api/cache/stats | jq -r '.hitRate')
 if (( $(echo "$CACHE_HIT_RATE < 0.8" | bc -l) )); then
   echo "Warning: Low cache hit rate: $CACHE_HIT_RATE"
 fi
 
 # Check error rates
-curl -s http://localhost:3000/api/domains | jq -r '.domains | to_entries[] | select(.value.statistics.errorRate > 0.05) | "High error rate for \(.key): \(.value.statistics.errorRate)"'
+curl -s http://localhost:8080/api/domains | jq -r '.domains | to_entries[] | select(.value.statistics.errorRate > 0.05) | "High error rate for \(.key): \(.value.statistics.errorRate)"'
 
 # Clean up old logs
 find logs/ -name "*.log" -mtime +7 -delete
@@ -579,21 +579,21 @@ export PATH_REWRITE_FALLBACK_PREFIX=""
 
 ```bash
 # Open all circuit breakers
-curl -X POST http://localhost:3000/api/domains/circuit-breaker/open-all
+curl -X POST http://localhost:8080/api/domains/circuit-breaker/open-all
 
 # OR disable problematic domains
 export DOMAIN_PATH_MAPPING='{"safe-domain.com": "/safe"}'
-curl -X POST http://localhost:3000/api/domains/reload
+curl -X POST http://localhost:8080/api/domains/reload
 ```
 
 ### 3. Memory Issues
 
 ```bash
 # Clear all caches
-curl -X DELETE http://localhost:3000/api/cache
+curl -X DELETE http://localhost:8080/api/cache
 
 # Check for memory leaks
-curl -X GET http://localhost:3000/health | jq '.system.memory'
+curl -X GET http://localhost:8080/health | jq '.system.memory'
 
 # Restart with increased memory
 export NODE_OPTIONS="--max-old-space-size=4096"
@@ -606,7 +606,7 @@ export NODE_OPTIONS="--max-old-space-size=4096"
 # Switch to simple prefix mode only
 unset PATH_REWRITE_RULES
 export DOMAIN_PATH_MAPPING='{"ddt.com": "/ddt"}'
-curl -X POST http://localhost:3000/api/domains/reload
+curl -X POST http://localhost:8080/api/domains/reload
 
 # Increase cache size
 export PATH_REWRITE_CACHE_SIZE=50000
@@ -629,19 +629,19 @@ echo "=== Configuration ==="
 env | grep -E "(PATH_REWRITE|DOMAIN_|CACHE_)" | sort
 
 echo -e "\n=== Health Status ==="
-curl -s http://localhost:3000/health | jq '.pathRewriting'
+curl -s http://localhost:8080/health | jq '.pathRewriting'
 
 echo -e "\n=== Domain Configuration ==="
-curl -s http://localhost:3000/api/domains | jq '.domains | keys'
+curl -s http://localhost:8080/api/domains | jq '.domains | keys'
 
 echo -e "\n=== Cache Statistics ==="
-curl -s http://localhost:3000/api/cache/stats | jq '.'
+curl -s http://localhost:8080/api/cache/stats | jq '.'
 
 echo -e "\n=== Recent Errors ==="
 grep -E "(path-rewriter.*error|transformation error)" logs/error.log | tail -10
 
 echo -e "\n=== Performance Metrics ==="
-curl -s http://localhost:3000/metrics | grep path_rewrite | head -20
+curl -s http://localhost:8080/metrics | grep path_rewrite | head -20
 
 echo -e "\n=== System Information ==="
 echo "Node Version: $(node --version)"
@@ -689,7 +689,7 @@ Before diving into specific memory issues, run through this checklist:
    ```bash
    # Monitor memory usage over time
    while true; do
-     curl -s http://localhost:3000/health | jq '.system.memory.heapUsed'
+     curl -s http://localhost:8080/health | jq '.system.memory.heapUsed'
      sleep 30
    done
    ```
@@ -773,7 +773,7 @@ systemctl restart cdn-service
 grep "Dashboard.*shutdown" logs/app.log
 
 # If dashboard intervals persist:
-curl -X POST http://localhost:3000/api/dashboard/shutdown
+curl -X POST http://localhost:8080/api/dashboard/shutdown
 ```
 
 **Prevention and Fix:**
@@ -804,7 +804,7 @@ export SHUTDOWN_LOG_ENABLED=true
 
 ```bash
 # Check cache memory usage
-curl -s http://localhost:3000/api/cache/stats | jq '.keys, .memoryUsage'
+curl -s http://localhost:8080/api/cache/stats | jq '.keys, .memoryUsage'
 
 # Check cache configuration
 echo $CACHE_MAX_ITEMS
@@ -820,7 +820,7 @@ grep "cache.*cleanup\|cache.*expired" logs/app.log
 
 ```bash
 # Check current cache size
-curl -s http://localhost:3000/api/cache/stats | jq '.keys'
+curl -s http://localhost:8080/api/cache/stats | jq '.keys'
 
 # Solution: Reduce cache size
 export CACHE_MAX_ITEMS=5000
@@ -844,7 +844,7 @@ export CACHE_MAX_TTL=1800      # 30 minutes
 
 ```bash
 # Force cache cleanup
-curl -X DELETE http://localhost:3000/api/cache
+curl -X DELETE http://localhost:8080/api/cache
 
 # Check if automatic cleanup is working
 grep "cache.*cleanup" logs/app.log | tail -5
@@ -888,7 +888,7 @@ echo $REQUEST_CLEANUP_ENABLED
 
 ```bash
 # If using WebSockets, check connection count
-curl -s http://localhost:3000/health | jq '.connections'
+curl -s http://localhost:8080/health | jq '.connections'
 
 # Solution: Implement connection cleanup
 export WEBSOCKET_CLEANUP_ENABLED=true
@@ -950,7 +950,7 @@ monitor_memory() {
   echo "timestamp,heapUsed,heapTotal,rss" > memory.log
   while true; do
     local timestamp=$(date +%s)
-    local memory=$(curl -s http://localhost:3000/health | jq -r '.system.memory | "\(.heapUsed),\(.heapTotal),\(.rss)"')
+    local memory=$(curl -s http://localhost:8080/health | jq -r '.system.memory | "\(.heapUsed),\(.heapTotal),\(.rss)"')
     echo "$timestamp,$memory" >> memory.log
     sleep 60
   done
@@ -967,14 +967,14 @@ stress_test_memory() {
   echo "Running memory leak stress test..."
   
   # Record initial memory
-  local initial_memory=$(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')
+  local initial_memory=$(curl -s http://localhost:8080/health | jq -r '.system.memory.heapUsed')
   echo "Initial memory: $initial_memory bytes"
   
   # Generate load
   for i in {1..1000}; do
-    curl -s -H "Host: ddt.com" http://localhost:3000/test > /dev/null
+    curl -s -H "Host: ddt.com" http://localhost:8080/test > /dev/null
     if [ $((i % 100)) -eq 0 ]; then
-      local current_memory=$(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')
+      local current_memory=$(curl -s http://localhost:8080/health | jq -r '.system.memory.heapUsed')
       echo "Memory after $i requests: $current_memory bytes"
     fi
   done
@@ -983,7 +983,7 @@ stress_test_memory() {
   sleep 30
   
   # Record final memory
-  local final_memory=$(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')
+  local final_memory=$(curl -s http://localhost:8080/health | jq -r '.system.memory.heapUsed')
   echo "Final memory: $final_memory bytes"
   
   local increase=$((final_memory - initial_memory))
@@ -1045,7 +1045,7 @@ cat > memory-alert.sh << 'EOF'
 #!/bin/bash
 
 THRESHOLD=1073741824  # 1GB in bytes
-CURRENT_MEMORY=$(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')
+CURRENT_MEMORY=$(curl -s http://localhost:8080/health | jq -r '.system.memory.heapUsed')
 
 if [ "$CURRENT_MEMORY" -gt "$THRESHOLD" ]; then
   echo "ALERT: Memory usage exceeds threshold"
@@ -1073,17 +1073,17 @@ cat > memory-maintenance.sh << 'EOF'
 echo "Running memory maintenance..."
 
 # Check current memory usage
-CURRENT_MEMORY=$(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')
+CURRENT_MEMORY=$(curl -s http://localhost:8080/health | jq -r '.system.memory.heapUsed')
 echo "Current memory usage: $(echo "$CURRENT_MEMORY / 1024 / 1024" | bc)MB"
 
 # Clear caches
 echo "Clearing caches..."
-curl -s -X DELETE http://localhost:3000/api/cache > /dev/null
-curl -s -X DELETE http://localhost:3000/api/cache/url-transform > /dev/null
+curl -s -X DELETE http://localhost:8080/api/cache > /dev/null
+curl -s -X DELETE http://localhost:8080/api/cache/url-transform > /dev/null
 
 # Check memory after cleanup
 sleep 5
-NEW_MEMORY=$(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')
+NEW_MEMORY=$(curl -s http://localhost:8080/health | jq -r '.system.memory.heapUsed')
 echo "Memory after cleanup: $(echo "$NEW_MEMORY / 1024 / 1024" | bc)MB"
 
 SAVED=$((CURRENT_MEMORY - NEW_MEMORY))
@@ -1106,9 +1106,9 @@ chmod +x memory-maintenance.sh
 
 ```bash
 # Clear all caches immediately
-curl -X DELETE http://localhost:3000/api/cache
-curl -X DELETE http://localhost:3000/api/cache/url-transform
-curl -X DELETE http://localhost:3000/api/file-resolution/cache
+curl -X DELETE http://localhost:8080/api/cache
+curl -X DELETE http://localhost:8080/api/cache/url-transform
+curl -X DELETE http://localhost:8080/api/file-resolution/cache
 
 # Force garbage collection if possible
 kill -USR2 $(pgrep -f "node.*cluster-manager")
@@ -1163,11 +1163,11 @@ ps aux | grep node >> "$REPORT_DIR/process-memory.txt"
 
 # Application memory info
 echo "=== Application Memory ===" > "$REPORT_DIR/app-memory.txt"
-curl -s http://localhost:3000/health | jq '.system.memory' >> "$REPORT_DIR/app-memory.txt"
+curl -s http://localhost:8080/health | jq '.system.memory' >> "$REPORT_DIR/app-memory.txt"
 
 # Cache statistics
 echo "=== Cache Statistics ===" > "$REPORT_DIR/cache-stats.txt"
-curl -s http://localhost:3000/api/cache/stats >> "$REPORT_DIR/cache-stats.txt"
+curl -s http://localhost:8080/api/cache/stats >> "$REPORT_DIR/cache-stats.txt"
 
 # Open file descriptors
 echo "=== File Descriptors ===" > "$REPORT_DIR/file-descriptors.txt"
@@ -1224,7 +1224,7 @@ Before diving into specific file resolution issues, run through this checklist:
 
    ```bash
    # Test file resolution for a domain
-   curl -X POST http://localhost:3000/api/file-resolution/test \
+   curl -X POST http://localhost:8080/api/file-resolution/test \
      -H "Content-Type: application/json" \
      -d '{"domain": "docs.example.com", "path": "/test"}'
    ```
@@ -1233,7 +1233,7 @@ Before diving into specific file resolution issues, run through this checklist:
 
    ```bash
    # Check file resolution status
-   curl http://localhost:3000/api/file-resolution/status
+   curl http://localhost:8080/api/file-resolution/status
    ```
 
 ### Common File Resolution Issues
@@ -1250,10 +1250,10 @@ Before diving into specific file resolution issues, run through this checklist:
 
 ```bash
 # Check if file resolution is enabled
-curl http://localhost:3000/api/file-resolution/status | jq '.enabled'
+curl http://localhost:8080/api/file-resolution/status | jq '.enabled'
 
 # Check domain configuration
-curl http://localhost:3000/api/file-resolution/domains/docs.example.com
+curl http://localhost:8080/api/file-resolution/domains/docs.example.com
 
 # Check file resolution logs
 grep "file-resolver" logs/app.log | grep "docs.example.com"
@@ -1328,7 +1328,7 @@ export FILE_RESOLUTION_DOMAIN_CONFIG='{
 
 ```bash
 # Test content transformation
-curl -X POST http://localhost:3000/api/file-resolution/transform \
+curl -X POST http://localhost:8080/api/file-resolution/transform \
   -H "Content-Type: application/json" \
   -d '{
     "content": "# Test Markdown",
@@ -1337,7 +1337,7 @@ curl -X POST http://localhost:3000/api/file-resolution/transform \
   }'
 
 # Check transformer status
-curl http://localhost:3000/api/file-resolution/transformers
+curl http://localhost:8080/api/file-resolution/transformers
 
 # Check transformation logs
 grep "transformation.*failed" logs/error.log
@@ -1349,7 +1349,7 @@ grep "transformation.*failed" logs/error.log
 
 ```bash
 # Check transformer configuration
-curl http://localhost:3000/api/file-resolution/transformers | jq '.available.markdown.enabled'
+curl http://localhost:8080/api/file-resolution/transformers | jq '.available.markdown.enabled'
 
 # Solution: Enable transformer
 export FILE_RESOLUTION_TRANSFORM_ENABLED=true
@@ -1397,10 +1397,10 @@ npm install marked csv-parser
 
 ```bash
 # Check circuit breaker status
-curl http://localhost:3000/api/file-resolution/circuit-breaker
+curl http://localhost:8080/api/file-resolution/circuit-breaker
 
 # Check domain-specific circuit breaker status
-curl http://localhost:3000/api/file-resolution/domains/docs.example.com | jq '.circuitBreaker'
+curl http://localhost:8080/api/file-resolution/domains/docs.example.com | jq '.circuitBreaker'
 
 # Check circuit breaker logs
 grep "Circuit breaker" logs/app.log | grep "file-resolver"
@@ -1434,7 +1434,7 @@ export FILE_RESOLUTION_FALLBACK_ENABLED=true
 
 ```bash
 # Manually reset circuit breaker for a domain
-curl -X POST http://localhost:3000/api/file-resolution/circuit-breaker/docs.example.com/reset
+curl -X POST http://localhost:8080/api/file-resolution/circuit-breaker/docs.example.com/reset
 ```
 
 #### 4. Cache Performance Issues
@@ -1449,10 +1449,10 @@ curl -X POST http://localhost:3000/api/file-resolution/circuit-breaker/docs.exam
 
 ```bash
 # Check cache statistics
-curl http://localhost:3000/api/file-resolution/cache
+curl http://localhost:8080/api/file-resolution/cache
 
 # Check cache hit rate
-curl http://localhost:3000/api/file-resolution/stats | jq '.cacheStats.hitRate'
+curl http://localhost:8080/api/file-resolution/stats | jq '.cacheStats.hitRate'
 
 # Monitor cache operations
 grep "cache.*hit\|cache.*miss" logs/app.log | grep "file-resolver"
@@ -1476,7 +1476,7 @@ export FILE_RESOLUTION_CACHE_MAX_SIZE=1000
 
 ```bash
 # Check cache utilization
-curl http://localhost:3000/api/file-resolution/cache | jq '.currentSize, .maxSize'
+curl http://localhost:8080/api/file-resolution/cache | jq '.currentSize, .maxSize'
 
 # Solution: Increase cache size
 export FILE_RESOLUTION_CACHE_MAX_SIZE=5000
@@ -1506,13 +1506,13 @@ export FILE_RESOLUTION_CACHE_NEGATIVE_TTL=120  # 2 minutes
 
 ```bash
 # Check resolution performance
-curl http://localhost:3000/api/file-resolution/stats | jq '.averageResolutionTime'
+curl http://localhost:8080/api/file-resolution/stats | jq '.averageResolutionTime'
 
 # Check for slow resolutions
 grep "Slow file resolution" logs/app.log
 
 # Monitor resolution times
-curl -X POST http://localhost:3000/api/file-resolution/test \
+curl -X POST http://localhost:8080/api/file-resolution/test \
   -H "Content-Type: application/json" \
   -d '{"domain": "docs.example.com", "path": "/test"}' | jq '.timing'
 ```
@@ -1578,21 +1578,21 @@ grep "file-resolver.*transformed" logs/app.log | \
 
 ```bash
 # Test file resolution status
-curl -s http://localhost:3000/api/file-resolution/status | jq '.'
+curl -s http://localhost:8080/api/file-resolution/status | jq '.'
 
 # Test specific domain configuration
-curl -s http://localhost:3000/api/file-resolution/domains/docs.example.com | jq '.'
+curl -s http://localhost:8080/api/file-resolution/domains/docs.example.com | jq '.'
 
 # Test file resolution for specific path
-curl -s -X POST http://localhost:3000/api/file-resolution/test \
+curl -s -X POST http://localhost:8080/api/file-resolution/test \
   -H "Content-Type: application/json" \
   -d '{"domain": "docs.example.com", "path": "/getting-started"}' | jq '.'
 
 # Check cache performance
-curl -s http://localhost:3000/api/file-resolution/cache | jq '.statistics'
+curl -s http://localhost:8080/api/file-resolution/cache | jq '.statistics'
 
 # Get transformer information
-curl -s http://localhost:3000/api/file-resolution/transformers | jq '.available | keys'
+curl -s http://localhost:8080/api/file-resolution/transformers | jq '.available | keys'
 ```
 
 #### 3. File Resolution Performance Testing
@@ -1606,18 +1606,18 @@ test_file_resolution_performance() {
   echo "Testing file resolution for $domain$path..."
   
   # Clear cache first
-  curl -s -X DELETE http://localhost:3000/api/file-resolution/cache > /dev/null
+  curl -s -X DELETE http://localhost:8080/api/file-resolution/cache > /dev/null
   
   # Test cold performance
   echo "Cold performance:"
-  time curl -s -H "Host: $domain" http://localhost:3000$path > /dev/null
+  time curl -s -H "Host: $domain" http://localhost:8080$path > /dev/null
   
   # Test warm performance (cached)
   echo "Warm performance:"
-  time curl -s -H "Host: $domain" http://localhost:3000$path > /dev/null
+  time curl -s -H "Host: $domain" http://localhost:8080$path > /dev/null
   
   # Check cache hit
-  curl -s http://localhost:3000/api/file-resolution/cache | \
+  curl -s http://localhost:8080/api/file-resolution/cache | \
     jq ".entries[] | select(.key | contains(\"$domain:$path\"))"
 }
 
@@ -1714,16 +1714,16 @@ cat > file-resolution-maintenance.sh << 'EOF'
 echo "Running file resolution maintenance..."
 
 # Check file resolution health
-curl -s http://localhost:3000/api/file-resolution/status | jq '.enabled, .cache.hitRate'
+curl -s http://localhost:8080/api/file-resolution/status | jq '.enabled, .cache.hitRate'
 
 # Check cache performance
-CACHE_HIT_RATE=$(curl -s http://localhost:3000/api/file-resolution/stats | jq -r '.cacheStats.hitRate')
+CACHE_HIT_RATE=$(curl -s http://localhost:8080/api/file-resolution/stats | jq -r '.cacheStats.hitRate')
 if (( $(echo "$CACHE_HIT_RATE < 0.7" | bc -l) )); then
   echo "Warning: Low cache hit rate: $CACHE_HIT_RATE"
 fi
 
 # Check circuit breaker status
-OPEN_BREAKERS=$(curl -s http://localhost:3000/api/file-resolution/circuit-breaker | jq -r '.domains | to_entries[] | select(.value.status == "open") | .key')
+OPEN_BREAKERS=$(curl -s http://localhost:8080/api/file-resolution/circuit-breaker | jq -r '.domains | to_entries[] | select(.value.status == "open") | .key')
 if [ -n "$OPEN_BREAKERS" ]; then
   echo "Warning: Open circuit breakers for: $OPEN_BREAKERS"
 fi
@@ -1754,18 +1754,18 @@ export FILE_RESOLUTION_ENABLED=false
 
 ```bash
 # Clear all file resolution cache
-curl -X DELETE http://localhost:3000/api/file-resolution/cache
+curl -X DELETE http://localhost:8080/api/file-resolution/cache
 
 # Clear cache for specific domain
-curl -X DELETE "http://localhost:3000/api/file-resolution/cache?domain=docs.example.com"
+curl -X DELETE "http://localhost:8080/api/file-resolution/cache?domain=docs.example.com"
 ```
 
 #### 3. Reset Circuit Breakers
 
 ```bash
 # Reset all circuit breakers
-for domain in $(curl -s http://localhost:3000/api/file-resolution/circuit-breaker | jq -r '.domains | keys[]'); do
-  curl -X POST "http://localhost:3000/api/file-resolution/circuit-breaker/$domain/reset"
+for domain in $(curl -s http://localhost:8080/api/file-resolution/circuit-breaker | jq -r '.domains | keys[]'); do
+  curl -X POST "http://localhost:8080/api/file-resolution/circuit-breaker/$domain/reset"
 done
 ```
 
@@ -1792,19 +1792,19 @@ echo "=== Configuration ==="
 env | grep -E "FILE_RESOLUTION_" | sort
 
 echo -e "\n=== Status ==="
-curl -s http://localhost:3000/api/file-resolution/status | jq '.'
+curl -s http://localhost:8080/api/file-resolution/status | jq '.'
 
 echo -e "\n=== Statistics ==="
-curl -s http://localhost:3000/api/file-resolution/stats | jq '.'
+curl -s http://localhost:8080/api/file-resolution/stats | jq '.'
 
 echo -e "\n=== Cache Information ==="
-curl -s http://localhost:3000/api/file-resolution/cache | jq '.statistics'
+curl -s http://localhost:8080/api/file-resolution/cache | jq '.statistics'
 
 echo -e "\n=== Circuit Breaker Status ==="
-curl -s http://localhost:3000/api/file-resolution/circuit-breaker | jq '.statistics'
+curl -s http://localhost:8080/api/file-resolution/circuit-breaker | jq '.statistics'
 
 echo -e "\n=== Transformer Status ==="
-curl -s http://localhost:3000/api/file-resolution/transformers | jq '.available | to_entries[] | {name: .key, enabled: .value.enabled, transformations: .value.statistics.totalTransformations}'
+curl -s http://localhost:8080/api/file-resolution/transformers | jq '.available | to_entries[] | {name: .key, enabled: .value.enabled, transformations: .value.statistics.totalTransformations}'
 
 echo -e "\n=== Recent Errors ==="
 grep -E "(file-resolver.*error|resolution.*failed)" logs/error.log | tail -10

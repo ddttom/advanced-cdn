@@ -153,7 +153,7 @@ The application uses environment variables for configuration with comprehensive 
 
 ### Server Configuration
 
-- PORT=3000
+- PORT=8080
 - HOST=0.0.0.0
 - NODE_ENV=production
 - ENABLE_CLUSTER=true

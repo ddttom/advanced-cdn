@@ -144,11 +144,26 @@ npm install express http-proxy-middleware compression helmet winston express-rat
 
 ## Configuration
 
-The application uses environment variables for configuration, with sensible defaults. Create a `.env` file in the project root with the following settings:
+The application uses environment variables for configuration, with sensible defaults. 
+
+### Quick Start
+
+1. Copy the sample configuration:
+   ```bash
+   cp sample.env .env
+   ```
+
+2. Edit `.env` and customize for your deployment (at minimum, set `TARGET_DOMAIN`)
+
+3. See [`sample.env`](sample.env) for a complete configuration template with inline documentation
+
+### Configuration Options
+
+Create a `.env` file in the project root with the following settings:
 
 ```bash
 # Server configuration
-PORT=3000
+PORT=8080
 HOST=0.0.0.0
 NODE_ENV=production
 TRUST_PROXY=true
@@ -163,6 +178,7 @@ SSL_PASSPHRASE=
 HTTP_TO_HTTPS_REDIRECT=true
 
 # CDN configuration
+USE_DYNAMIC_HOSTNAME=false
 ORIGIN_DOMAIN=allabout.network
 TARGET_DOMAIN=main--allaboutv2--ddttom.hlx.live
 TARGET_HTTPS=true
@@ -251,6 +267,61 @@ METRICS_PATH=/metrics
 1. Install dependencies: `npm install`
 2. Create a `.env` file with your configuration
 3. Start the server: `node cluster-manager.js`
+
+## Testing the Application
+
+### Basic Health Check
+
+```bash
+# Test health endpoint
+curl http://localhost:8080/health
+
+# Expected response:
+# {"status":"ok","name":"advanced-cdn-proxy","version":"1.0.0",...}
+```
+
+### Testing Dynamic Hostname Mode
+
+When `USE_DYNAMIC_HOSTNAME=true`, the CDN accepts requests from any hostname:
+
+```bash
+# Test with custom hostname
+curl -H "Host: test-domain.com" http://localhost:8080/health
+
+# Test with another hostname
+curl -H "Host: myapp.example.com" http://localhost:8080/health
+
+# Test with any random hostname
+curl -H "Host: random-site.org" http://localhost:8080/health
+
+# All should return successful health check responses
+```
+
+### Testing Metrics and Cache
+
+```bash
+# View Prometheus metrics
+curl http://localhost:8080/metrics
+
+# View cache statistics (local access only)
+curl http://localhost:8080/api/cache/stats
+
+# Clear cache
+curl -X DELETE http://localhost:8080/api/cache
+```
+
+### Testing with Different Ports
+
+If you encounter port conflicts, explicitly set the PORT:
+
+```bash
+# Start with specific port
+PORT=8080 npm start
+
+# Test on that port
+curl http://localhost:8080/health
+```
+
 
 ## Production Deployment
 
@@ -810,7 +881,7 @@ The application provides comprehensive cache management capabilities for both ge
 **Clear URL Transformation Cache:**
 ```bash
 # Clear the entire URL transformation cache
-curl -X DELETE http://localhost:3000/api/cache/url-transform
+curl -X DELETE http://localhost:8080/api/cache/url-transform
 
 # Response:
 {
@@ -823,7 +894,7 @@ curl -X DELETE http://localhost:3000/api/cache/url-transform
 
 ```bash
 # View detailed cache performance metrics
-curl http://localhost:3000/api/cache/url-transform/stats
+curl http://localhost:8080/api/cache/url-transform/stats
 
 # Response includes:
 {
@@ -867,12 +938,12 @@ curl http://localhost:3000/api/cache/url-transform/stats
 
 ```bash
 # Monitor cache performance
-watch -n 5 'curl -s http://localhost:3000/api/cache/url-transform/stats | jq "{cacheHits: .cacheHits, cacheMisses: .cacheMisses, hitRate: (.cacheHits / (.cacheHits + .cacheMisses) * 100)}"'
+watch -n 5 'curl -s http://localhost:8080/api/cache/url-transform/stats | jq "{cacheHits: .cacheHits, cacheMisses: .cacheMisses, hitRate: (.cacheHits / (.cacheHits + .cacheMisses) * 100)}"'
 
 # Check cache size and clear if needed
-CACHE_SIZE=$(curl -s http://localhost:3000/api/cache/url-transform/stats | jq '.cacheSize')
+CACHE_SIZE=$(curl -s http://localhost:8080/api/cache/url-transform/stats | jq '.cacheSize')
 if [ $CACHE_SIZE -gt 8000 ]; then
-  curl -X DELETE http://localhost:3000/api/cache/url-transform
+  curl -X DELETE http://localhost:8080/api/cache/url-transform
   echo "URL transformation cache cleared due to size: $CACHE_SIZE"
 fi
 ```
@@ -899,12 +970,12 @@ fi
 
 ```bash
 # Clear all caches
-curl -X DELETE http://localhost:3000/api/cache              # Main application cache
-curl -X DELETE http://localhost:3000/api/cache/url-transform # URL transformation cache
+curl -X DELETE http://localhost:8080/api/cache              # Main application cache
+curl -X DELETE http://localhost:8080/api/cache/url-transform # URL transformation cache
 
 # Get all cache statistics
-curl http://localhost:3000/api/cache/stats                  # Main cache stats
-curl http://localhost:3000/api/cache/url-transform/stats    # URL transformation stats
+curl http://localhost:8080/api/cache/stats                  # Main cache stats
+curl http://localhost:8080/api/cache/url-transform/stats    # URL transformation stats
 ```
 
 **Cache Key Strategy:**
@@ -923,7 +994,7 @@ The application provides specialized cache management for file resolution operat
 **Clear File Resolution Cache:**
 ```bash
 # Clear the entire file resolution cache
-curl -X DELETE http://localhost:3000/api/cache/file-resolution
+curl -X DELETE http://localhost:8080/api/cache/file-resolution
 
 # Response:
 {
@@ -942,7 +1013,7 @@ curl -X DELETE http://localhost:3000/api/cache/file-resolution
 
 ```bash
 # View detailed cache performance metrics
-curl http://localhost:3000/api/cache/file-resolution/stats
+curl http://localhost:8080/api/cache/file-resolution/stats
 
 # Response includes:
 {
@@ -985,7 +1056,7 @@ The nuclear cache clear endpoint provides system-wide cache clearing capabilitie
 **Nuclear Cache Clear:**
 ```bash
 # Clear ALL caches system-wide
-curl -X DELETE http://localhost:3000/api/cache/nuke
+curl -X DELETE http://localhost:8080/api/cache/nuke
 
 # Successful response (200):
 {
@@ -1062,12 +1133,12 @@ curl -X DELETE http://localhost:3000/api/cache/nuke
 tail -f logs/app.log | grep "Nuclear cache clear"
 
 # Check cache status after nuclear clear
-curl http://localhost:3000/api/cache/stats
-curl http://localhost:3000/api/cache/url-transform/stats
-curl http://localhost:3000/api/cache/file-resolution/stats
+curl http://localhost:8080/api/cache/stats
+curl http://localhost:8080/api/cache/url-transform/stats
+curl http://localhost:8080/api/cache/file-resolution/stats
 
 # Automated nuclear cache clear with monitoring
-RESPONSE=$(curl -s -X DELETE http://localhost:3000/api/cache/nuke)
+RESPONSE=$(curl -s -X DELETE http://localhost:8080/api/cache/nuke)
 SUCCESS=$(echo $RESPONSE | jq -r '.success')
 if [ "$SUCCESS" = "true" ]; then
   echo "Nuclear cache clear completed successfully"
@@ -1175,12 +1246,12 @@ The dashboard automatically discovers and documents all API endpoints, including
 
 ```bash
 # Access the dashboard interface
-http://localhost:3000/dashboard
+http://localhost:8080/dashboard
 
 # Dashboard API endpoints
-http://localhost:3000/dashboard/api/discovery/endpoints
-http://localhost:3000/dashboard/api/discovery/stats
-http://localhost:3000/dashboard/api/docs/openapi.json
+http://localhost:8080/dashboard/api/discovery/endpoints
+http://localhost:8080/dashboard/api/discovery/stats
+http://localhost:8080/dashboard/api/docs/openapi.json
 ```
 
 ## Development and Testing
@@ -1297,7 +1368,7 @@ PID=$!
 
 # Track memory usage
 while kill -0 $PID 2>/dev/null; do
-  echo "Memory: $(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed')"
+  echo "Memory: $(curl -s http://localhost:8080/health | jq -r '.system.memory.heapUsed')"
   sleep 10
 done
 ```
@@ -1423,13 +1494,13 @@ LOG_LEVEL=debug MEMORY_MONITORING_ENABLED=true npm run dev
 **Debug Tools:**
 ```bash
 # Check for memory leaks
-curl http://localhost:3000/health | jq '.system.memory'
+curl http://localhost:8080/health | jq '.system.memory'
 
 # Monitor memory trends
-watch -n 5 'curl -s http://localhost:3000/health | jq ".system.memory.heapUsed"'
+watch -n 5 'curl -s http://localhost:8080/health | jq ".system.memory.heapUsed"'
 
 # Check active intervals (requires debug mode)
-curl http://localhost:3000/api/debug/intervals
+curl http://localhost:8080/api/debug/intervals
 ```
 
 #### Development Health Checks

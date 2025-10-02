@@ -83,7 +83,7 @@ This section will get you up and running quickly with a basic configuration.
    TARGET_DOMAIN=your-backend.example.com
    
    # Server port
-   PORT=3000
+   PORT=8080
    ```
 
 3. **Start the Application**
@@ -100,10 +100,10 @@ This section will get you up and running quickly with a basic configuration.
 
    ```bash
    # Check health status
-   curl http://localhost:3000/health
+   curl http://localhost:8080/health
    
    # Access the dashboard
-   open http://localhost:3000/dashboard
+   open http://localhost:8080/dashboard
    ```
 
 ### First Test
@@ -112,10 +112,10 @@ Once running, test your CDN by accessing content through your configured domain:
 
 ```bash
 # Test basic proxying
-curl -H "Host: your-cdn.example.com" http://localhost:3000/
+curl -H "Host: your-cdn.example.com" http://localhost:8080/
 
 # Test with URL transformation
-curl -H "Host: your-cdn.example.com" http://localhost:3000/some-page.html
+curl -H "Host: your-cdn.example.com" http://localhost:8080/some-page.html
 ```
 
 ## Installation & Setup
@@ -182,7 +182,7 @@ cp config/env-example.txt .env
 
 ```bash
 # Server Configuration
-PORT=3000
+PORT=8080
 HOST=0.0.0.0
 NODE_ENV=production
 
@@ -221,7 +221,7 @@ All configuration is managed through environment variables with sensible default
 
 ```bash
 # Server binding
-PORT=3000                    # Server port
+PORT=8080                    # Server port
 HOST=0.0.0.0                # Bind address (0.0.0.0 for all interfaces)
 NODE_ENV=production          # Environment mode (development/production)
 
@@ -448,12 +448,12 @@ window.finalHost = 'https://allabout.network/';
 fetch('https://allabout.network/api/data');
 
 // After transformation (HTTP request)
-window.finalHost = 'http://example.ddt.com:3000/';
-fetch('http://example.ddt.com:3000/api/data');
+window.finalHost = 'http://example.ddt.com:8080/';
+fetch('http://example.ddt.com:8080/api/data');
 
 // After transformation (HTTPS request)
-window.finalHost = 'https://example.ddt.com:3000/';
-fetch('https://example.ddt.com:3000/api/data');
+window.finalHost = 'https://example.ddt.com:8080/';
+fetch('https://example.ddt.com:8080/api/data');
 ```
 
 ### File Resolution
@@ -533,7 +533,7 @@ The web dashboard provides comprehensive real-time monitoring, configuration man
 
 ### Accessing the Dashboard
 
-Navigate to: `http://localhost:3000/dashboard`
+Navigate to: `http://localhost:8080/dashboard`
 
 ### Dashboard Features
 
@@ -573,23 +573,23 @@ Navigate to: `http://localhost:3000/dashboard`
 
 ```bash
 # Get all discovered endpoints
-curl http://localhost:3000/dashboard/api/discovery/endpoints
+curl http://localhost:8080/dashboard/api/discovery/endpoints
 
 # Get endpoints by category
-curl http://localhost:3000/dashboard/api/discovery/endpoints/monitoring
+curl http://localhost:8080/dashboard/api/discovery/endpoints/monitoring
 
 # Get available categories
-curl http://localhost:3000/dashboard/api/discovery/categories
+curl http://localhost:8080/dashboard/api/discovery/categories
 
 # Trigger manual endpoint scan
-curl -X POST http://localhost:3000/dashboard/api/discovery/scan
+curl -X POST http://localhost:8080/dashboard/api/discovery/scan
 ```
 
 #### Testing Endpoints
 
 ```bash
 # Test a specific endpoint
-curl -X POST http://localhost:3000/dashboard/api/test/endpoint \
+curl -X POST http://localhost:8080/dashboard/api/test/endpoint \
   -H "Content-Type: application/json" \
   -d '{
     "method": "GET",
@@ -598,7 +598,7 @@ curl -X POST http://localhost:3000/dashboard/api/test/endpoint \
   }'
 
 # Test all health endpoints
-curl http://localhost:3000/dashboard/api/test/health
+curl http://localhost:8080/dashboard/api/test/health
 ```
 
 ## API Reference
@@ -610,7 +610,7 @@ The application provides comprehensive REST API endpoints for monitoring, manage
 #### Basic Health Check
 
 ```bash
-curl http://localhost:3000/health
+curl http://localhost:8080/health
 ```
 
 **Response:**
@@ -627,7 +627,7 @@ curl http://localhost:3000/health
 #### Detailed Health Check
 
 ```bash
-curl http://localhost:3000/health/detailed
+curl http://localhost:8080/health/detailed
 ```
 
 **Response:**
@@ -677,7 +677,7 @@ curl http://localhost:3000/health/detailed
 
 ```bash
 # Overall cache statistics
-curl http://localhost:3000/api/cache/stats
+curl http://localhost:8080/api/cache/stats
 ```
 
 **Response:**
@@ -714,25 +714,25 @@ curl http://localhost:3000/api/cache/stats
 
 ```bash
 # Clear all caches
-curl -X DELETE http://localhost:3000/api/cache/clear
+curl -X DELETE http://localhost:8080/api/cache/clear
 
 # Clear specific cache
-curl -X DELETE http://localhost:3000/api/cache/clear?type=main
-curl -X DELETE http://localhost:3000/api/cache/clear?type=fileResolution
-curl -X DELETE http://localhost:3000/api/cache/clear?type=urlTransform
+curl -X DELETE http://localhost:8080/api/cache/clear?type=main
+curl -X DELETE http://localhost:8080/api/cache/clear?type=fileResolution
+curl -X DELETE http://localhost:8080/api/cache/clear?type=urlTransform
 
 # Clear specific cache key
-curl -X DELETE "http://localhost:3000/api/cache/clear?key=example.com:/path"
+curl -X DELETE "http://localhost:8080/api/cache/clear?key=example.com:/path"
 
 # Get cache key information
-curl "http://localhost:3000/api/cache/get?key=example.com:/path"
+curl "http://localhost:8080/api/cache/get?key=example.com:/path"
 ```
 
 #### Cache Warming
 
 ```bash
 # Warm cache with common requests
-curl -X POST http://localhost:3000/api/cache/warm \
+curl -X POST http://localhost:8080/api/cache/warm \
   -H "Content-Type: application/json" \
   -d '{
     "urls": [
@@ -748,7 +748,7 @@ curl -X POST http://localhost:3000/api/cache/warm \
 #### URL Transform Cache Statistics
 
 ```bash
-curl http://localhost:3000/api/cache/url-transform/stats
+curl http://localhost:8080/api/cache/url-transform/stats
 ```
 
 **Response:**
@@ -779,17 +779,17 @@ curl http://localhost:3000/api/cache/url-transform/stats
 
 ```bash
 # Clear URL transformation cache
-curl -X DELETE http://localhost:3000/api/cache/url-transform/clear
+curl -X DELETE http://localhost:8080/api/cache/url-transform/clear
 
 # Clear by content type
-curl -X DELETE "http://localhost:3000/api/cache/url-transform/clear?type=html"
+curl -X DELETE "http://localhost:8080/api/cache/url-transform/clear?type=html"
 ```
 
 #### Test URL Transformation
 
 ```bash
 # Test URL transformation directly
-curl -X POST http://localhost:3000/api/debug/url-transform \
+curl -X POST http://localhost:8080/api/debug/url-transform \
   -H "Content-Type: application/json" \
   -d '{
     "content": "<a href=\"https://backend.example.com/test\">Test</a>",
@@ -803,7 +803,7 @@ curl -X POST http://localhost:3000/api/debug/url-transform \
 #### File Resolution Statistics
 
 ```bash
-curl http://localhost:3000/api/file-resolution/stats
+curl http://localhost:8080/api/file-resolution/stats
 ```
 
 **Response:**
@@ -840,7 +840,7 @@ curl http://localhost:3000/api/file-resolution/stats
 
 ```bash
 # Test file resolution for a specific path
-curl -X POST http://localhost:3000/api/file-resolution/test \
+curl -X POST http://localhost:8080/api/file-resolution/test \
   -H "Content-Type: application/json" \
   -d '{
     "path": "/getting-started",
@@ -854,14 +854,14 @@ curl -X POST http://localhost:3000/api/file-resolution/test \
 
 ```bash
 # Get all domain configurations
-curl http://localhost:3000/api/domains/config
+curl http://localhost:8080/api/domains/config
 ```
 
 #### Update Domain Configuration
 
 ```bash
 # Update domain configuration
-curl -X PUT http://localhost:3000/api/domains/config \
+curl -X PUT http://localhost:8080/api/domains/config \
   -H "Content-Type: application/json" \
   -d '{
     "domainPathMapping": {
@@ -880,14 +880,14 @@ curl -X PUT http://localhost:3000/api/domains/config \
 
 ```bash
 # Get circuit breaker status for all domains
-curl http://localhost:3000/api/domains/circuit-breaker/status
+curl http://localhost:8080/api/domains/circuit-breaker/status
 ```
 
 #### Reset Circuit Breaker
 
 ```bash
 # Reset circuit breaker for specific domain
-curl -X POST http://localhost:3000/api/domains/example.com/circuit-breaker/reset
+curl -X POST http://localhost:8080/api/domains/example.com/circuit-breaker/reset
 ```
 
 ### Metrics Endpoints
@@ -896,7 +896,7 @@ curl -X POST http://localhost:3000/api/domains/example.com/circuit-breaker/reset
 
 ```bash
 # Get Prometheus-compatible metrics
-curl http://localhost:3000/metrics
+curl http://localhost:8080/metrics
 ```
 
 **Sample output:**
@@ -924,7 +924,7 @@ Create a monitoring script:
 ```bash
 #!/bin/bash
 # health-monitor.sh
-ENDPOINT="http://localhost:3000/health"
+ENDPOINT="http://localhost:8080/health"
 ALERT_EMAIL="admin@example.com"
 
 response=$(curl -s -o /dev/null -w "%{http_code}" "$ENDPOINT")
@@ -943,13 +943,13 @@ echo "Health check passed"
 #!/bin/bash
 # monitor.sh
 # Check health endpoint
-health_status=$(curl -s http://localhost:3000/health | jq -r '.status')
+health_status=$(curl -s http://localhost:8080/health | jq -r '.status')
 
 # Check cache hit rate
-cache_hit_rate=$(curl -s http://localhost:3000/api/cache/stats | jq -r '.data.mainCache.hitRate')
+cache_hit_rate=$(curl -s http://localhost:8080/api/cache/stats | jq -r '.data.mainCache.hitRate')
 
 # Check memory usage
-memory_usage=$(curl -s http://localhost:3000/metrics | grep process_resident_memory_bytes | awk '{print $2}')
+memory_usage=$(curl -s http://localhost:8080/metrics | grep process_resident_memory_bytes | awk '{print $2}')
 
 echo "Health: $health_status"
 echo "Cache Hit Rate: $cache_hit_rate"
@@ -967,7 +967,7 @@ fi
 
 ```bash
 # Monitor response times using curl
-curl -w "@curl-format.txt" -o /dev/null -s http://localhost:3000/
+curl -w "@curl-format.txt" -o /dev/null -s http://localhost:8080/
 
 # curl-format.txt content:
 #     time_namelookup:  %{time_namelookup}s\n
@@ -984,14 +984,14 @@ curl -w "@curl-format.txt" -o /dev/null -s http://localhost:3000/
 
 ```bash
 # Using Apache Bench
-ab -n 1000 -c 10 http://localhost:3000/
+ab -n 1000 -c 10 http://localhost:8080/
 
 # Using wrk
-wrk -t12 -c400 -d30s http://localhost:3000/
+wrk -t12 -c400 -d30s http://localhost:8080/
 
 # Using curl for simple testing
 for i in {1..100}; do
-  curl -s -o /dev/null -w "%{http_code} %{time_total}\n" http://localhost:3000/
+  curl -s -o /dev/null -w "%{http_code} %{time_total}\n" http://localhost:8080/
 done
 ```
 
@@ -1048,10 +1048,10 @@ grep "circuit breaker" logs/app.log
 
 ```bash
 # Monitor memory usage
-curl http://localhost:3000/health/detailed | jq '.system.memory'
+curl http://localhost:8080/health/detailed | jq '.system.memory'
 
 # Check cache sizes
-curl http://localhost:3000/api/cache/stats
+curl http://localhost:8080/api/cache/stats
 
 # Reduce cache sizes if needed
 CACHE_MAX_ITEMS=500
@@ -1059,7 +1059,7 @@ URL_TRANSFORM_CACHE_SIZE=1000
 FILE_RESOLUTION_CACHE_MAX_SIZE=500
 
 # Clear all caches (emergency option)
-curl -X DELETE http://localhost:3000/api/cache/clear
+curl -X DELETE http://localhost:8080/api/cache/clear
 
 # Increase Node.js heap size
 NODE_OPTIONS="--max-old-space-size=4096" npm start
@@ -1084,7 +1084,7 @@ MEMORY_ALERT_THRESHOLD=536870912  # 512MB
 openssl x509 -in ssl/cert.pem -text -noout
 
 # Test SSL connection
-openssl s_client -connect localhost:3000
+openssl s_client -connect localhost:8080
 
 # Check certificate permissions
 ls -la ssl/
@@ -1115,10 +1115,10 @@ nslookup your-backend.example.com
 dig your-backend.example.com
 
 # Check circuit breaker status
-curl http://localhost:3000/api/domains/circuit-breaker/status
+curl http://localhost:8080/api/domains/circuit-breaker/status
 
 # Reset circuit breaker if needed
-curl -X POST http://localhost:3000/api/domains/your-domain.com/circuit-breaker/reset
+curl -X POST http://localhost:8080/api/domains/your-domain.com/circuit-breaker/reset
 
 # Enable debug logging
 LOG_LEVEL=debug
@@ -1137,25 +1137,25 @@ URL_TRANSFORM_DEBUG=true
 
 ```bash
 # Analyze cache statistics
-curl http://localhost:3000/api/cache/stats
+curl http://localhost:8080/api/cache/stats
 
 # Check cache configuration
-curl http://localhost:3000/dashboard/api/dashboard/config
+curl http://localhost:8080/dashboard/api/dashboard/config
 
 # Increase cache TTL for better hit rates
 CACHE_DEFAULT_TTL=600
 CACHE_MAX_TTL=3600
 
 # Warm cache with common requests
-curl -X POST http://localhost:3000/api/cache/warm \
+curl -X POST http://localhost:8080/api/cache/warm \
   -H "Content-Type: application/json" \
   -d '{"urls": ["http://example.com/", "http://example.com/popular-page"]}'
 
 # Clear corrupted cache entries
-curl -X DELETE http://localhost:3000/api/cache/clear
+curl -X DELETE http://localhost:8080/api/cache/clear
 
 # Monitor cache performance
-curl http://localhost:3000/metrics | grep cache
+curl http://localhost:8080/metrics | grep cache
 ```
 
 #### 6. Dashboard Access Issues
@@ -1170,10 +1170,10 @@ curl http://localhost:3000/metrics | grep cache
 
 ```bash
 # Check if server is running
-curl http://localhost:3000/health
+curl http://localhost:8080/health
 
 # Test dashboard endpoint
-curl http://localhost:3000/dashboard/
+curl http://localhost:8080/dashboard/
 
 # Check server logs for dashboard initialization
 grep "dashboard" logs/app.log
@@ -1182,7 +1182,7 @@ grep "dashboard" logs/app.log
 ls -la src/dashboard/public/
 
 # Test dashboard API endpoints
-curl http://localhost:3000/dashboard/api/dashboard/status
+curl http://localhost:8080/dashboard/api/dashboard/status
 ```
 
 ### Debugging Techniques
@@ -1203,7 +1203,7 @@ tail -f logs/app.log | grep -E "(ERROR|WARN|DEBUG)"
 
 ```bash
 # Add request tracing headers
-curl -H "X-Trace-Request: true" http://localhost:3000/your-path
+curl -H "X-Trace-Request: true" http://localhost:8080/your-path
 
 # Monitor specific requests
 tail -f logs/app.log | grep "request-id"
@@ -1227,9 +1227,9 @@ node --prof-process isolate-*.log > profile.txt
 #!/bin/bash
 # emergency-cache-clear.sh
 echo "Clearing all caches..."
-curl -X DELETE http://localhost:3000/api/cache/clear
-curl -X DELETE http://localhost:3000/api/cache/url-transform/clear
-curl -X DELETE http://localhost:3000/api/cache/file-resolution/clear
+curl -X DELETE http://localhost:8080/api/cache/clear
+curl -X DELETE http://localhost:8080/api/cache/url-transform/clear
+curl -X DELETE http://localhost:8080/api/cache/file-resolution/clear
 echo "All caches cleared"
 ```
 
@@ -1342,10 +1342,10 @@ Monitor these metrics for optimal performance:
 
 ```bash
 # Load testing with wrk
-wrk -t12 -c400 -d30s http://localhost:3000/
+wrk -t12 -c400 -d30s http://localhost:8080/
 
 # Benchmark specific endpoints
-wrk -t4 -c100 -d10s http://localhost:3000/api/health
+wrk -t4 -c100 -d10s http://localhost:8080/api/health
 
 # Memory profiling
 node --inspect=0.0.0.0:9229 src/app.js
@@ -1362,19 +1362,19 @@ echo "=== Performance Analysis ==="
 
 # Response time analysis
 echo "Response times:"
-curl -w "@curl-format.txt" -o /dev/null -s http://localhost:3000/
+curl -w "@curl-format.txt" -o /dev/null -s http://localhost:8080/
 
 # Cache performance
 echo "Cache hit rate:"
-curl -s http://localhost:3000/api/cache/stats | jq '.data.mainCache.hitRate'
+curl -s http://localhost:8080/api/cache/stats | jq '.data.mainCache.hitRate'
 
 # Memory usage
 echo "Memory usage:"
-curl -s http://localhost:3000/health/detailed | jq '.system.memory.percentage'
+curl -s http://localhost:8080/health/detailed | jq '.system.memory.percentage'
 
 # Request rate
 echo "Request rate (last 5 minutes):"
-curl -s http://localhost:3000/metrics | grep http_requests_total
+curl -s http://localhost:8080/metrics | grep http_requests_total
 ```
 
 ## Advanced Deployment
@@ -1387,7 +1387,7 @@ curl -s http://localhost:3000/metrics | grep http_requests_total
 # /etc/nginx/sites-available/advanced-cdn
 upstream advanced_cdn {
     least_conn;
-    server 127.0.0.1:3000 max_fails=3 fail_timeout=30s;
+    server 127.0.0.1:8080 max_fails=3 fail_timeout=30s;
     server 127.0.0.1:3001 max_fails=3 fail_timeout=30s;
     server 127.0.0.1:3002 max_fails=3 fail_timeout=30s;
     server 127.0.0.1:3003 max_fails=3 fail_timeout=30s;
@@ -1449,13 +1449,13 @@ frontend advanced_cdn_frontend
 backend advanced_cdn_backend
     balance roundrobin
     option httpchk GET /health
-    server cdn1 127.0.0.1:3000 check
+    server cdn1 127.0.0.1:8080 check
     server cdn2 127.0.0.1:3001 check
     server cdn3 127.0.0.1:3002 check
     server cdn4 127.0.0.1:3003 check
 
 backend advanced_cdn_health
-    server cdn1 127.0.0.1:3000 check
+    server cdn1 127.0.0.1:8080 check
 ```
 
 ### Multi-Instance Deployment
@@ -1607,16 +1607,16 @@ npm run dev                  # Development mode
 npm stop                     # Stop application
 
 # Health & Status
-curl http://localhost:3000/health
-curl http://localhost:3000/health/detailed
-curl http://localhost:3000/metrics
+curl http://localhost:8080/health
+curl http://localhost:8080/health/detailed
+curl http://localhost:8080/metrics
 
 # Cache Management
-curl -X DELETE http://localhost:3000/api/cache/clear
-curl http://localhost:3000/api/cache/stats
+curl -X DELETE http://localhost:8080/api/cache/clear
+curl http://localhost:8080/api/cache/stats
 
 # Dashboard
-open http://localhost:3000/dashboard
+open http://localhost:8080/dashboard
 ```
 
 ### Configuration Quick Start
@@ -1625,7 +1625,7 @@ open http://localhost:3000/dashboard
 # Minimum required configuration
 ORIGIN_DOMAIN=your-cdn.example.com
 TARGET_DOMAIN=your-backend.example.com
-PORT=3000
+PORT=8080
 
 # Enable key features
 CACHE_ENABLED=true
@@ -1651,8 +1651,8 @@ For additional support, check the application logs in the `logs/` directory and 
 
 ```bash
 # Check port availability
-netstat -tlnp | grep :3000
-lsof -i :3000
+netstat -tlnp | grep :8080
+lsof -i :8080
 
 # Validate configuration
 node -e "require('./src/config')" 2>&1

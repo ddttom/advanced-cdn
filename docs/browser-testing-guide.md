@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to test the DDT domain functionality (`example.ddt.com`) in the browser. Since browsers can't naturally resolve `example.ddt.com` to `localhost:3000`, we need to simulate this using various methods.
+This guide explains how to test the DDT domain functionality (`example.ddt.com`) in the browser. Since browsers can't naturally resolve `example.ddt.com` to `localhost:8080`, we need to simulate this using various methods.
 
 ## ✅ What We Confirmed
 
@@ -19,7 +19,7 @@ From the browser test, we confirmed:
 This method allows you to modify request headers to simulate the `example.ddt.com` domain:
 
 #### Step 1: Open Developer Tools
-1. Open your browser and go to `http://localhost:3000`
+1. Open your browser and go to `http://localhost:8080`
 2. Press `F12` or right-click → "Inspect Element"
 3. Go to the **Network** tab
 
@@ -31,7 +31,7 @@ This method allows you to modify request headers to simulate the `example.ddt.co
 #### Step 3: Use Console to Make Custom Request
 ```javascript
 // Open Console tab and run this:
-fetch('http://localhost:3000/', {
+fetch('http://localhost:8080/', {
   headers: {
     'Host': 'example.ddt.com'
   }
@@ -65,7 +65,7 @@ sudo nano /etc/hosts
 ```
 
 #### Then test in browser:
-1. Open browser and go to `http://example.ddt.com:3000`
+1. Open browser and go to `http://example.ddt.com:8080`
 2. You should see the DDT content with proper domain mapping
 
 #### ⚠️ Remember to remove the hosts entry when done:
@@ -80,7 +80,7 @@ Install a browser extension like "ModHeader" or "Requestly":
 
 1. **Install ModHeader** (Chrome/Firefox extension)
 2. **Add Request Header**: `Host: example.ddt.com`
-3. **Navigate to**: `http://localhost:3000`
+3. **Navigate to**: `http://localhost:8080`
 4. The extension will add the Host header automatically
 
 ### Method 4: Using Proxy Tools
@@ -89,11 +89,11 @@ Use tools like **Postman**, **Insomnia**, or **curl**:
 
 #### Using curl:
 ```bash
-curl -H "Host: example.ddt.com" http://localhost:3000/
+curl -H "Host: example.ddt.com" http://localhost:8080/
 ```
 
 #### Using Postman:
-1. Create new GET request to `http://localhost:3000`
+1. Create new GET request to `http://localhost:8080`
 2. Add header: `Host: example.ddt.com`
 3. Send request
 
@@ -160,23 +160,23 @@ node debug-ddt.js example.ddt.com
 ### Test Different DDT Subdomains
 ```bash
 # Test various subdomains:
-curl -H "Host: api.ddt.com" http://localhost:3000/
-curl -H "Host: blog.ddt.com" http://localhost:3000/
-curl -H "Host: docs.ddt.com" http://localhost:3000/
+curl -H "Host: api.ddt.com" http://localhost:8080/
+curl -H "Host: blog.ddt.com" http://localhost:8080/
+curl -H "Host: docs.ddt.com" http://localhost:8080/
 ```
 
 ### Test with Different Paths
 ```bash
 # Test specific paths:
-curl -H "Host: example.ddt.com" http://localhost:3000/about
-curl -H "Host: example.ddt.com" http://localhost:3000/services
+curl -H "Host: example.ddt.com" http://localhost:8080/about
+curl -H "Host: example.ddt.com" http://localhost:8080/services
 ```
 
 ### Performance Testing
 ```javascript
 // Test response times in browser console:
 const startTime = performance.now();
-fetch('http://localhost:3000/', {
+fetch('http://localhost:8080/', {
   headers: { 'Host': 'example.ddt.com' }
 })
 .then(() => {
@@ -190,7 +190,7 @@ fetch('http://localhost:3000/', {
 ### Test Security Headers
 ```javascript
 // Check security headers in browser console:
-fetch('http://localhost:3000/', {
+fetch('http://localhost:8080/', {
   headers: { 'Host': 'example.ddt.com' }
 })
 .then(response => {

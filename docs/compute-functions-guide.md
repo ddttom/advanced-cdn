@@ -189,10 +189,10 @@ Access compute function statistics through the management API:
 
 ```bash
 # Get compute function statistics
-curl http://localhost:3000/api/compute-functions/stats
+curl http://localhost:8080/api/compute-functions/stats
 
 # Reset compute function statistics
-curl -X POST http://localhost:3000/api/compute-functions/reset-stats
+curl -X POST http://localhost:8080/api/compute-functions/reset-stats
 ```
 
 ### Statistics Response

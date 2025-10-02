@@ -137,13 +137,13 @@ Monitor startup process with these checks:
 
 ```bash
 # Check if application started successfully
-curl http://localhost:3000/health
+curl http://localhost:8080/health
 
 # Verify all components are loaded
-curl http://localhost:3000/api/domains
+curl http://localhost:8080/api/domains
 
 # Check initial metrics
-curl http://localhost:3000/metrics | head -20
+curl http://localhost:8080/metrics | head -20
 ```
 
 ## Logging System
@@ -266,7 +266,7 @@ The application provides comprehensive debugging endpoints for monitoring and tr
 #### Basic Health Check
 
 ```bash
-curl http://localhost:3000/health
+curl http://localhost:8080/health
 ```
 
 Response includes:
@@ -278,7 +278,7 @@ Response includes:
 #### Detailed Health Check
 
 ```bash
-curl "http://localhost:3000/health?detailed=true"
+curl "http://localhost:8080/health?detailed=true"
 ```
 
 Response includes:
@@ -294,19 +294,19 @@ Response includes:
 #### View All Domains
 
 ```bash
-curl http://localhost:3000/api/domains | jq '.'
+curl http://localhost:8080/api/domains | jq '.'
 ```
 
 #### View Specific Domain
 
 ```bash
-curl http://localhost:3000/api/domains/ddt.com | jq '.'
+curl http://localhost:8080/api/domains/ddt.com | jq '.'
 ```
 
 #### Test Path Transformation
 
 ```bash
-curl -X POST http://localhost:3000/api/domains/test-transformation \
+curl -X POST http://localhost:8080/api/domains/test-transformation \
   -H "Content-Type: application/json" \
   -d '{"domain": "ddt.com", "path": "/about"}'
 ```
@@ -314,7 +314,7 @@ curl -X POST http://localhost:3000/api/domains/test-transformation \
 #### Reload Domain Configuration
 
 ```bash
-curl -X POST http://localhost:3000/api/domains/reload
+curl -X POST http://localhost:8080/api/domains/reload
 ```
 
 ### Cache Management APIs
@@ -322,20 +322,20 @@ curl -X POST http://localhost:3000/api/domains/reload
 #### Cache Statistics
 
 ```bash
-curl http://localhost:3000/api/cache/stats | jq '.'
+curl http://localhost:8080/api/cache/stats | jq '.'
 ```
 
 #### Purge Cache
 
 ```bash
 # Purge all cache
-curl -X DELETE http://localhost:3000/api/cache
+curl -X DELETE http://localhost:8080/api/cache
 
 # Purge by domain
-curl -X DELETE "http://localhost:3000/api/cache?domain=ddt.com"
+curl -X DELETE "http://localhost:8080/api/cache?domain=ddt.com"
 
 # Purge by pattern
-curl -X DELETE "http://localhost:3000/api/cache?pattern=*.css"
+curl -X DELETE "http://localhost:8080/api/cache?pattern=*.css"
 ```
 
 ### File Resolution APIs
@@ -343,19 +343,19 @@ curl -X DELETE "http://localhost:3000/api/cache?pattern=*.css"
 #### File Resolution Status
 
 ```bash
-curl http://localhost:3000/api/file-resolution/status | jq '.'
+curl http://localhost:8080/api/file-resolution/status | jq '.'
 ```
 
 #### File Resolution Statistics
 
 ```bash
-curl http://localhost:3000/api/file-resolution/stats | jq '.'
+curl http://localhost:8080/api/file-resolution/stats | jq '.'
 ```
 
 #### Test File Resolution
 
 ```bash
-curl -X POST http://localhost:3000/api/file-resolution/test \
+curl -X POST http://localhost:8080/api/file-resolution/test \
   -H "Content-Type: application/json" \
   -d '{"domain": "docs.example.com", "path": "/getting-started"}'
 ```
@@ -364,37 +364,37 @@ curl -X POST http://localhost:3000/api/file-resolution/test \
 
 ```bash
 # View cache
-curl http://localhost:3000/api/file-resolution/cache | jq '.'
+curl http://localhost:8080/api/file-resolution/cache | jq '.'
 
 # Clear cache
-curl -X DELETE http://localhost:3000/api/file-resolution/cache
+curl -X DELETE http://localhost:8080/api/file-resolution/cache
 
 # Clear by domain
-curl -X DELETE "http://localhost:3000/api/file-resolution/cache?domain=docs.example.com"
+curl -X DELETE "http://localhost:8080/api/file-resolution/cache?domain=docs.example.com"
 ```
 
 #### Circuit Breaker Status
 
 ```bash
-curl http://localhost:3000/api/file-resolution/circuit-breaker | jq '.'
+curl http://localhost:8080/api/file-resolution/circuit-breaker | jq '.'
 ```
 
 #### Reset Circuit Breaker
 
 ```bash
-curl -X POST http://localhost:3000/api/file-resolution/circuit-breaker/docs.example.com/reset
+curl -X POST http://localhost:8080/api/file-resolution/circuit-breaker/docs.example.com/reset
 ```
 
 ### Metrics Endpoint
 
 ```bash
 # Get all metrics
-curl http://localhost:3000/metrics
+curl http://localhost:8080/metrics
 
 # Filter specific metrics
-curl http://localhost:3000/metrics | grep path_rewrite
-curl http://localhost:3000/metrics | grep file_resolution
-curl http://localhost:3000/metrics | grep cache
+curl http://localhost:8080/metrics | grep path_rewrite
+curl http://localhost:8080/metrics | grep file_resolution
+curl http://localhost:8080/metrics | grep cache
 ```
 
 ## Configuration Debugging
@@ -469,10 +469,10 @@ test_domain_config() {
     echo "Testing domain: $domain"
     
     # Check if domain is in configuration
-    curl -s http://localhost:3000/api/domains | jq -r ".domains[\"$domain\"]"
+    curl -s http://localhost:8080/api/domains | jq -r ".domains[\"$domain\"]"
     
     # Test transformation
-    curl -s -X POST http://localhost:3000/api/domains/test-transformation \
+    curl -s -X POST http://localhost:8080/api/domains/test-transformation \
         -H "Content-Type: application/json" \
         -d "{\"domain\": \"$domain\", \"path\": \"/test\"}" | jq '.'
 }
@@ -490,7 +490,7 @@ test_file_resolution() {
     
     echo "Testing file resolution for $domain$path"
     
-    curl -s -X POST http://localhost:3000/api/file-resolution/test \
+    curl -s -X POST http://localhost:8080/api/file-resolution/test \
         -H "Content-Type: application/json" \
         -d "{\"domain\": \"$domain\", \"path\": \"$path\"}" | jq '.'
 }
@@ -530,7 +530,7 @@ grep "Failed to compile rule" logs/error.log
 grep "transformation.*error" logs/error.log
 
 # Monitor cache performance
-curl http://localhost:3000/api/cache/stats | jq '.domainStats'
+curl http://localhost:8080/api/cache/stats | jq '.domainStats'
 ```
 
 ### File Resolver Debugging
@@ -567,7 +567,7 @@ grep "file-resolver.*error" logs/error.log
 grep "transformation.*failed" logs/error.log
 
 # Monitor cache performance
-curl http://localhost:3000/api/file-resolution/cache | jq '.statistics'
+curl http://localhost:8080/api/file-resolution/cache | jq '.statistics'
 ```
 
 ### Cache Manager Debugging
@@ -579,10 +579,10 @@ curl http://localhost:3000/api/file-resolution/cache | jq '.statistics'
 tail -f logs/app.log | grep "cache"
 
 # Check cache hit rates
-curl http://localhost:3000/api/cache/stats | jq '.hitRate'
+curl http://localhost:8080/api/cache/stats | jq '.hitRate'
 
 # Monitor cache size
-curl http://localhost:3000/api/cache/stats | jq '.totalItems, .maxItems'
+curl http://localhost:8080/api/cache/stats | jq '.totalItems, .maxItems'
 ```
 
 #### Debug Cache Issues
@@ -595,8 +595,8 @@ grep "cache.*error" logs/error.log
 grep "cache.*evict" logs/app.log
 
 # Test cache functionality
-curl -X DELETE http://localhost:3000/api/cache
-curl http://localhost:3000/api/cache/stats
+curl -X DELETE http://localhost:8080/api/cache
+curl http://localhost:8080/api/cache/stats
 ```
 
 ### Proxy Manager Debugging
@@ -626,7 +626,7 @@ grep "domain.*validation" logs/error.log
 grep "domain.*routing" logs/app.log
 
 # Test domain configuration
-curl http://localhost:3000/api/domains | jq '.domains | keys'
+curl http://localhost:8080/api/domains | jq '.domains | keys'
 ```
 
 ## Troubleshooting Workflows
@@ -639,7 +639,7 @@ curl http://localhost:3000/api/domains | jq '.domains | keys'
 
 ```bash
 # Check port availability
-netstat -tulpn | grep :3000
+netstat -tulpn | grep :8080
 
 # Check configuration
 node -e "console.log(require('./config.js'))"
@@ -671,13 +671,13 @@ npm install
 
 ```bash
 # Check if path rewriting is enabled
-curl http://localhost:3000/api/domains | jq '.pathRewritingEnabled'
+curl http://localhost:8080/api/domains | jq '.pathRewritingEnabled'
 
 # Check domain configuration
-curl http://localhost:3000/api/domains/ddt.com
+curl http://localhost:8080/api/domains/ddt.com
 
 # Test transformation
-curl -X POST http://localhost:3000/api/domains/test-transformation \
+curl -X POST http://localhost:8080/api/domains/test-transformation \
   -H "Content-Type: application/json" \
   -d '{"domain": "ddt.com", "path": "/test"}'
 
@@ -696,7 +696,7 @@ export DOMAIN_PATH_MAPPING='{"ddt.com": "/ddt"}'
 export ADDITIONAL_DOMAINS="ddt.com"
 
 # Reload configuration
-curl -X POST http://localhost:3000/api/domains/reload
+curl -X POST http://localhost:8080/api/domains/reload
 ```
 
 #### 3. File Resolution Not Working
@@ -705,15 +705,15 @@ curl -X POST http://localhost:3000/api/domains/reload
 
 ```bash
 # Check file resolution status
-curl http://localhost:3000/api/file-resolution/status
+curl http://localhost:8080/api/file-resolution/status
 
 # Test specific resolution
-curl -X POST http://localhost:3000/api/file-resolution/test \
+curl -X POST http://localhost:8080/api/file-resolution/test \
   -H "Content-Type: application/json" \
   -d '{"domain": "docs.example.com", "path": "/test"}'
 
 # Check circuit breaker status
-curl http://localhost:3000/api/file-resolution/circuit-breaker
+curl http://localhost:8080/api/file-resolution/circuit-breaker
 
 # Check logs
 grep "file-resolver" logs/app.log | tail -10
@@ -729,7 +729,7 @@ export FILE_RESOLUTION_ENABLED=true
 export FILE_RESOLUTION_EXTENSIONS="html,md,json,txt"
 
 # Reset circuit breaker
-curl -X POST http://localhost:3000/api/file-resolution/circuit-breaker/docs.example.com/reset
+curl -X POST http://localhost:8080/api/file-resolution/circuit-breaker/docs.example.com/reset
 ```
 
 #### 4. Performance Issues
@@ -738,10 +738,10 @@ curl -X POST http://localhost:3000/api/file-resolution/circuit-breaker/docs.exam
 
 ```bash
 # Check metrics
-curl http://localhost:3000/metrics | grep -E "(duration|rate|cache)"
+curl http://localhost:8080/metrics | grep -E "(duration|rate|cache)"
 
 # Check memory usage
-curl http://localhost:3000/health | jq '.system.memory'
+curl http://localhost:8080/health | jq '.system.memory'
 
 # Run benchmark
 node benchmark.js
@@ -775,7 +775,7 @@ export PATH_REWRITE_SLOW_THRESHOLD=0.005
 echo "=== Quick Health Check ==="
 
 # Basic connectivity
-if curl -s http://localhost:3000/health > /dev/null; then
+if curl -s http://localhost:8080/health > /dev/null; then
     echo "✅ Application is responding"
 else
     echo "❌ Application is not responding"
@@ -785,7 +785,7 @@ fi
 # Check key components
 components=("pathRewriting" "fileResolution" "cache")
 for component in "${components[@]}"; do
-    status=$(curl -s http://localhost:3000/health | jq -r ".$component.enabled // false")
+    status=$(curl -s http://localhost:8080/health | jq -r ".$component.enabled // false")
     if [ "$status" = "true" ]; then
         echo "✅ $component is enabled"
     else
@@ -812,7 +812,7 @@ echo "=== Component Status Check ==="
 
 # Path Rewriter Status
 echo "Path Rewriter:"
-curl -s http://localhost:3000/api/domains | jq '{
+curl -s http://localhost:8080/api/domains | jq '{
     enabled: .pathRewritingEnabled,
     domains: (.domains | length),
     totalRequests: [.domains[].statistics.totalRequests] | add
@@ -820,7 +820,7 @@ curl -s http://localhost:3000/api/domains | jq '{
 
 # File Resolution Status
 echo "File Resolution:"
-curl -s http://localhost:3000/api/file-resolution/status | jq '{
+curl -s http://localhost:8080/api/file-resolution/status | jq '{
     enabled: .enabled,
     cacheHitRate: .cache.hitRate,
     transformers: (.transformers | length)
@@ -828,7 +828,7 @@ curl -s http://localhost:3000/api/file-resolution/status | jq '{
 
 # Cache Status
 echo "Cache:"
-curl -s http://localhost:3000/api/cache/stats | jq '{
+curl -s http://localhost:8080/api/cache/stats | jq '{
     enabled: .enabled,
     hitRate: .hitRate,
     items: .totalItems,
@@ -884,14 +884,14 @@ while true; do
     timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     
     # Get memory usage
-    memory=$(curl -s http://localhost:3000/health | jq -r '.system.memory.heapUsed // 0')
+    memory=$(curl -s http://localhost:8080/health | jq -r '.system.memory.heapUsed // 0')
     memory_mb=$((memory / 1024 / 1024))
     
     # Get cache hit rate
-    cache_hit_rate=$(curl -s http://localhost:3000/api/cache/stats | jq -r '.hitRate // 0')
+    cache_hit_rate=$(curl -s http://localhost:8080/api/cache/stats | jq -r '.hitRate // 0')
     
     # Get request rate (approximate)
-    total_requests=$(curl -s http://localhost:3000/metrics | grep "http_requests_total" | awk '{sum+=$2} END {print sum}')
+    total_requests=$(curl -s http://localhost:8080/metrics | grep "http_requests_total" | awk '{sum+=$2} END {print sum}')
     
     echo "$timestamp - Memory: ${memory_mb}MB, Cache Hit Rate: $cache_hit_rate, Total Requests: $total_requests"
     
@@ -962,7 +962,7 @@ npm install -g artillery
 # Create load test configuration
 cat > load-test.yml << EOF
 config:
-  target: 'http://localhost:3000'
+  target: 'http://localhost:8080'
   phases:
     - duration: 60
       arrivalRate: 10
@@ -1048,16 +1048,16 @@ module.exports = ComponentHealthChecker;
 
 ```bash
 # Monitor transformation performance
-curl http://localhost:3000/metrics | grep path_rewrite_duration
+curl http://localhost:8080/metrics | grep path_rewrite_duration
 
 # Monitor file resolution performance
-curl http://localhost:3000/metrics | grep file_resolution_duration
+curl http://localhost:8080/metrics | grep file_resolution_duration
 
 # Monitor cache performance
-curl http://localhost:3000/metrics | grep cache_operations
+curl http://localhost:8080/metrics | grep cache_operations
 
 # Monitor HTTP request performance
-curl http://localhost:3000/metrics | grep http_request_duration
+curl http://localhost:8080/metrics | grep http_request_duration
 ```
 
 #### Performance Benchmarking
@@ -1080,11 +1080,11 @@ benchmark.runBenchmark('simple_prefix', 1000).then(console.log);
 
 ```bash
 # Check current memory usage
-curl http://localhost:3000/health | jq '.system.memory'
+curl http://localhost:8080/health | jq '.system.memory'
 
 # Monitor memory over time
 while true; do
-    curl -s http://localhost:3000/health | jq '.system.memory.heapUsed'
+    curl -s http://localhost:8080/health | jq '.system.memory.heapUsed'
     sleep 5
 done
 ```
@@ -1173,10 +1173,10 @@ class TracedComponent {
 
 ```bash
 # Check path rewriter circuit breakers
-curl http://localhost:3000/health | jq '.pathRewriting.circuitBreakers'
+curl http://localhost:8080/health | jq '.pathRewriting.circuitBreakers'
 
 # Check file resolution circuit breakers
-curl http://localhost:3000/api/file-resolution/circuit-breaker
+curl http://localhost:8080/api/file-resolution/circuit-breaker
 ```
 
 #### Debug Circuit Breaker Issues
@@ -1186,10 +1186,10 @@ curl http://localhost:3000/api/file-resolution/circuit-breaker
 grep "circuit.*breaker" logs/app.log
 
 # Monitor error rates
-curl http://localhost:3000/api/domains | jq '.domains[].statistics.errorRate'
+curl http://localhost:8080/api/domains | jq '.domains[].statistics.errorRate'
 
 # Reset circuit breakers if needed
-curl -X POST http://localhost:3000/api/file-resolution/circuit-breaker/domain.com/reset
+curl -X POST http://localhost:8080/api/file-resolution/circuit-breaker/domain.com/reset
 ```
 
 ### Cache Debugging
@@ -1198,21 +1198,21 @@ curl -X POST http://localhost:3000/api/file-resolution/circuit-breaker/domain.co
 
 ```bash
 # Analyze cache keys
-curl http://localhost:3000/api/cache/stats | jq '.domainStats'
+curl http://localhost:8080/api/cache/stats | jq '.domainStats'
 
 # Check cache distribution
-curl http://localhost:3000/api/file-resolution/cache | jq '.entries[].key'
+curl http://localhost:8080/api/file-resolution/cache | jq '.entries[].key'
 ```
 
 #### Cache Performance Tuning
 
 ```bash
 # Monitor cache hit rates
-watch -n 5 'curl -s http://localhost:3000/api/cache/stats | jq ".hitRate"'
+watch -n 5 'curl -s http://localhost:8080/api/cache/stats | jq ".hitRate"'
 
 # Test cache purging
-curl -X DELETE "http://localhost:3000/api/cache?domain=test.com"
-curl http://localhost:3000/api/cache/stats
+curl -X DELETE "http://localhost:8080/api/cache?domain=test.com"
+curl http://localhost:8080/api/cache/stats
 ```
 
 ### Configuration Debugging
@@ -1222,10 +1222,10 @@ curl http://localhost:3000/api/cache/stats
 ```bash
 # Test configuration changes
 export DOMAIN_PATH_MAPPING='{"test.com": "/test"}'
-curl -X POST http://localhost:3000/api/domains/reload
+curl -X POST http://localhost:8080/api/domains/reload
 
 # Verify changes
-curl http://localhost:3000/api/domains/test.com
+curl http://localhost:8080/api/domains/test.com
 ```
 
 #### Configuration Validation

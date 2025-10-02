@@ -136,7 +136,7 @@ Returns detailed cache statistics including domain-specific information.
 **Request:**
 
 ```bash
-curl -X GET http://localhost:3000/api/cache/stats
+curl -X GET http://localhost:8080/api/cache/stats
 ```
 
 **Response:**
@@ -196,19 +196,19 @@ Returns all cache keys from each of the application's caches with optional patte
 **Request (All Keys):**
 
 ```bash
-curl -X GET http://localhost:3000/api/cache/keys
+curl -X GET http://localhost:8080/api/cache/keys
 ```
 
 **Request (With Pattern Filter):**
 
 ```bash
-curl -X GET "http://localhost:3000/api/cache/keys?pattern=*ddt.com*"
+curl -X GET "http://localhost:8080/api/cache/keys?pattern=*ddt.com*"
 ```
 
 **Request (With Wildcard Pattern):**
 
 ```bash
-curl -X GET "http://localhost:3000/api/cache/keys?pattern=GET:*:/images/*"
+curl -X GET "http://localhost:8080/api/cache/keys?pattern=GET:*:/images/*"
 ```
 
 **Response:**
@@ -288,25 +288,25 @@ Purges cache entries with optional pattern matching and domain filtering.
 **Request (Purge All):**
 
 ```bash
-curl -X DELETE http://localhost:3000/api/cache
+curl -X DELETE http://localhost:8080/api/cache
 ```
 
 **Request (Purge by Pattern):**
 
 ```bash
-curl -X DELETE "http://localhost:3000/api/cache?pattern=*.css"
+curl -X DELETE "http://localhost:8080/api/cache?pattern=*.css"
 ```
 
 **Request (Purge by Domain):**
 
 ```bash
-curl -X DELETE "http://localhost:3000/api/cache?domain=ddt.com"
+curl -X DELETE "http://localhost:8080/api/cache?domain=ddt.com"
 ```
 
 **Request (Purge by Domain and Pattern):**
 
 ```bash
-curl -X DELETE "http://localhost:3000/api/cache?domain=ddt.com&pattern=/images/*"
+curl -X DELETE "http://localhost:8080/api/cache?domain=ddt.com&pattern=/images/*"
 ```
 
 **Response:**
@@ -330,7 +330,7 @@ Returns information about configured domains and their path mappings.
 **Request:**
 
 ```bash
-curl -X GET http://localhost:3000/api/domains
+curl -X GET http://localhost:8080/api/domains
 ```
 
 **Response:**
@@ -404,7 +404,7 @@ Reloads domain configuration from environment variables without restarting the a
 **Request:**
 
 ```bash
-curl -X POST http://localhost:3000/api/domains/reload
+curl -X POST http://localhost:8080/api/domains/reload
 ```
 
 **Response:**
@@ -435,7 +435,7 @@ Returns detailed information about a specific domain configuration.
 **Request:**
 
 ```bash
-curl -X GET http://localhost:3000/api/domains/ddt.com
+curl -X GET http://localhost:8080/api/domains/ddt.com
 ```
 
 **Response:**
@@ -485,7 +485,7 @@ Tests path transformation for a given domain and path without making actual requ
 **Request:**
 
 ```bash
-curl -X POST http://localhost:3000/api/domains/test-transformation \
+curl -X POST http://localhost:8080/api/domains/test-transformation \
   -H "Content-Type: application/json" \
   -d '{
     "domain": "ddt.com",
@@ -525,7 +525,7 @@ Tests regex-based path transformations for complex routing rules.
 **Request:**
 
 ```bash
-curl -X POST http://localhost:3000/api/domains/test-regex \
+curl -X POST http://localhost:8080/api/domains/test-regex \
   -H "Content-Type: application/json" \
   -d '{
     "domain": "api.example.com",
@@ -578,7 +578,7 @@ Clears ALL caches system-wide including general cache, URL transformation cache,
 **Request:**
 
 ```bash
-curl -X DELETE http://localhost:3000/api/cache/nuke
+curl -X DELETE http://localhost:8080/api/cache/nuke
 ```
 
 **Response (Success):**
@@ -643,7 +643,7 @@ Returns all discovered API endpoints in the application.
 **Request:**
 
 ```bash
-curl -X GET http://localhost:3000/api/discovery/endpoints
+curl -X GET http://localhost:8080/api/discovery/endpoints
 ```
 
 **Response:**
@@ -679,7 +679,7 @@ Returns available API endpoint categories.
 **Request:**
 
 ```bash
-curl -X GET http://localhost:3000/api/discovery/categories
+curl -X GET http://localhost:8080/api/discovery/categories
 ```
 
 **Response:**
@@ -714,7 +714,7 @@ Triggers a rescan of available API endpoints.
 **Request:**
 
 ```bash
-curl -X POST http://localhost:3000/api/discovery/scan
+curl -X POST http://localhost:8080/api/discovery/scan
 ```
 
 **Response:**
@@ -735,7 +735,7 @@ Returns the OpenAPI specification for the API.
 **Request:**
 
 ```bash
-curl -X GET http://localhost:3000/api/docs/openapi.json
+curl -X GET http://localhost:8080/api/docs/openapi.json
 ```
 
 **Response:**
@@ -770,7 +770,7 @@ Tests a specific API endpoint for functionality.
 **Request:**
 
 ```bash
-curl -X POST http://localhost:3000/api/test/endpoint \
+curl -X POST http://localhost:8080/api/test/endpoint \
   -H "Content-Type: application/json" \
   -d '{
     "endpoint": "/health",
@@ -798,7 +798,7 @@ Returns the current status of the dashboard system.
 **Request:**
 
 ```bash
-curl -X GET http://localhost:3000/api/dashboard/status
+curl -X GET http://localhost:8080/api/dashboard/status
 ```
 
 **Response:**
@@ -824,7 +824,7 @@ Returns the dashboard configuration.
 **Request:**
 
 ```bash
-curl -X GET http://localhost:3000/api/dashboard/config
+curl -X GET http://localhost:8080/api/dashboard/config
 ```
 
 **Response:**
@@ -923,7 +923,7 @@ Real-time metrics streaming for monitoring dashboards.
 **Connection:**
 
 ```javascript
-const ws = new WebSocket('ws://localhost:3000/ws/metrics');
+const ws = new WebSocket('ws://localhost:8080/ws/metrics');
 
 ws.onmessage = function(event) {
   const metrics = JSON.parse(event.data);
@@ -1001,7 +1001,7 @@ class CDNApiClient {
 }
 
 // Usage
-const cdn = new CDNApiClient('http://localhost:3000');
+const cdn = new CDNApiClient('http://localhost:8080');
 
 // Test domain transformation
 const result = await cdn.testTransformation('ddt.com', '/about');
@@ -1057,7 +1057,7 @@ class CDNApiClient:
         return response.json()
 
 # Usage
-cdn = CDNApiClient('http://localhost:3000')
+cdn = CDNApiClient('http://localhost:8080')
 
 # Test domain transformation
 result = cdn.test_transformation('ddt.com', '/about')
@@ -1077,7 +1077,7 @@ Add this job to your `prometheus.yml`:
 scrape_configs:
   - job_name: 'advanced-cdn'
     static_configs:
-      - targets: ['localhost:3000']
+      - targets: ['localhost:8080']
     metrics_path: '/metrics'
     scrape_interval: 15s
 ```
@@ -1112,7 +1112,7 @@ Returns the current status and configuration of the file resolution system.
 **Request:**
 
 ```bash
-curl -X GET http://localhost:3000/api/file-resolution/status
+curl -X GET http://localhost:8080/api/file-resolution/status
 ```
 
 **Response:**
@@ -1177,7 +1177,7 @@ Returns detailed statistics about file resolution operations.
 **Request:**
 
 ```bash
-curl -X GET http://localhost:3000/api/file-resolution/stats
+curl -X GET http://localhost:8080/api/file-resolution/stats
 ```
 
 **Response:**
@@ -1252,7 +1252,7 @@ Returns information about the file resolution cache.
 **Request:**
 
 ```bash
-curl -X GET http://localhost:3000/api/file-resolution/cache
+curl -X GET http://localhost:8080/api/file-resolution/cache
 ```
 
 **Response:**
@@ -1301,25 +1301,25 @@ Clears the file resolution cache with optional filtering.
 **Request (Clear All):**
 
 ```bash
-curl -X DELETE http://localhost:3000/api/file-resolution/cache
+curl -X DELETE http://localhost:8080/api/file-resolution/cache
 ```
 
 **Request (Clear by Domain):**
 
 ```bash
-curl -X DELETE "http://localhost:3000/api/file-resolution/cache?domain=docs.example.com"
+curl -X DELETE "http://localhost:8080/api/file-resolution/cache?domain=docs.example.com"
 ```
 
 **Request (Clear by Extension):**
 
 ```bash
-curl -X DELETE "http://localhost:3000/api/file-resolution/cache?extension=md"
+curl -X DELETE "http://localhost:8080/api/file-resolution/cache?extension=md"
 ```
 
 **Request (Clear by Type):**
 
 ```bash
-curl -X DELETE "http://localhost:3000/api/file-resolution/cache?type=negative"
+curl -X DELETE "http://localhost:8080/api/file-resolution/cache?type=negative"
 ```
 
 **Response:**
@@ -1342,7 +1342,7 @@ Tests file resolution for a specific domain and path without caching the result.
 **Request:**
 
 ```bash
-curl -X POST http://localhost:3000/api/file-resolution/test \
+curl -X POST http://localhost:8080/api/file-resolution/test \
   -H "Content-Type: application/json" \
   -d '{
     "domain": "docs.example.com",
@@ -1433,7 +1433,7 @@ Tests content transformation without performing file resolution.
 **Request:**
 
 ```bash
-curl -X POST http://localhost:3000/api/file-resolution/transform \
+curl -X POST http://localhost:8080/api/file-resolution/transform \
   -H "Content-Type: application/json" \
   -d '{
     "content": "# Hello World\n\nThis is **markdown** content.",
@@ -1480,7 +1480,7 @@ Returns file resolution configuration and statistics for a specific domain.
 **Request:**
 
 ```bash
-curl -X GET http://localhost:3000/api/file-resolution/domains/docs.example.com
+curl -X GET http://localhost:8080/api/file-resolution/domains/docs.example.com
 ```
 
 **Response:**
@@ -1552,7 +1552,7 @@ Reloads file resolution configuration for a specific domain.
 **Request:**
 
 ```bash
-curl -X POST http://localhost:3000/api/file-resolution/domains/docs.example.com/reload
+curl -X POST http://localhost:8080/api/file-resolution/domains/docs.example.com/reload
 ```
 
 **Response:**
@@ -1584,7 +1584,7 @@ Returns circuit breaker status for all domains.
 **Request:**
 
 ```bash
-curl -X GET http://localhost:3000/api/file-resolution/circuit-breaker
+curl -X GET http://localhost:8080/api/file-resolution/circuit-breaker
 ```
 
 **Response:**
@@ -1636,7 +1636,7 @@ Manually resets the circuit breaker for a specific domain.
 **Request:**
 
 ```bash
-curl -X POST http://localhost:3000/api/file-resolution/circuit-breaker/unreliable.example.com/reset
+curl -X POST http://localhost:8080/api/file-resolution/circuit-breaker/unreliable.example.com/reset
 ```
 
 **Response:**
@@ -1660,7 +1660,7 @@ Returns information about available content transformers.
 **Request:**
 
 ```bash
-curl -X GET http://localhost:3000/api/file-resolution/transformers
+curl -X GET http://localhost:8080/api/file-resolution/transformers
 ```
 
 **Response:**

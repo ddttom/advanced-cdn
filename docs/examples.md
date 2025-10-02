@@ -49,10 +49,10 @@ PATH_REWRITE_CACHE_SIZE=10000
 
 ```bash
 # Test actual request with domain mapping
-curl -H "Host: ddt.com" http://localhost:3000/about
+curl -H "Host: ddt.com" http://localhost:8080/about
 
 # Check domain configuration
-curl http://localhost:3000/api/domains
+curl http://localhost:8080/api/domains
 ```
 
 ### Example 2: Blog Subdomain
@@ -83,7 +83,7 @@ CACHE_MAX_TTL=7200
 **Testing**:
 
 ```bash
-curl -H "Host: blog.mywebsite.com" http://localhost:3000/latest-post
+curl -H "Host: blog.mywebsite.com" http://localhost:8080/latest-post
 ```
 
 ## E-commerce Scenarios
@@ -126,7 +126,7 @@ PATH_REWRITE_CIRCUIT_BREAKER_ENABLED=true
 ```bash
 # Test each brand
 for brand in brand-electronics.com brand-clothing.com brand-home.com; do
-  curl -H "Host: $brand" http://localhost:3000/products
+  curl -H "Host: $brand" http://localhost:8080/products
 done
 ```
 
@@ -216,9 +216,9 @@ RATE_LIMIT_MAX=1000
 
 ```bash
 # Test version routing
-curl -H "Host: api-v1.myservice.com" http://localhost:3000/users
-curl -H "Host: api.myservice.com" http://localhost:3000/v2/users
-curl -H "Host: api.myservice.com" http://localhost:3000/users
+curl -H "Host: api-v1.myservice.com" http://localhost:8080/users
+curl -H "Host: api.myservice.com" http://localhost:8080/v2/users
+curl -H "Host: api.myservice.com" http://localhost:8080/users
 ```
 
 ### Example 6: Microservices API Gateway
@@ -312,8 +312,8 @@ PATH_REWRITE_CACHE_SIZE=200000
 
 ```bash
 # Test asset routing
-curl -H "Host: static.mywebsite.com" http://localhost:3000/css/main.css
-curl -H "Host: images.mywebsite.com" http://localhost:3000/banner.jpg
+curl -H "Host: static.mywebsite.com" http://localhost:8080/css/main.css
+curl -H "Host: images.mywebsite.com" http://localhost:8080/banner.jpg
 ```
 
 ## Geographic Routing
@@ -644,10 +644,10 @@ RATE_LIMIT_WINDOW_MS=60000
 node benchmark.js
 
 # Monitor performance
-curl http://localhost:3000/metrics | grep -E "(path_rewrite|cache|http_requests)"
+curl http://localhost:8080/metrics | grep -E "(path_rewrite|cache|http_requests)"
 
 # Check circuit breaker status
-curl http://localhost:3000/health | jq '.pathRewriting'
+curl http://localhost:8080/health | jq '.pathRewriting'
 ```
 
 ### Example 16: Global CDN with Edge Optimization
@@ -789,7 +789,7 @@ fi
 
 # Test service health
 echo "2. Checking service health..."
-HEALTH=$(curl -s http://localhost:3000/health | jq -r '.status')
+HEALTH=$(curl -s http://localhost:8080/health | jq -r '.status')
 if [ "$HEALTH" = "healthy" ]; then
     echo "✅ Service is healthy"
 else
@@ -799,10 +799,10 @@ fi
 
 # Test domain configuration
 echo "3. Testing domain configuration..."
-DOMAINS=$(curl -s http://localhost:3000/api/domains | jq -r '.domains | keys[]')
+DOMAINS=$(curl -s http://localhost:8080/api/domains | jq -r '.domains | keys[]')
 for domain in $DOMAINS; do
     echo "Testing domain: $domain"
-    curl -s -X POST http://localhost:3000/api/domains/test-transformation \
+    curl -s -X POST http://localhost:8080/api/domains/test-transformation \
         -H "Content-Type: application/json" \
         -d "{\"domain\": \"$domain\", \"path\": \"/test\"}" | jq .
 done

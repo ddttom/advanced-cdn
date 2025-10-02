@@ -23,7 +23,7 @@ The debug command is included with the CDN application. No additional installati
 
 ### Prerequisites
 
-1. **CDN Application Running**: The CDN application must be running (typically on `http://localhost:3000`)
+1. **CDN Application Running**: The CDN application must be running (typically on `http://localhost:8080`)
 2. **Domain Configuration**: The CDN must be configured with ddt.com domain mapping
 3. **Node.js**: Node.js 16+ is required
 
@@ -73,7 +73,7 @@ node debug-ddt.js <domain> [options]
 | `--verbose`, `-v` | Enable verbose logging | `false` |
 | `--timeout <ms>` | Request timeout in milliseconds | `30000` |
 | `--retries <n>` | Number of retry attempts | `3` |
-| `--cdn-url <url>` | CDN server URL | `http://localhost:3000` |
+| `--cdn-url <url>` | CDN server URL | `http://localhost:8080` |
 | `--format <format>` | Output format: `human` or `json` | `human` |
 | `--path <path>` | Request path | `/` |
 | `--help`, `-h` | Show help message | - |
@@ -107,7 +107,7 @@ node debug-ddt.js api.ddt.com --verbose
 
 **Expected Output:**
 ```
-[2024-01-15T10:30:45.123Z] INFO: Making request to http://localhost:3000/
+[2024-01-15T10:30:45.123Z] INFO: Making request to http://localhost:8080/
 [2024-01-15T10:30:45.124Z] DEBUG: Request headers:
 {
   "Host": "api.ddt.com",
@@ -126,7 +126,7 @@ HTTP Status: 200 OK
 Response Time: 243ms
 
 Request Details:
-  URL: http://localhost:3000/
+  URL: http://localhost:8080/
   Method: GET
   Headers:
     Host: api.ddt.com
@@ -163,7 +163,7 @@ node debug-ddt.js blog.ddt.com --format json
     "x-response-time": "189ms"
   },
   "requestDetails": {
-    "url": "http://localhost:3000/",
+    "url": "http://localhost:8080/",
     "method": "GET",
     "headers": {
       "Host": "blog.ddt.com",
@@ -384,7 +384,7 @@ node debug-ddt.js slow.ddt.com --timeout 60000
 node debug-ddt.js test.ddt.com --verbose
 
 # Verify backend connectivity
-curl -H "Host: test.ddt.com" http://localhost:3000/
+curl -H "Host: test.ddt.com" http://localhost:8080/
 ```
 
 ### Debug Workflow

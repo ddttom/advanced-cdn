@@ -11,7 +11,7 @@ The application uses a `.env` file for configuration. All settings have sensible
 ### Basic Server Settings
 
 ```bash
-PORT=3000                    # Port the server listens on
+PORT=8080                    # Port the server listens on
 HOST=0.0.0.0                # Host interface to bind to (0.0.0.0 for all interfaces)
 NODE_ENV=production          # Environment mode (development, production, test)
 TRUST_PROXY=true            # Trust proxy headers (important for load balancers)
@@ -117,6 +117,37 @@ TARGET_DOMAIN=dev-backend.com
 
 **White-Label Platform:**
 ```bash
+
+### Testing Dynamic Hostname Mode
+
+Once configured, you can test the dynamic hostname feature:
+
+```bash
+# Start the server with explicit PORT (recommended)
+PORT=8080 npm start
+
+# Test with different hostnames
+curl -H "Host: test-domain.com" http://localhost:8080/health
+curl -H "Host: random-site.example.com" http://localhost:8080/health
+curl -H "Host: myapp.example.org" http://localhost:8080/health
+```
+
+All requests should succeed regardless of the hostname used.
+
+### Important Notes
+
+**Port Configuration:**
+- The default port is now 8080 (changed from 3000)
+- When running in certain environments (like Roo AI assistant), you may need to explicitly set PORT=8080
+- If you see "Port 54112 is already in use", use: `PORT=8080 npm start`
+
+**Logging:**
+When dynamic hostname mode is enabled, you'll see this in the logs:
+```
+Domain manager initialized with DYNAMIC HOSTNAME mode - accepting all hostnames
+Each request hostname will be used as the origin domain
+```
+
 USE_DYNAMIC_HOSTNAME=true
 TARGET_DOMAIN=platform-backend.com
 PATH_REWRITE_ENABLED=true
