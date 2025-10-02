@@ -9,7 +9,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const config = {
   // Server configuration
   server: {
-    port: parseInt(process.env.PORT || '3000', 10),
+    port: parseInt(process.env.PORT || '8080', 10),
     host: process.env.HOST || '0.0.0.0',
     env: process.env.NODE_ENV || 'production',
     trustProxy: process.env.TRUST_PROXY === 'true',
@@ -31,7 +31,9 @@ const config = {
 
   // CDN configuration
   cdn: {
-    // The domain this CDN will accept requests for
+    // Use dynamic hostname mode - accept any hostname and use it as origin
+    useDynamicHostname: process.env.USE_DYNAMIC_HOSTNAME === 'true',
+    // The domain this CDN will accept requests for (ignored if useDynamicHostname is true)
     originDomain: process.env.ORIGIN_DOMAIN || 'allabout.network',
     // The target/backend domain to fetch content from
     targetDomain: process.env.TARGET_DOMAIN,
@@ -39,9 +41,9 @@ const config = {
     targetHttps: process.env.TARGET_HTTPS !== 'false',
     // Custom CDN name for headers
     cdnName: process.env.CDN_NAME || 'advanced-cdn-proxy',
-    // Whether to allow requests to other domains
+    // Whether to allow requests to other domains (ignored if useDynamicHostname is true)
     strictDomainCheck: process.env.STRICT_DOMAIN_CHECK !== 'false',
-    // Additional allowed domains (comma-separated in .env)
+    // Additional allowed domains (comma-separated in .env, ignored if useDynamicHostname is true)
     additionalDomains: process.env.ADDITIONAL_DOMAINS 
       ? process.env.ADDITIONAL_DOMAINS.split(',').map(d => d.trim())
       : []

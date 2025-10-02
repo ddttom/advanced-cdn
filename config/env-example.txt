@@ -1,5 +1,5 @@
 # Server configuration
-PORT=3000
+PORT=8080
 HOST=0.0.0.0
 NODE_ENV=production
 TRUST_PROXY=true
@@ -14,6 +14,7 @@ SSL_PASSPHRASE=
 HTTP_TO_HTTPS_REDIRECT=true
 
 # CDN configuration
+USE_DYNAMIC_HOSTNAME=false
 ORIGIN_DOMAIN=allabout.network
 TARGET_DOMAIN=main--allaboutv2--ddttom.hlx.live
 TARGET_HTTPS=true

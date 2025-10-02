@@ -463,6 +463,7 @@ class ProxyManager {
           const requestContext = {
             originalUrl: req.url,
             proxyHost: req.headers.host,
+            originDomain: req.originDomain || req.headers.host,
             pathTransformation: req.pathTransformation,
             protocol: req.protocol || 'https',
             domainManager: domainManager
@@ -508,6 +509,7 @@ class ProxyManager {
           const requestContext = {
             originalUrl: req.url,
             proxyHost: req.headers.host,
+            originDomain: req.originDomain || req.headers.host,
             pathTransformation: req.pathTransformation,
             protocol: req.protocol || 'https',
             domainManager: domainManager

@@ -49,6 +49,79 @@ HTTP_TO_HTTPS_REDIRECT=true # Redirect HTTP requests to HTTPS
 4. Restart the application
 
 ## CDN Configuration
+## Dynamic Hostname Mode
+
+The application supports a dynamic hostname mode that allows it to accept requests from any hostname without requiring explicit configuration. This is useful for multi-tenant deployments or when you want maximum flexibility.
+
+```bash
+USE_DYNAMIC_HOSTNAME=true    # Accept any hostname as origin domain
+TARGET_DOMAIN=backend.example.com
+```
+
+### How Dynamic Hostname Mode Works
+
+When `USE_DYNAMIC_HOSTNAME=true`:
+
+1. **All hostnames are accepted** - No need to configure `ORIGIN_DOMAIN` or `ADDITIONAL_DOMAINS`
+2. **Each hostname maintains its identity** - The request hostname becomes the origin domain
+3. **Path rewriting still works** - Configured path rules are applied when domains match
+4. **URL transformation uses request hostname** - URLs are rewritten correctly for each domain
+5. **Caching is domain-aware** - Each hostname has separate cache entries
+
+### Configuration Examples
+
+**Basic Dynamic Hostname Setup:**
+```bash
+USE_DYNAMIC_HOSTNAME=true
+TARGET_DOMAIN=backend.example.com
+TARGET_HTTPS=true
+```
+
+**With Path Rewriting:**
+```bash
+USE_DYNAMIC_HOSTNAME=true
+TARGET_DOMAIN=backend.example.com
+PATH_REWRITE_ENABLED=true
+DOMAIN_PATH_MAPPING=ddt.com:/ddt,api.site.com:/api
+```
+
+In this setup:
+- `ddt.com/page` → `backend.example.com/ddt/page` (path prefix applied)
+- `api.site.com/users` → `backend.example.com/api/users` (path prefix applied)
+- `random.com/page` → `backend.example.com/page` (no rule, pass through)
+- Any other hostname works without configuration
+
+### Security Considerations
+
+When using dynamic hostname mode:
+- All hostnames pointing to your CDN will be accepted
+- Use firewall rules or DNS configuration to control which domains can reach the CDN
+- Consider using `PATH_REWRITE_ENABLED` with specific domain rules for access control
+- Monitor logs for unexpected domain access
+
+### Use Cases
+
+**Multi-Tenant SaaS:**
+```bash
+USE_DYNAMIC_HOSTNAME=true
+TARGET_DOMAIN=saas-backend.com
+PATH_REWRITE_ENABLED=true
+DOMAIN_PATH_MAPPING=*.customers.com:/tenants/*
+```
+
+**Development/Staging:**
+```bash
+USE_DYNAMIC_HOSTNAME=true
+TARGET_DOMAIN=dev-backend.com
+```
+
+**White-Label Platform:**
+```bash
+USE_DYNAMIC_HOSTNAME=true
+TARGET_DOMAIN=platform-backend.com
+PATH_REWRITE_ENABLED=true
+```
+
 
 ### Domain Management
 

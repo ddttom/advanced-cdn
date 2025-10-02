@@ -818,7 +818,9 @@ class URLTransformer {
   isAlreadyTransformed(url, requestContext) {
     // Check if URL already points to our proxy
     // Only skip if URL already contains the proxy host (not the original domain)
-    return url.includes(requestContext.proxyHost) && !url.includes('allabout.network');
+    // Use originDomain from context if available (for dynamic hostname mode)
+    const originDomain = requestContext.originDomain || requestContext.proxyHost;
+    return url.includes(requestContext.proxyHost) && !url.includes(originDomain);
   }
   
   /**

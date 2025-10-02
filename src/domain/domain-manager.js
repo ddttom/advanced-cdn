@@ -7,6 +7,7 @@ const fileResolutionCache = require('../cache/file-resolution-cache');
 
 class DomainManager {
   constructor() {
+    this.useDynamicHostname = config.cdn.useDynamicHostname;
     this.strictCheck = config.cdn.strictDomainCheck;
     this.originDomain = config.cdn.originDomain;
     this.additionalDomains = config.cdn.additionalDomains;
@@ -38,9 +39,14 @@ class DomainManager {
       this.allowedDomains = [...new Set([...this.allowedDomains, ...fileResolutionDomains])];
     }
     
-    logger.info(`Domain manager initialized: Primary domain: ${this.originDomain}`);
-    if (this.additionalDomains.length > 0) {
-      logger.info(`Additional domains: ${this.additionalDomains.join(', ')}`);
+    if (this.useDynamicHostname) {
+      logger.info('Domain manager initialized with DYNAMIC HOSTNAME mode - accepting all hostnames');
+      logger.info('Each request hostname will be used as the origin domain');
+    } else {
+      logger.info(`Domain manager initialized: Primary domain: ${this.originDomain}`);
+      if (this.additionalDomains.length > 0) {
+        logger.info(`Additional domains: ${this.additionalDomains.join(', ')}`);
+      }
     }
     if (this.pathRewritingEnabled) {
       logger.info(`Path rewriting domains: ${Object.keys(config.pathRewriting.domains).join(', ')}`);
@@ -57,6 +63,12 @@ class DomainManager {
    */
   isAllowedHost(host) {
     if (!host) return false;
+    
+    // If dynamic hostname mode is enabled, accept all hosts
+    if (this.useDynamicHostname) {
+      logger.debug(`Dynamic hostname mode: accepting host ${host}`);
+      return true;
+    }
     
     // If strict checking is disabled, allow all hosts
     if (!this.strictCheck) return true;
@@ -167,6 +179,11 @@ class DomainManager {
     const host = req.headers.host;
     
     if (this.isAllowedHost(host)) {
+      // Set origin domain for downstream use
+      // In dynamic hostname mode, use the request hostname
+      // Otherwise, use the configured origin domain
+      req.originDomain = this.useDynamicHostname ? host : this.originDomain;
+      
       // Add path transformation information to request
       if (this.pathRewritingEnabled) {
         const transformation = this.getPathTransformation(host, req.url, req.method);

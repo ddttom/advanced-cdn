@@ -21,6 +21,7 @@ class URLRelativizationCompute extends BaseComputeFunction {
         // Extract domain mappings from existing config
         this.originDomain = config.cdn?.originDomain || 'allabout.network';
         this.targetDomain = config.cdn?.targetDomain || 'main--allaboutv2--ddttom.hlx.live';
+        this.useDynamicHostname = config.cdn?.useDynamicHostname || false;
         this.pathRewritingConfig = config.pathRewriting || {};
         
         // Build URL transformation rules from existing domain configuration
