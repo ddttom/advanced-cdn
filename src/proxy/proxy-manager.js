@@ -338,10 +338,39 @@ class ProxyManager {
     const shouldCache = cacheManager.shouldCache(req, res);
     const contentEncoding = proxyRes.headers['content-encoding'];
     const contentType = proxyRes.headers['content-type'] || '';
+    const maxResponseSize = config.performance.maxResponseSize;
     let chunks = [];
+    let totalSize = 0;
     let responseHandled = false; // Track if response has been sent
-    
+    let sizeExceeded = false;
+
     proxyRes.on('data', (chunk) => {
+      // Check if response size exceeds limit
+      totalSize += chunk.length;
+      if (maxResponseSize && totalSize > maxResponseSize) {
+        if (!sizeExceeded) {
+          sizeExceeded = true;
+          logger.error('Response size exceeded limit', {
+            url: req.url,
+            totalSize,
+            maxResponseSize,
+            contentType
+          });
+
+          // Destroy the response stream to stop receiving data
+          proxyRes.destroy();
+
+          // Send error response if not already handled
+          if (!responseHandled && !res.headersSent) {
+            responseHandled = true;
+            res.status(413);
+            res.setHeader('Content-Type', 'text/plain');
+            res.end('Response size exceeds maximum allowed size');
+          }
+        }
+        return;
+      }
+
       chunks.push(chunk);
     });
     

@@ -21,6 +21,7 @@ const healthManager = require('./monitoring/health-manager');
 const rateLimiter = require('./middleware/rate-limiter');
 const domainManager = require('./domain/domain-manager');
 const DashboardIntegration = require('./dashboard/dashboard-integration');
+const { sanitizeCachePattern } = require('./proxy/query-sanitizer');
 
 // Create Express app
 const app = express();
@@ -106,7 +107,16 @@ app.use('/api/cache', (req, res, next) => {
 // Cache purge endpoint
 app.delete('/api/cache', (req, res) => {
   try {
-    const pattern = req.query.pattern || '*';
+    const rawPattern = req.query.pattern || '*';
+    const pattern = sanitizeCachePattern(rawPattern);
+
+    if (pattern === null) {
+      return res.status(400).json({
+        error: 'Invalid cache pattern',
+        message: 'Cache pattern contains invalid characters or is too long'
+      });
+    }
+
     const result = cacheManager.purge(pattern);
     res.status(200).json(result);
   } catch (err) {
@@ -196,6 +206,19 @@ app.get('/api/cache/file-resolution/stats', (req, res) => {
 // Cache keys listing endpoint - lists keys in all caches
 app.get('/api/cache/keys', (req, res) => {
   try {
+    // Sanitize pattern parameter if provided
+    let pattern = req.query.pattern || '*';
+    if (pattern !== '*') {
+      const sanitizedPattern = sanitizeCachePattern(pattern);
+      if (sanitizedPattern === null) {
+        return res.status(400).json({
+          error: 'Invalid cache pattern',
+          message: 'Cache pattern contains invalid characters or is too long'
+        });
+      }
+      pattern = sanitizedPattern;
+    }
+
     const cacheKeys = {
       main: [],
       urlTransform: [],
@@ -205,7 +228,7 @@ app.get('/api/cache/keys', (req, res) => {
 
     // Get main cache keys
     try {
-      cacheKeys.main = cacheManager.getKeys(req.query.pattern) || [];
+      cacheKeys.main = cacheManager.getKeys(pattern) || [];
     } catch (error) {
       errors.push({
         cache: 'main',
@@ -217,13 +240,12 @@ app.get('/api/cache/keys', (req, res) => {
     // Get URL transformation cache keys
     try {
       if (proxyManager.urlTransformer && typeof proxyManager.urlTransformer.getKeys === 'function') {
-        cacheKeys.urlTransform = proxyManager.urlTransformer.getKeys(req.query.pattern);
+        cacheKeys.urlTransform = proxyManager.urlTransformer.getKeys(pattern);
       } else if (proxyManager.urlTransformer && proxyManager.urlTransformer.cache) {
         // Fallback: try to access cache directly if getKeys method doesn't exist
         let keys = Array.from(proxyManager.urlTransformer.cache.keys() || []);
         // Apply pattern filtering if specified
-        if (req.query.pattern && req.query.pattern !== '*') {
-          const pattern = req.query.pattern;
+        if (pattern && pattern !== '*') {
           keys = keys.filter(key => {
             if (pattern.includes('*')) {
               const regexPattern = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
@@ -247,13 +269,12 @@ app.get('/api/cache/keys', (req, res) => {
     try {
       const fileResolutionCache = require('./cache/file-resolution-cache');
       if (fileResolutionCache && typeof fileResolutionCache.getKeys === 'function') {
-        cacheKeys.fileResolution = fileResolutionCache.getKeys(req.query.pattern) || [];
+        cacheKeys.fileResolution = fileResolutionCache.getKeys(pattern) || [];
       } else if (fileResolutionCache && fileResolutionCache.cache) {
         // Fallback for older versions
         let keys = Array.from(fileResolutionCache.cache.keys() || []);
         // Apply pattern filtering if specified
-        if (req.query.pattern && req.query.pattern !== '*') {
-          const pattern = req.query.pattern;
+        if (pattern && pattern !== '*') {
           keys = keys.filter(key => {
             if (pattern.includes('*')) {
               const regexPattern = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');

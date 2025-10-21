@@ -101,10 +101,11 @@ function makeRobustRequest(path, headers = {}) {
 
 /**
  * Test the robust HTTP client
+ * Only available in development/debug mode
  */
 async function testRobustClient() {
     console.log('🧪 Testing robust HTTP client...\n');
-    
+
     // Test 1: Health check
     console.log('=== Test 1: Health Check ===');
     try {
@@ -114,7 +115,7 @@ async function testRobustClient() {
     } catch (error) {
         console.log(`❌ Health check failed: ${error.message}`);
     }
-    
+
     console.log('\n=== Test 2: Proxy Request (with Connection: close) ===');
     try {
         const result = await makeRobustRequest('/test.js', {
@@ -126,7 +127,7 @@ async function testRobustClient() {
     } catch (error) {
         console.log(`❌ Proxy request failed: ${error.message}`);
     }
-    
+
     console.log('\n=== Test 3: Simple Proxy Request ===');
     try {
         const result = await makeRobustRequest('/test-path', {
@@ -137,7 +138,7 @@ async function testRobustClient() {
     } catch (error) {
         console.log(`❌ Simple proxy request failed: ${error.message}`);
     }
-    
+
     console.log('\n🎉 Robust HTTP client testing completed!');
 }
 
@@ -146,4 +147,12 @@ if (require.main === module) {
     testRobustClient().catch(console.error);
 }
 
-module.exports = { makeRobustRequest, testRobustClient };
+// Only export test function in development/debug mode
+const exports = { makeRobustRequest };
+
+// Only include testRobustClient in non-production environments
+if (process.env.NODE_ENV !== 'production') {
+    exports.testRobustClient = testRobustClient;
+}
+
+module.exports = exports;
