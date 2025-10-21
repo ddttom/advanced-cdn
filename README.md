@@ -13,7 +13,8 @@ A production-quality Node.js application that provides advanced CDN functionalit
 - **Circuit Breaker Protection**: Automatic protection against failing domains with configurable thresholds and recovery
 - **Clustering Support**: Multi-process operation for optimal performance on multi-core systems
 - **Comprehensive Monitoring**: Health checks, metrics collection, and detailed logging with domain-aware tracking
-- **Security Features**: Rate limiting, security headers, and domain validation
+- **Security Features**: Rate limiting, security headers, domain validation, and comprehensive query parameter sanitization to prevent injection attacks
+- **Response Size Limiting**: Configurable maximum response size to prevent memory exhaustion from oversized backend responses
 - **Production Readiness**: Graceful shutdown, error handling, and performance optimizations
 - **Configurable**: All settings externalizable via environment variables
 - **SSL Support**: HTTPS with optional HTTP-to-HTTPS redirection

@@ -266,8 +266,19 @@ ENABLE_COMPRESSION=true    # Enable gzip compression
 COMPRESSION_LEVEL=6        # Compression level (1-9, higher = better compression)
 COMPRESSION_MIN_SIZE=1024  # Minimum response size to compress (bytes)
 MAX_BODY_SIZE=1mb         # Maximum request body size
+MAX_RESPONSE_SIZE=104857600  # Maximum response size in bytes (default: 100MB)
 REQUEST_TIMEOUT=30000     # Request timeout in milliseconds
 ```
+
+**Response Size Limiting:**
+
+The `MAX_RESPONSE_SIZE` setting protects against memory exhaustion from oversized backend responses:
+
+- Default: 100MB (104857600 bytes)
+- When exceeded, the CDN returns a 413 (Payload Too Large) error
+- The response stream is immediately destroyed to prevent memory issues
+- Recommended: Set this based on your available memory and expected content sizes
+- Example: `MAX_RESPONSE_SIZE=52428800` (50MB)
 
 ## Monitoring Configuration
 

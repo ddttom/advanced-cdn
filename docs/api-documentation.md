@@ -20,10 +20,33 @@ Most management endpoints require local access only (requests from localhost/127
 
 Returns the current health status of the application including domain routing information.
 
-**Request:**
+**Query Parameters:**
+- `detailed` (optional): Set to `true` to get detailed system information
+- `domain` (optional): Check health for a specific domain
+  - Maximum length: 253 characters (valid DNS name)
+  - Allowed characters: alphanumeric, `.`, `-`
+- `testPath` (optional): Path to test for file resolution
+  - Maximum length: 2000 characters
+  - Allowed characters: alphanumeric, `/`, `-`, `_`, `.`
+- `testFileResolution` (optional): Set to `true` to test file resolution
+- `includeFileResolutionTest` (optional): Set to `true` to include file resolution test in domain health
+
+**Request (Basic):**
 
 ```bash
 curl -X GET https://your-cdn-domain.com/health
+```
+
+**Request (Detailed):**
+
+```bash
+curl -X GET "https://your-cdn-domain.com/health?detailed=true"
+```
+
+**Request (Domain-Specific):**
+
+```bash
+curl -X GET "https://your-cdn-domain.com/health?domain=ddt.com"
 ```
 
 **Response (Basic):**
@@ -285,6 +308,11 @@ curl -X GET "http://localhost:8080/api/cache/keys?pattern=GET:*:/images/*"
 
 Purges cache entries with optional pattern matching and domain filtering.
 
+**Query Parameters:**
+- `pattern` (optional): Cache key pattern to match (supports wildcards like `*.css`)
+  - Maximum length: 500 characters
+  - Allowed characters: alphanumeric, `*`, `/`, `-`, `_`, `.`
+
 **Request (Purge All):**
 
 ```bash
@@ -309,7 +337,7 @@ curl -X DELETE "http://localhost:8080/api/cache?domain=ddt.com"
 curl -X DELETE "http://localhost:8080/api/cache?domain=ddt.com&pattern=/images/*"
 ```
 
-**Response:**
+**Success Response:**
 
 ```json
 {
@@ -320,6 +348,20 @@ curl -X DELETE "http://localhost:8080/api/cache?domain=ddt.com&pattern=/images/*
   "prefixesAffected": ["/ddt"]
 }
 ```
+
+**Error Response (Invalid Pattern):**
+
+```json
+{
+  "error": "Invalid cache pattern",
+  "message": "Cache pattern contains invalid characters or is too long"
+}
+```
+
+**Status Codes:**
+- `200`: Cache purged successfully
+- `400`: Invalid query parameters (malformed pattern)
+- `500`: Server error during cache purge
 
 ## Domain Management Endpoints
 
@@ -847,14 +889,45 @@ All endpoints return consistent error responses:
 
 ### 400 Bad Request
 
+Returned when query parameters fail validation or contain invalid/malicious content.
+
+**Invalid Domain Parameter:**
 ```json
 {
-  "error": "Bad Request",
-  "message": "Invalid domain format",
-  "code": "INVALID_DOMAIN",
-  "timestamp": "2024-01-15T10:30:00.000Z"
+  "error": "Invalid domain parameter",
+  "message": "Domain parameter contains invalid characters or is malformed"
 }
 ```
+
+**Invalid Path Parameter:**
+```json
+{
+  "error": "Invalid path parameter",
+  "message": "Path parameter contains invalid characters"
+}
+```
+
+**Invalid Cache Pattern:**
+```json
+{
+  "error": "Invalid cache pattern",
+  "message": "Cache pattern contains invalid characters or is too long"
+}
+```
+
+**Invalid Query Parameters:**
+```json
+{
+  "error": "Invalid query parameters",
+  "message": "Query parameters contain invalid or potentially malicious content"
+}
+```
+
+**Common Validation Rules:**
+- Domain names: Max 253 chars, alphanumeric + `.` + `-`
+- Paths: Max 2000 chars, alphanumeric + `/` + `-` + `_` + `.`
+- Cache patterns: Max 500 chars, alphanumeric + `*` + `/` + `-` + `_` + `.`
+- All parameters are sanitized to prevent injection attacks
 
 ### 403 Forbidden
 
@@ -877,6 +950,34 @@ All endpoints return consistent error responses:
   "timestamp": "2024-01-15T10:30:00.000Z"
 }
 ```
+
+### 413 Payload Too Large
+
+Returned when a backend response exceeds the configured maximum size (`MAX_RESPONSE_SIZE`).
+
+```json
+{
+  "error": "Response size exceeds maximum allowed size",
+  "message": "The backend response is too large to process"
+}
+```
+
+**Plain text response:**
+```
+Response size exceeds maximum allowed size
+```
+
+**When This Occurs:**
+- Backend response exceeds `MAX_RESPONSE_SIZE` (default: 100MB)
+- The CDN immediately stops receiving data and returns this error
+- Prevents memory exhaustion from oversized responses
+- Check logs for actual response size details
+
+**Resolution:**
+- Increase `MAX_RESPONSE_SIZE` in configuration if legitimate large content
+- Optimize backend to return smaller responses
+- Use pagination or chunking for large datasets
+- Compress backend responses when possible
 
 ### 500 Internal Server Error
 

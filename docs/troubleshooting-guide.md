@@ -321,7 +321,190 @@ export CACHE_DOMAIN_AWARE=true
 export CACHE_PATH_PREFIX_AWARE=true
 ```
 
-### 5. Circuit Breaker Issues
+### 5. Invalid Query Parameter Errors (400 Bad Request)
+
+**Symptoms:**
+
+- API requests returning 400 errors
+- Error messages about "invalid parameters" or "invalid characters"
+- Management endpoints rejecting requests
+
+**Diagnostic Steps:**
+
+```bash
+# Test with invalid pattern
+curl -X DELETE "http://localhost:8080/api/cache?pattern=../../../etc/passwd"
+# Should return 400 error
+
+# Test with valid pattern
+curl -X DELETE "http://localhost:8080/api/cache?pattern=*.css"
+# Should work correctly
+
+# Test health check with invalid domain
+curl "http://localhost:8080/health?domain=test<script>alert(1)</script>"
+# Should return 400 error
+```
+
+**Common Causes and Solutions:**
+
+#### Cause 1: Invalid Characters in Query Parameters
+
+All query parameters are sanitized to prevent injection attacks. Parameters with invalid characters are rejected.
+
+**Valid Characters by Parameter Type:**
+- **Domain parameters**: alphanumeric, `.`, `-` (max 253 chars)
+- **Path parameters**: alphanumeric, `/`, `-`, `_`, `.` (max 2000 chars)
+- **Cache patterns**: alphanumeric, `*`, `/`, `-`, `_`, `.` (max 500 chars)
+- **General parameters**: alphanumeric, `_`, `-`, `.`, `*`, space, `,`, `/`, `:` (max 1000 chars)
+
+**Solution:**
+```bash
+# Bad: Contains invalid characters
+curl "http://localhost:8080/api/cache?pattern=<script>alert(1)</script>"
+
+# Good: Only valid characters
+curl "http://localhost:8080/api/cache?pattern=*.js"
+curl "http://localhost:8080/api/cache?pattern=/images/*"
+```
+
+#### Cause 2: Parameter Length Exceeded
+
+**Solution:**
+```bash
+# Check parameter length
+# Domain: max 253 characters
+# Path: max 2000 characters
+# Cache pattern: max 500 characters
+
+# If you need longer patterns, use multiple smaller requests
+```
+
+#### Cause 3: Malformed URL Encoding
+
+**Solution:**
+```bash
+# Bad: Unencoded special characters
+curl "http://localhost:8080/api/cache?pattern=/path with spaces/"
+
+# Good: Properly URL-encoded
+curl "http://localhost:8080/api/cache?pattern=%2Fpath%20with%20spaces%2F"
+
+# Or use curl's --data-urlencode flag
+curl -G "http://localhost:8080/api/cache" \
+  --data-urlencode "pattern=/path with spaces/"
+```
+
+**Example Error Response:**
+```json
+{
+  "error": "Invalid cache pattern",
+  "message": "Cache pattern contains invalid characters or is too long"
+}
+```
+
+### 6. Response Size Exceeded (413 Payload Too Large)
+
+**Symptoms:**
+
+- Requests failing with 413 status code
+- Error message "Response size exceeds maximum allowed size"
+- Large content not being served
+- Logs showing "Response size exceeded limit"
+
+**Diagnostic Steps:**
+
+```bash
+# Check configured limit
+grep MAX_RESPONSE_SIZE .env
+# Default: 104857600 (100MB)
+
+# Check logs for size details
+grep "Response size exceeded" logs/app.log
+
+# Test with smaller content
+curl -I http://localhost:8080/small-file.html
+# Should return 200 OK
+
+# Try the large file
+curl -I http://localhost:8080/large-file.zip
+# May return 413 if too large
+```
+
+**Common Causes and Solutions:**
+
+#### Cause 1: Backend Returns Oversized Responses
+
+The CDN protects against memory exhaustion by limiting response sizes.
+
+**Solution 1: Increase Limit (if legitimate large content)**
+```bash
+# Set higher limit (e.g., 200MB)
+export MAX_RESPONSE_SIZE=209715200
+
+# Restart application
+pm2 restart cdn-proxy
+```
+
+**Solution 2: Optimize Backend Responses**
+```bash
+# Enable compression on backend
+# Use pagination for large datasets
+# Split large files into chunks
+# Implement range requests for large files
+```
+
+#### Cause 2: Uncompressed Large Content
+
+**Solution:**
+```bash
+# Ensure backend compression is enabled
+# Check backend response headers
+curl -I http://backend.example.com/large-file.js | grep -i content-encoding
+# Should show: content-encoding: gzip
+
+# If not compressed, enable compression on backend
+# nginx example:
+# gzip on;
+# gzip_types text/plain text/css application/javascript;
+```
+
+#### Cause 3: Memory Constraints
+
+If you can't increase `MAX_RESPONSE_SIZE` due to memory limits:
+
+**Solution:**
+```bash
+# Use direct backend links for very large files
+# Implement CDN bypass for large content
+# Add nginx in front to handle large files
+# Use object storage (S3, CloudFront) for large assets
+
+# Example nginx config for large files:
+# location /downloads/ {
+#   proxy_max_temp_file_size 0;
+#   proxy_pass http://backend;
+# }
+```
+
+**Example Configuration:**
+```bash
+# For typical web assets (default)
+MAX_RESPONSE_SIZE=104857600  # 100MB
+
+# For file downloads
+MAX_RESPONSE_SIZE=524288000  # 500MB
+
+# For video streaming (not recommended, use proper CDN)
+MAX_RESPONSE_SIZE=1073741824  # 1GB
+```
+
+**Prevention:**
+- Set appropriate `MAX_RESPONSE_SIZE` based on expected content
+- Monitor response sizes using `/metrics` endpoint
+- Implement content-specific routing (large files → different backend)
+- Use proper CDN for large media files
+
+### 7. Circuit Breaker Issues
 
 **Symptoms:**
 
