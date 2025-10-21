@@ -9,9 +9,8 @@ const https = require('https');
 const path = require('path');
 
 // Load configuration and modules
-console.log('Loading configuration...');
+// Note: logger is loaded after config, so we can't use it for config loading messages
 const config = require('./config');
-console.log('Configuration loaded successfully');
 // Restart trigger 2
 const logger = require('./logger');
 const cacheManager = require('./cache/cache-manager');
@@ -21,6 +20,7 @@ const healthManager = require('./monitoring/health-manager');
 const rateLimiter = require('./middleware/rate-limiter');
 const domainManager = require('./domain/domain-manager');
 const DashboardIntegration = require('./dashboard/dashboard-integration');
+const { sanitizeCachePattern } = require('./utils/input-sanitizer');
 
 // Create Express app
 const app = express();
@@ -106,7 +106,7 @@ app.use('/api/cache', (req, res, next) => {
 // Cache purge endpoint
 app.delete('/api/cache', (req, res) => {
   try {
-    const pattern = req.query.pattern || '*';
+    const pattern = sanitizeCachePattern(req.query.pattern);
     const result = cacheManager.purge(pattern);
     res.status(200).json(result);
   } catch (err) {
@@ -196,6 +196,9 @@ app.get('/api/cache/file-resolution/stats', (req, res) => {
 // Cache keys listing endpoint - lists keys in all caches
 app.get('/api/cache/keys', (req, res) => {
   try {
+    // Sanitize query pattern
+    const sanitizedPattern = sanitizeCachePattern(req.query.pattern);
+
     const cacheKeys = {
       main: [],
       urlTransform: [],
@@ -205,7 +208,7 @@ app.get('/api/cache/keys', (req, res) => {
 
     // Get main cache keys
     try {
-      cacheKeys.main = cacheManager.getKeys(req.query.pattern) || [];
+      cacheKeys.main = cacheManager.getKeys(sanitizedPattern) || [];
     } catch (error) {
       errors.push({
         cache: 'main',
@@ -217,13 +220,13 @@ app.get('/api/cache/keys', (req, res) => {
     // Get URL transformation cache keys
     try {
       if (proxyManager.urlTransformer && typeof proxyManager.urlTransformer.getKeys === 'function') {
-        cacheKeys.urlTransform = proxyManager.urlTransformer.getKeys(req.query.pattern);
+        cacheKeys.urlTransform = proxyManager.urlTransformer.getKeys(sanitizedPattern);
       } else if (proxyManager.urlTransformer && proxyManager.urlTransformer.cache) {
         // Fallback: try to access cache directly if getKeys method doesn't exist
         let keys = Array.from(proxyManager.urlTransformer.cache.keys() || []);
         // Apply pattern filtering if specified
-        if (req.query.pattern && req.query.pattern !== '*') {
-          const pattern = req.query.pattern;
+        if (sanitizedPattern && sanitizedPattern !== '*') {
+          const pattern = sanitizedPattern;
           keys = keys.filter(key => {
             if (pattern.includes('*')) {
               const regexPattern = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
@@ -247,13 +250,13 @@ app.get('/api/cache/keys', (req, res) => {
     try {
       const fileResolutionCache = require('./cache/file-resolution-cache');
       if (fileResolutionCache && typeof fileResolutionCache.getKeys === 'function') {
-        cacheKeys.fileResolution = fileResolutionCache.getKeys(req.query.pattern) || [];
+        cacheKeys.fileResolution = fileResolutionCache.getKeys(sanitizedPattern) || [];
       } else if (fileResolutionCache && fileResolutionCache.cache) {
         // Fallback for older versions
         let keys = Array.from(fileResolutionCache.cache.keys() || []);
         // Apply pattern filtering if specified
-        if (req.query.pattern && req.query.pattern !== '*') {
-          const pattern = req.query.pattern;
+        if (sanitizedPattern && sanitizedPattern !== '*') {
+          const pattern = sanitizedPattern;
           keys = keys.filter(key => {
             if (pattern.includes('*')) {
               const regexPattern = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
@@ -528,11 +531,10 @@ function gracefulShutdown(server, signal) {
 }
 
 // Start the server (if not in a cluster)
-console.log('Checking cluster configuration:', config.server.cluster.enabled);
+logger.info('Checking cluster configuration', { clusterEnabled: config.server.cluster.enabled });
 if (!config.server.cluster.enabled) {
-  console.log('Starting server in non-cluster mode...');
-  logger.info('Starting server...');
-  
+  logger.info('Starting server in non-cluster mode');
+
   // Initialize dashboard integration before starting server
   dashboardIntegration.initialize()
     .then(() => {
@@ -545,7 +547,7 @@ if (!config.server.cluster.enabled) {
       startServer();
     });
 } else {
-  console.log('Cluster mode enabled, exporting app and startServer');
+  logger.info('Cluster mode enabled, exporting app and startServer');
   // In cluster mode, the cluster-manager.js handles starting
   // This just exports the app and start function
   module.exports = { app, startServer };

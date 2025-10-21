@@ -5,8 +5,5 @@
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
 // Start the cluster manager
+// Note: Logging initialization happens in cluster-manager.js
 require('./cluster-manager').startCluster();
-
-// This file serves as a simple entry point
-// The actual initialization happens in cluster-manager.js
-console.log(`Starting Advanced CDN in ${process.env.NODE_ENV} mode`);

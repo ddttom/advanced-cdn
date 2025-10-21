@@ -235,6 +235,8 @@ const config = {
     compressionMinSize: parseInt(process.env.COMPRESSION_MIN_SIZE || '1024', 10),
     // Maximum request body size
     maxBodySize: process.env.MAX_BODY_SIZE || '1mb',
+    // Maximum response size in bytes (100MB default)
+    maxResponseSize: parseInt(process.env.MAX_RESPONSE_SIZE || '104857600', 10),
     // Request timeout in milliseconds
     timeout: parseInt(process.env.REQUEST_TIMEOUT || '30000', 10)
   },

@@ -1,6 +1,7 @@
 // robust-http-client.js - Improved HTTP client with better error handling
 const http = require('http');
 const config = require('../config');
+const logger = require('../logger').getModuleLogger('robust-http-client');
 
 /**
  * Make HTTP request with robust error handling and connection management
@@ -19,24 +20,29 @@ function makeRobustRequest(path, headers = {}) {
             }
         };
         
-        console.log(`🔍 Making robust request to: ${options.hostname}:${options.port}${options.path}`);
-        console.log(`📋 Headers: ${JSON.stringify(options.headers, null, 2)}`);
-        
+        logger.debug('Making robust request', {
+            url: `${options.hostname}:${options.port}${options.path}`,
+            headers: options.headers
+        });
+
         const req = http.request(options, (res) => {
-            console.log(`📥 Response received: ${res.statusCode} ${res.statusMessage}`);
-            console.log(`📋 Response headers: ${JSON.stringify(res.headers, null, 2)}`);
+            logger.debug('Response received', {
+                statusCode: res.statusCode,
+                statusMessage: res.statusMessage,
+                headers: res.headers
+            });
             
             let data = Buffer.alloc(0);
             let chunkCount = 0;
             
             res.on('data', (chunk) => {
                 chunkCount++;
-                console.log(`📦 Chunk ${chunkCount}: ${chunk.length} bytes`);
+                logger.debug(`Chunk received`, { chunkNumber: chunkCount, bytes: chunk.length });
                 data = Buffer.concat([data, chunk]);
             });
             
             res.on('end', () => {
-                console.log(`✅ Response complete: ${data.length} total bytes`);
+                logger.debug('Response complete', { totalBytes: data.length });
                 
                 // Convert buffer to string for text responses
                 let responseData = data;
@@ -56,32 +62,35 @@ function makeRobustRequest(path, headers = {}) {
             });
             
             res.on('error', (error) => {
-                console.log(`❌ Response stream error: ${error.message}`);
+                logger.error('Response stream error', { error: error.message });
                 reject(error);
             });
             
             // Handle aborted responses
             res.on('aborted', () => {
-                console.log(`⚠️ Response aborted`);
+                logger.warn('Response aborted');
                 reject(new Error('Response aborted'));
             });
         });
         
         req.on('error', (error) => {
-            console.log(`❌ Request error: ${error.message}`);
-            console.log(`❌ Error code: ${error.code}`);
-            
+            logger.error('Request error', {
+                error: error.message,
+                code: error.code
+            });
+
             // Provide more specific error information
             if (error.code === 'HPE_INVALID_CONSTANT') {
-                console.log(`❌ HTTP Parse Error: This usually indicates malformed HTTP response data`);
-                console.log(`❌ Bytes parsed: ${error.bytesParsed || 'unknown'}`);
+                logger.error('HTTP Parse Error - malformed HTTP response data', {
+                    bytesParsed: error.bytesParsed || 'unknown'
+                });
             }
-            
+
             reject(error);
         });
         
         req.on('timeout', () => {
-            console.log(`⏰ Request timeout`);
+            logger.warn('Request timeout');
             req.destroy();
             reject(new Error('Request timeout'));
         });
@@ -89,7 +98,7 @@ function makeRobustRequest(path, headers = {}) {
         // Handle socket errors
         req.on('socket', (socket) => {
             socket.on('error', (error) => {
-                console.log(`❌ Socket error: ${error.message}`);
+                logger.error('Socket error', { error: error.message });
                 reject(error);
             });
         });
@@ -103,42 +112,48 @@ function makeRobustRequest(path, headers = {}) {
  * Test the robust HTTP client
  */
 async function testRobustClient() {
-    console.log('🧪 Testing robust HTTP client...\n');
-    
+    logger.info('Testing robust HTTP client...');
+
     // Test 1: Health check
-    console.log('=== Test 1: Health Check ===');
+    logger.info('=== Test 1: Health Check ===');
     try {
         const result = await makeRobustRequest('/health');
-        console.log(`✅ Health check successful: ${result.statusCode}`);
-        console.log(`📊 Response size: ${result.rawData.length} bytes`);
+        logger.info('Health check successful', {
+            statusCode: result.statusCode,
+            responseSize: result.rawData.length
+        });
     } catch (error) {
-        console.log(`❌ Health check failed: ${error.message}`);
+        logger.error('Health check failed', { error: error.message });
     }
-    
-    console.log('\n=== Test 2: Proxy Request (with Connection: close) ===');
+
+    logger.info('=== Test 2: Proxy Request (with Connection: close) ===');
     try {
         const result = await makeRobustRequest('/test.js', {
             'Host': 'example.ddt.com:3000',
             'Accept-Encoding': 'gzip'
         });
-        console.log(`✅ Proxy request successful: ${result.statusCode}`);
-        console.log(`📊 Response size: ${result.rawData.length} bytes`);
+        logger.info('Proxy request successful', {
+            statusCode: result.statusCode,
+            responseSize: result.rawData.length
+        });
     } catch (error) {
-        console.log(`❌ Proxy request failed: ${error.message}`);
+        logger.error('Proxy request failed', { error: error.message });
     }
-    
-    console.log('\n=== Test 3: Simple Proxy Request ===');
+
+    logger.info('=== Test 3: Simple Proxy Request ===');
     try {
         const result = await makeRobustRequest('/test-path', {
             'Host': 'example.ddt.com:3000'
         });
-        console.log(`✅ Simple proxy request successful: ${result.statusCode}`);
-        console.log(`📊 Response size: ${result.rawData.length} bytes`);
+        logger.info('Simple proxy request successful', {
+            statusCode: result.statusCode,
+            responseSize: result.rawData.length
+        });
     } catch (error) {
-        console.log(`❌ Simple proxy request failed: ${error.message}`);
+        logger.error('Simple proxy request failed', { error: error.message });
     }
-    
-    console.log('\n🎉 Robust HTTP client testing completed!');
+
+    logger.info('Robust HTTP client testing completed!');
 }
 
 // Run tests if called directly
