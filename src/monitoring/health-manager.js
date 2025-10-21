@@ -531,8 +531,7 @@ class HealthManager {
       
       // Check for file resolution test
       const testFileResolution = req.query.testFileResolution;
-      const testDomain = req.query.testDomain;
-      const testPath = req.query.testPath;
+      const {testDomain, testPath} = req.query;
       
       if (testFileResolution === 'true' && testDomain) {
         const fileResolutionTest = await this.testFileResolution(testDomain, testPath);
