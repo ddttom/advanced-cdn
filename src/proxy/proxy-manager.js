@@ -339,9 +339,38 @@ class ProxyManager {
     const contentEncoding = proxyRes.headers['content-encoding'];
     const contentType = proxyRes.headers['content-type'] || '';
     let chunks = [];
+    let totalSize = 0;
     let responseHandled = false; // Track if response has been sent
-    
+    const maxResponseSize = config.performance.maxResponseSize;
+
     proxyRes.on('data', (chunk) => {
+      totalSize += chunk.length;
+
+      // Check if response size exceeds limit
+      if (totalSize > maxResponseSize) {
+        logger.error('Response size limit exceeded', {
+          url: req.url,
+          totalSize,
+          maxResponseSize,
+          contentType
+        });
+
+        // Destroy the response stream
+        proxyRes.destroy();
+
+        // Send error response if not already sent
+        if (!responseHandled && !res.headersSent) {
+          responseHandled = true;
+          res.status(413).json({
+            error: 'Payload Too Large',
+            message: 'Response size exceeds maximum allowed size',
+            maxSize: maxResponseSize,
+            actualSize: totalSize
+          });
+        }
+        return;
+      }
+
       chunks.push(chunk);
     });
     

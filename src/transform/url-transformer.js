@@ -705,22 +705,24 @@ class URLTransformer {
    * @returns {Boolean} Whether domain should be proxied
    */
   shouldProxyDomain(hostname, pathTransformation) {
+    // Get configuration for origin domain
+    const config = require('../config');
+
     // Check if this is the origin domain that should be proxied
-    if (hostname === 'allabout.network') {
+    if (hostname === config.cdn.originDomain) {
       return true;
     }
-    
+
     // If we have path transformation info, check if this domain is configured
     if (pathTransformation && pathTransformation.domainManager) {
       return pathTransformation.domainManager.hasPathRewriting(hostname);
     }
-    
+
     // Check if this domain is in the additional domains list
-    const config = require('../config');
     if (config.cdn.additionalDomains && config.cdn.additionalDomains.includes(hostname)) {
       return true;
     }
-    
+
     // Default: don't proxy external domains
     return false;
   }
@@ -733,11 +735,14 @@ class URLTransformer {
    * @returns {String} Transformed path
    */
   getTransformedPathForDomain(hostname, pathname, pathTransformation) {
-    // Handle allabout.network domain - route directly through proxy
-    if (hostname === 'allabout.network') {
+    // Get configuration for origin domain
+    const config = require('../config');
+
+    // Handle origin domain - route directly through proxy
+    if (hostname === config.cdn.originDomain) {
       return pathname; // Keep the original path
     }
-    
+
     // If we have domain manager access, use it for path transformation
     if (pathTransformation && pathTransformation.domainManager) {
       try {
@@ -751,7 +756,7 @@ class URLTransformer {
         });
       }
     }
-    
+
     // Fallback to original pathname
     return pathname;
   }

@@ -8,6 +8,7 @@ const fileResolver = require('../domain/file-resolver');
 const fileResolutionCache = require('../cache/file-resolution-cache');
 const transformerManager = require('../transform/transformers');
 const { version } = require('../../package.json');
+const { sanitizeString, sanitizeQueryParams } = require('../utils/input-sanitizer');
 
 class HealthManager {
   constructor() {
@@ -528,33 +529,38 @@ class HealthManager {
       
       // Set request flag to skip proxy
       req.skipProxy = true;
-      
+
+      // Sanitize query parameters
+      const params = sanitizeQueryParams(req.query, {
+        testFileResolution: { type: 'boolean', default: false },
+        testDomain: { type: 'string', options: { maxLength: 253, allowDot: true, allowDash: true } },
+        testPath: { type: 'string', options: { maxLength: 2048, allowSlash: true, allowDot: true, allowDash: true } },
+        domain: { type: 'string', options: { maxLength: 253, allowDot: true, allowDash: true } },
+        includeFileResolutionTest: { type: 'boolean', default: false },
+        detailed: { type: 'boolean', default: false }
+      });
+
       // Check for file resolution test
-      const testFileResolution = req.query.testFileResolution;
-      const testDomain = req.query.testDomain;
-      const testPath = req.query.testPath;
-      
-      if (testFileResolution === 'true' && testDomain) {
-        const fileResolutionTest = await this.testFileResolution(testDomain, testPath);
+      if (params.testFileResolution && params.testDomain) {
+        const fileResolutionTest = await this.testFileResolution(params.testDomain, params.testPath || '/');
         return res.status(200).json(fileResolutionTest);
       }
-      
+
       // Check for domain-specific health check
-      const checkDomain = req.query.domain;
-      if (checkDomain) {
-        const domainHealth = this.getDomainSpecificHealth(checkDomain);
-        
+      if (params.domain) {
+        const domainHealth = this.getDomainSpecificHealth(params.domain);
+
         // Add file resolution test if requested
-        if (req.query.includeFileResolutionTest === 'true' && this.fileResolutionEnabled) {
-          domainHealth.fileResolutionTest = await this.testFileResolution(checkDomain, req.query.testPath);
+        if (params.includeFileResolutionTest && this.fileResolutionEnabled) {
+          domainHealth.fileResolutionTest = await this.testFileResolution(params.domain, params.testPath || '/');
         }
-        
+
         return res.status(200).json(domainHealth);
       }
-      
+
       // Get detailed health info if requested
       let health;
-      if (this.detailed || req.query.detailed === 'true') {
+      if (this.detailed || params.detailed) {
         health = await this.getDetailedHealth();
       } else {
         health = this.getBasicHealth();
