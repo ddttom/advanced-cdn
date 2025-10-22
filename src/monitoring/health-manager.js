@@ -8,6 +8,7 @@ const fileResolver = require('../domain/file-resolver');
 const fileResolutionCache = require('../cache/file-resolution-cache');
 const transformerManager = require('../transform/transformers');
 const { version } = require('../../package.json');
+const { sanitizeDomain, sanitizePath, validateQueryValue } = require('../proxy/query-sanitizer');
 
 class HealthManager {
   constructor() {
@@ -525,33 +526,74 @@ class HealthManager {
       if (!this.enabled) {
         return res.status(404).send('Health check not enabled');
       }
-      
+
       // Set request flag to skip proxy
       req.skipProxy = true;
-      
-      // Check for file resolution test
+
+      // Sanitize and validate query parameters
       const testFileResolution = req.query.testFileResolution;
-      const testDomain = req.query.testDomain;
-      const testPath = req.query.testPath;
-      
+      let testDomain = req.query.testDomain;
+      let testPath = req.query.testPath;
+
+      // Sanitize domain if provided
+      if (testDomain) {
+        testDomain = sanitizeDomain(testDomain);
+        if (testDomain === null) {
+          return res.status(400).json({
+            error: 'Invalid domain parameter',
+            message: 'Domain parameter contains invalid characters or is malformed'
+          });
+        }
+      }
+
+      // Sanitize path if provided
+      if (testPath) {
+        testPath = sanitizePath(testPath);
+        if (testPath === null) {
+          return res.status(400).json({
+            error: 'Invalid path parameter',
+            message: 'Path parameter contains invalid characters'
+          });
+        }
+      }
+
+      // Check for file resolution test
       if (testFileResolution === 'true' && testDomain) {
         const fileResolutionTest = await this.testFileResolution(testDomain, testPath);
         return res.status(200).json(fileResolutionTest);
       }
-      
+
       // Check for domain-specific health check
-      const checkDomain = req.query.domain;
+      let checkDomain = req.query.domain;
       if (checkDomain) {
+        checkDomain = sanitizeDomain(checkDomain);
+        if (checkDomain === null) {
+          return res.status(400).json({
+            error: 'Invalid domain parameter',
+            message: 'Domain parameter contains invalid characters or is malformed'
+          });
+        }
+
         const domainHealth = this.getDomainSpecificHealth(checkDomain);
-        
+
         // Add file resolution test if requested
         if (req.query.includeFileResolutionTest === 'true' && this.fileResolutionEnabled) {
-          domainHealth.fileResolutionTest = await this.testFileResolution(checkDomain, req.query.testPath);
+          let testPathForDomain = req.query.testPath;
+          if (testPathForDomain) {
+            testPathForDomain = sanitizePath(testPathForDomain);
+            if (testPathForDomain === null) {
+              return res.status(400).json({
+                error: 'Invalid path parameter',
+                message: 'Path parameter contains invalid characters'
+              });
+            }
+          }
+          domainHealth.fileResolutionTest = await this.testFileResolution(checkDomain, testPathForDomain);
         }
-        
+
         return res.status(200).json(domainHealth);
       }
-      
+
       // Get detailed health info if requested
       let health;
       if (this.detailed || req.query.detailed === 'true') {

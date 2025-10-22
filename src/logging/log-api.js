@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { body, query, param, validationResult } = require('express-validator');
+const { validateQueryValue } = require('../proxy/query-sanitizer');
 
 /**
  * RESTful Log Management API
@@ -300,10 +301,39 @@ class LogAPI {
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-      
+
       const { subsystem } = req.params;
-      const { limit = 100, offset = 0, startDate, endDate } = req.query;
-      
+      let { limit = 100, offset = 0, startDate, endDate } = req.query;
+
+      // Sanitize and validate query parameters
+      if (limit && !validateQueryValue(String(limit), { pattern: /^\d+$/, maxLength: 10 })) {
+        return res.status(400).json({
+          error: 'Invalid limit parameter',
+          message: 'Limit must be a valid positive number'
+        });
+      }
+
+      if (offset && !validateQueryValue(String(offset), { pattern: /^\d+$/, maxLength: 10 })) {
+        return res.status(400).json({
+          error: 'Invalid offset parameter',
+          message: 'Offset must be a valid positive number'
+        });
+      }
+
+      if (startDate && !validateQueryValue(startDate, { pattern: /^[\d\-T:.Z]+$/, maxLength: 30 })) {
+        return res.status(400).json({
+          error: 'Invalid startDate parameter',
+          message: 'Start date must be a valid ISO date string'
+        });
+      }
+
+      if (endDate && !validateQueryValue(endDate, { pattern: /^[\d\-T:.Z]+$/, maxLength: 30 })) {
+        return res.status(400).json({
+          error: 'Invalid endDate parameter',
+          message: 'End date must be a valid ISO date string'
+        });
+      }
+
       const searchQuery = {
         subsystems: [subsystem],
         startDate,
@@ -361,13 +391,21 @@ class LogAPI {
   async getSubsystemAnalytics(req, res) {
     try {
       const { subsystem } = req.params;
-      const { period = 'day' } = req.query;
-      
+      let { period = 'day' } = req.query;
+
+      // Sanitize period parameter
+      if (period && !validateQueryValue(period, { pattern: /^(hour|day|week|month)$/, maxLength: 10 })) {
+        return res.status(400).json({
+          error: 'Invalid period parameter',
+          message: 'Period must be one of: hour, day, week, month'
+        });
+      }
+
       const logger = this.logManager.getSubsystemLogger(subsystem);
       if (!logger) {
         return res.status(404).json({ error: 'Subsystem not found' });
       }
-      
+
       const periodMs = this.getPeriodMs(period);
       const startDate = new Date(Date.now() - periodMs);
       

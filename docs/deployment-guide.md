@@ -63,6 +63,7 @@ CACHE_CHECK_PERIOD=120
 ### Installation Steps
 
 1. **Server Setup**:
+
    ```bash
    # Update system packages
    sudo apt update && sudo apt upgrade -y
@@ -76,6 +77,7 @@ CACHE_CHECK_PERIOD=120
    ```
 
 2. **Application Deployment**:
+
    ```bash
    # Clone repository
    git clone <repository-url> /opt/advanced-cdn
@@ -93,6 +95,7 @@ CACHE_CHECK_PERIOD=120
    ```
 
 3. **Configuration**:
+
    ```bash
    # Copy and configure environment file
    cp config/env-example.txt .env
@@ -102,6 +105,7 @@ CACHE_CHECK_PERIOD=120
    ```
 
 4. **SSL Certificate Setup** (if using HTTPS):
+
    ```bash
    # For Let's Encrypt certificates
    sudo apt install certbot
@@ -256,6 +260,7 @@ server {
 ### System-Level Monitoring
 
 1. **Memory Usage Monitoring**:
+
    ```bash
    # Create monitoring script
    cat > /opt/advanced-cdn/scripts/memory-monitor.sh << 'EOF'
@@ -285,6 +290,7 @@ server {
    ```
 
 2. **PM2 Memory Monitoring**:
+
    ```bash
    # Monitor PM2 processes
    pm2 monit
@@ -317,6 +323,7 @@ SHUTDOWN_LOGGING_ENABLED=true
 ### Memory Leak Detection
 
 1. **Enable Debug Logging**:
+
    ```bash
    # Temporarily enable debug mode
    pm2 set advanced-cdn NODE_ENV development
@@ -325,6 +332,7 @@ SHUTDOWN_LOGGING_ENABLED=true
    ```
 
 2. **Monitor Memory Growth**:
+
    ```bash
    # Watch memory usage in real-time
    watch -n 5 'ps -o pid,ppid,cmd,%mem --sort=-%mem | grep node'
@@ -334,6 +342,7 @@ SHUTDOWN_LOGGING_ENABLED=true
    ```
 
 3. **Heap Dump Analysis**:
+
    ```bash
    # Generate heap dump
    kill -USR2 $(pgrep -f cluster-manager)
@@ -367,6 +376,7 @@ SHUTDOWN_LOGGING_ENABLED=true
 ### System Security
 
 1. **User Permissions**:
+
    ```bash
    # Create dedicated user
    sudo useradd -r -s /bin/false -d /opt/advanced-cdn node
@@ -377,6 +387,7 @@ SHUTDOWN_LOGGING_ENABLED=true
    ```
 
 2. **Firewall Configuration**:
+
    ```bash
    # Configure UFW firewall
    sudo ufw enable
@@ -387,6 +398,7 @@ SHUTDOWN_LOGGING_ENABLED=true
    ```
 
 3. **File Permissions**:
+
    ```bash
    # Secure configuration files
    chmod 600 .env
@@ -447,6 +459,7 @@ echo "0 2 * * * /opt/advanced-cdn/scripts/backup-config.sh" | crontab -
 ### Disaster Recovery
 
 1. **Application Recovery**:
+
    ```bash
    # Stop application
    pm2 stop advanced-cdn
@@ -500,12 +513,14 @@ The application exposes Prometheus metrics at `/metrics`. Configure your monitor
 ### Memory Optimization
 
 1. **Node.js Flags**:
+
    ```bash
    # Optimize for memory usage
    node --max-old-space-size=2048 --max-semi-space-size=256 --optimize-for-size src/cluster-manager.js
    ```
 
 2. **Cache Tuning**:
+
    ```bash
    # Optimize cache settings for available memory
    CACHE_MAX_ITEMS=5000      # Adjust based on available memory
@@ -514,6 +529,7 @@ The application exposes Prometheus metrics at `/metrics`. Configure your monitor
    ```
 
 3. **Clustering**:
+
    ```bash
    # Optimize worker count for available CPU/memory
    CLUSTER_WORKERS=4         # Or 0 for auto-detection

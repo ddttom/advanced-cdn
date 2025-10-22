@@ -28,6 +28,7 @@ URL_TRANSFORM_DEBUG=true                # Enable detailed debug logging
 ### Content Types
 
 The system transforms URLs in these content types by default:
+
 - `text/html`
 - `application/xhtml+xml`
 - `text/javascript`
@@ -42,6 +43,7 @@ The system transforms URLs in these content types by default:
 The system detects URLs in multiple contexts:
 
 **HTML Attributes:**
+
 - `href` attributes in links
 - `src` attributes in images, scripts, iframes
 - `action` attributes in forms
@@ -49,9 +51,11 @@ The system detects URLs in multiple contexts:
 - `style` attributes with `url()` functions
 
 **Text Content:**
+
 - URLs appearing as text content within HTML elements
 
 **JavaScript:**
+
 - `fetch()` calls
 - `import()` statements
 - `new URL()` constructors
@@ -59,6 +63,7 @@ The system detects URLs in multiple contexts:
 - AJAX library calls
 
 **CSS:**
+
 - `url()` functions
 - `@import` statements
 - Background images and fonts
@@ -73,11 +78,13 @@ The system detects URLs in multiple contexts:
 ### Example Transformation
 
 **Original HTML:**
+
 ```html
 <p>My Blog is here <a href="https://allabout.network/blogs/ddt/">https://allabout.network/blogs/ddt/</a></p>
 ```
 
 **Transformed HTML:**
+
 ```html
 <p>My Blog is here <a href="https://your-proxy-domain.com/blogs/ddt/">https://your-proxy-domain.com/blogs/ddt/</a></p>
 ```
@@ -194,6 +201,7 @@ This will test the exact HTML from your use case and show detailed transformatio
 ## Integration
 
 The URL transformation system integrates seamlessly with:
+
 - **Proxy Manager**: Transforms content during response processing
 - **Cache Manager**: Caches transformed content
 - **Domain Manager**: Uses domain routing logic

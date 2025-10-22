@@ -7,6 +7,7 @@ This document outlines the comprehensive URL transformation system that automati
 **Status: IMPLEMENTED ✅**
 
 The URL transformation system has been successfully implemented with the following key features:
+
 - **Protocol-Aware Transformation**: HTTP requests transform URLs to HTTP, HTTPS requests transform URLs to HTTPS
 - **JavaScript String Literals Support**: Fixed regex patterns to properly handle JavaScript URLs without syntax corruption
 - **Protocol-Aware Caching**: Separate cache entries for HTTP and HTTPS transformations
@@ -16,6 +17,7 @@ The URL transformation system has been successfully implemented with the followi
 ## System Requirements
 
 ### Core Functionality
+
 - **Comprehensive URL Detection**: Detect all URL types in HTML content (href, src, action, etc.)
 - **URL Masking**: Transform URLs to route through proxy while hiding origin server details
 - **Content Type Support**: Handle HTML, JavaScript, and CSS embedded URLs
@@ -24,6 +26,7 @@ The URL transformation system has been successfully implemented with the followi
 - **Session Preservation**: Maintain session state and cookies during transformation
 
 ### Integration Requirements
+
 - **Existing Architecture**: Integrate with current proxy-manager.js, domain-manager.js, and path-rewriter.js
 - **Performance**: Minimal impact on response times with intelligent caching
 - **Monitoring**: Full integration with existing metrics and logging systems
@@ -48,6 +51,7 @@ class URLTransformer {
 ```
 
 **Key Features:**
+
 - **Multi-format Support**: HTML, JavaScript, CSS content transformation
 - **Pattern-based Detection**: Regex patterns for different URL contexts
 - **Intelligent Caching**: Cache transformation results for performance
@@ -57,17 +61,20 @@ class URLTransformer {
 ### 2. URL Detection Patterns
 
 **HTML Patterns:**
+
 - Standard attributes: `href`, `src`, `action`, `formaction`, `data-*`
 - Style attributes: `background`, `background-image`, `content`
 - Meta tags: `content` attribute in meta refresh, canonical links
 
 **JavaScript Patterns:**
+
 - String literals containing URLs
 - Dynamic URL construction
 - AJAX endpoints and fetch calls
 - Import statements and dynamic imports
 
 **CSS Patterns:**
+
 - `url()` functions in stylesheets
 - `@import` statements
 - Background images and fonts
@@ -75,6 +82,7 @@ class URLTransformer {
 ### 3. URL Transformation Logic
 
 **URL Classification:**
+
 ```javascript
 const urlTypes = {
   ABSOLUTE: 'https://example.com/path',
@@ -87,6 +95,7 @@ const urlTypes = {
 ```
 
 **Transformation Strategy:**
+
 1. **Parse URL**: Extract components (protocol, host, path, query, fragment)
 2. **Apply Domain Mapping**: Use existing path-rewriter logic for domain routing
 3. **Construct Proxy URL**: Build new URL routing through proxy
@@ -96,18 +105,21 @@ const urlTypes = {
 ### 4. Integration Points
 
 **Proxy Manager Integration:**
+
 - Hook into `handleProxyResponse()` method
 - Transform content before caching
 - Apply transformations based on content-type
 - Maintain response headers and status codes
 
 **Domain Manager Integration:**
+
 - Leverage existing domain routing logic
 - Use path transformation rules
 - Respect domain-specific configurations
 - Maintain backward compatibility
 
 **Configuration Integration:**
+
 - Extend existing config.js structure
 - Environment variable support
 - Runtime configuration updates
@@ -129,6 +141,7 @@ const urlTypes = {
 ```
 
 **Key Methods:**
+
 - `transformContent(content, contentType, context)` - Main transformation entry point
 - `detectURLs(content, patterns)` - Find all URLs in content using regex patterns
 - `transformURL(url, context)` - Transform individual URL using proxy routing
@@ -139,6 +152,7 @@ const urlTypes = {
 **File: `proxy-manager.js` (modifications)**
 
 **Integration Points:**
+
 1. **Response Processing**: Add URL transformation to `handleProxyResponse()`
 2. **Content-Type Detection**: Identify transformable content types
 3. **Conditional Transformation**: Apply based on configuration and content size
@@ -146,6 +160,7 @@ const urlTypes = {
 5. **Error Handling**: Graceful fallback when transformation fails
 
 **Modified Flow:**
+
 ```
 Original: Response → Cache → Send to Client
 Enhanced: Response → URL Transform → Cache → Send to Client
@@ -156,6 +171,7 @@ Enhanced: Response → URL Transform → Cache → Send to Client
 **File: `config.js` (extensions)**
 
 **New Configuration Section:**
+
 ```javascript
 urlTransformation: {
   enabled: process.env.URL_TRANSFORM_ENABLED === 'true',
@@ -175,6 +191,7 @@ urlTransformation: {
 **File: `docs/for-ai/architecture.md` (updates)**
 
 **New Sections:**
+
 - URL Transformation System architecture
 - Integration with existing components
 - Performance considerations
@@ -204,6 +221,7 @@ graph TD
 ## URL Transformation Examples
 
 ### Example 1: HTML Link Transformation
+
 ```html
 <!-- Original -->
 <a href="https://backend.example.com/page">Link</a>
@@ -213,6 +231,7 @@ graph TD
 ```
 
 ### Example 2: JavaScript URL Transformation
+
 ```javascript
 // Original
 fetch('https://api.backend.com/data')
@@ -222,6 +241,7 @@ fetch('https://proxy.domain.com/api/data')
 ```
 
 ### Example 3: CSS URL Transformation
+
 ```css
 /* Original */
 background-image: url('https://cdn.backend.com/image.jpg');
@@ -233,18 +253,21 @@ background-image: url('https://proxy.domain.com/cdn/image.jpg');
 ## Performance Considerations
 
 ### Caching Strategy
+
 - **Transformation Cache**: Cache URL transformation results
 - **Pattern Cache**: Cache compiled regex patterns
 - **Content Cache**: Cache fully transformed content
 - **TTL Management**: Appropriate cache expiration times
 
 ### Optimization Techniques
+
 - **Lazy Compilation**: Compile regex patterns on first use
 - **Batch Processing**: Process multiple URLs in single pass
 - **Size Limits**: Skip transformation for very large content
 - **Selective Processing**: Only transform relevant content types
 
 ### Memory Management
+
 - **Cache Size Limits**: Prevent memory bloat with LRU eviction
 - **Streaming Processing**: Handle large content without full buffering
 - **Garbage Collection**: Proper cleanup of transformation artifacts
@@ -252,12 +275,14 @@ background-image: url('https://proxy.domain.com/cdn/image.jpg');
 ## Security Considerations
 
 ### URL Validation
+
 - **Malicious URL Detection**: Prevent injection attacks
 - **Protocol Validation**: Only allow safe protocols (http/https)
 - **Domain Validation**: Ensure transformed URLs are valid
 - **Encoding Safety**: Proper URL encoding to prevent XSS
 
 ### Content Integrity
+
 - **Transformation Verification**: Validate transformed content
 - **Fallback Mechanisms**: Serve original content if transformation fails
 - **Error Logging**: Log transformation failures for security analysis
@@ -265,18 +290,21 @@ background-image: url('https://proxy.domain.com/cdn/image.jpg');
 ## Testing Strategy
 
 ### Unit Tests
+
 - URL detection pattern testing
 - Individual URL transformation testing
 - Edge case handling (malformed URLs, special characters)
 - Performance benchmarking
 
 ### Integration Tests
+
 - End-to-end proxy flow testing
 - Content type handling verification
 - Cache integration testing
 - Error scenario testing
 
 ### Browser Compatibility Tests
+
 - Cross-browser functionality verification
 - JavaScript execution testing
 - CSS rendering validation
@@ -285,18 +313,21 @@ background-image: url('https://proxy.domain.com/cdn/image.jpg');
 ## Monitoring and Debugging
 
 ### Metrics Collection
+
 - Transformation success/failure rates
 - Performance timing metrics
 - Cache hit/miss ratios
 - Content size statistics
 
 ### Debug Features
+
 - Detailed transformation logging
 - URL mapping visualization
 - Performance profiling
 - Error tracking and reporting
 
 ### Health Checks
+
 - Transformation system status
 - Cache health monitoring
 - Performance threshold alerts
@@ -305,24 +336,28 @@ background-image: url('https://proxy.domain.com/cdn/image.jpg');
 ## Migration and Rollout Plan
 
 ### Phase 1: Development and Testing
+
 1. Implement core URL transformer module
 2. Add basic proxy manager integration
 3. Create comprehensive test suite
 4. Performance testing and optimization
 
 ### Phase 2: Configuration and Documentation
+
 1. Extend configuration system
 2. Update architecture documentation
 3. Create operational guides
 4. Add monitoring and alerting
 
 ### Phase 3: Gradual Rollout
+
 1. Deploy with transformation disabled by default
 2. Enable for specific domains/content types
 3. Monitor performance and error rates
 4. Gradually expand coverage
 
 ### Phase 4: Full Production
+
 1. Enable transformation by default
 2. Optimize based on production metrics
 3. Add advanced features (custom patterns, etc.)
