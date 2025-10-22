@@ -145,11 +145,12 @@ npm install express http-proxy-middleware compression helmet winston express-rat
 
 ## Configuration
 
-The application uses environment variables for configuration, with sensible defaults. 
+The application uses environment variables for configuration, with sensible defaults.
 
 ### Quick Start
 
 1. Copy the sample configuration:
+
    ```bash
    cp sample.env .env
    ```
@@ -322,7 +323,6 @@ PORT=8080 npm start
 # Test on that port
 curl http://localhost:8080/health
 ```
-
 
 ## Production Deployment
 
@@ -993,6 +993,7 @@ The application provides specialized cache management for file resolution operat
 #### API Endpoints
 
 **Clear File Resolution Cache:**
+
 ```bash
 # Clear the entire file resolution cache
 curl -X DELETE http://localhost:8080/api/cache/file-resolution
@@ -1055,6 +1056,7 @@ The nuclear cache clear endpoint provides system-wide cache clearing capabilitie
 #### API Endpoint
 
 **Nuclear Cache Clear:**
+
 ```bash
 # Clear ALL caches system-wide
 curl -X DELETE http://localhost:8080/api/cache/nuke
@@ -1258,9 +1260,11 @@ http://localhost:8080/dashboard/api/docs/openapi.json
 ## Development and Testing
 
 ### Getting Started with Development</search>
+
 </search_and_replace>
 
 1. **Clone and Setup**
+
    ```bash
    git clone https://github.com/ddttom/advanced-cdn.git
    cd advanced-cdn
@@ -1268,6 +1272,7 @@ http://localhost:8080/dashboard/api/docs/openapi.json
    ```
 
 2. **Development Mode**
+
    ```bash
    # Start in development mode with auto-reload
    npm run dev
@@ -1277,6 +1282,7 @@ http://localhost:8080/dashboard/api/docs/openapi.json
    ```
 
 3. **Development Environment Variables**
+
    ```bash
    # Create .env file for development
    NODE_ENV=development
@@ -1308,7 +1314,7 @@ npm test -- --watch
 
 #### Test Structure
 
-```
+```terminal
 tests/
 ├── memory-leak-cleanup.test.js      # Unit tests for interval cleanup
 ├── memory-leak-integration.test.js  # Integration tests for memory stability
@@ -1322,18 +1328,21 @@ tests/
 #### Memory Leak Prevention Tests
 
 **Unit Tests** (`memory-leak-cleanup.test.js`):
+
 - Tests all `setInterval()` cleanup methods in components
 - Verifies interval IDs are properly nulled after `clearInterval()`
 - Ensures graceful handling of multiple shutdown calls
 - Tests resource cleanup in PathRewriter, CacheManager, MetricsManager, etc.
 
 **Integration Tests** (`memory-leak-integration.test.js`):
+
 - Tests memory stability over time with simulated load
 - Verifies no dangling intervals after graceful shutdown
 - Tests multiple start/stop cycles without memory accumulation
 - Validates worker process cleanup in cluster mode
 
 **Example Test Output:**
+
 ```bash
 ✓ PathRewriter cleanup clears intervals (15ms)
 ✓ CacheManager cleanup clears intervals (8ms)  
@@ -1350,6 +1359,7 @@ Tests: 13 passed, 13 total
 #### Performance and Load Testing
 
 **Benchmark Tests:**
+
 ```bash
 # Run performance benchmarks
 node tests/benchmark.js
@@ -1362,6 +1372,7 @@ runMemoryStressTest(60000, 100); // 1 minute, 100 req/sec
 ```
 
 **Memory Monitoring During Development:**
+
 ```bash
 # Monitor memory usage in real-time
 node --expose-gc --max-old-space-size=2048 src/cluster-manager.js &
@@ -1377,6 +1388,7 @@ done
 #### Test Configuration
 
 **Jest Configuration** (auto-detected from `package.json`):
+
 ```json
 {
   "scripts": {
@@ -1388,6 +1400,7 @@ done
 ```
 
 **Test Environment Setup:**
+
 - Mocked external dependencies to prevent network calls
 - Isolated test environment with controlled configuration
 - Automatic cleanup after each test
@@ -1396,6 +1409,7 @@ done
 #### Continuous Integration Testing
 
 **Memory Leak Detection in CI:**
+
 ```yaml
 # Example GitHub Actions workflow
 - name: Memory Leak Tests
@@ -1428,6 +1442,7 @@ node tests/diagnose-http-response.js # HTTP diagnostic tools
 #### Development Configuration
 
 **Recommended Development Settings:**
+
 ```bash
 # .env.development
 NODE_ENV=development
@@ -1452,6 +1467,7 @@ URL_TRANSFORM_DEBUG=true
 #### Memory Leak Prevention in Development
 
 **Development Checklist:**
+
 - ✅ Always store interval IDs: `this.intervalId = setInterval(...)`
 - ✅ Implement shutdown methods that clear intervals: `clearInterval(this.intervalId)`
 - ✅ Null interval references after clearing: `this.intervalId = null`
@@ -1460,6 +1476,7 @@ URL_TRANSFORM_DEBUG=true
 - ✅ Use development memory alerts to catch leaks early
 
 **Anti-patterns to Avoid:**
+
 ```javascript
 // ❌ Bad: Interval not stored or cleared
 setInterval(() => { /* task */ }, 1000);
@@ -1484,6 +1501,7 @@ if (this.intervalId) {
 #### Memory Leak Debugging
 
 **Enable Debug Mode:**
+
 ```bash
 # Start with memory monitoring
 NODE_OPTIONS="--expose-gc --trace-warnings" npm run dev
@@ -1493,6 +1511,7 @@ LOG_LEVEL=debug MEMORY_MONITORING_ENABLED=true npm run dev
 ```
 
 **Debug Tools:**
+
 ```bash
 # Check for memory leaks
 curl http://localhost:8080/health | jq '.system.memory'
@@ -1507,6 +1526,7 @@ curl http://localhost:8080/api/debug/intervals
 #### Development Health Checks
 
 **Validate Resource Cleanup:**
+
 ```bash
 # Test graceful shutdown
 kill -TERM $(pgrep -f "node.*cluster-manager")
@@ -1518,6 +1538,7 @@ grep -E "(cleanup.*completed|resources.*cleaned|shutting down)" logs/app.log
 #### IDE Integration
 
 **Recommended VS Code Settings:**
+
 ```json
 {
   "nodejs.terminal": "integrated",
@@ -1535,6 +1556,7 @@ grep -E "(cleanup.*completed|resources.*cleaned|shutting down)" logs/app.log
 ```
 
 **ESLint Configuration:**
+
 - Configured to catch potential memory leak patterns
 - Warns about uncleaned intervals and event listeners
 - Enforces consistent resource management patterns
@@ -1549,6 +1571,7 @@ When contributing to the project:
 4. **Performance:** Run benchmarks to ensure no performance regression
 
 **Pre-commit Checklist:**
+
 - [ ] All tests pass (`npm test`)
 - [ ] No ESLint violations (`npm run lint`)
 - [ ] Memory leak tests pass
