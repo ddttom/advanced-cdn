@@ -23,6 +23,7 @@ Cache Operation → Subsystem Logger → Log Manager → [Stream Server, API Ser
 ## Features
 
 ### Request Tracking
+
 - **Unique Request IDs** - Every operation gets a UUID for tracing
 - **Execution Timing** - Precise millisecond timing for performance analysis
 - **Client Information** - IP addresses, user agents, and geographic data
@@ -30,6 +31,7 @@ Cache Operation → Subsystem Logger → Log Manager → [Stream Server, API Ser
 - **Response Metadata** - Status codes, headers, and payload information
 
 ### Real-time Streaming
+
 - **WebSocket Support** - Live log streaming to connected clients
 - **Authentication** - API key-based access control
 - **Filtering** - Client-side filtering by subsystem, status, IP, etc.
@@ -37,6 +39,7 @@ Cache Operation → Subsystem Logger → Log Manager → [Stream Server, API Ser
 - **Heartbeat** - Connection health monitoring
 
 ### Search and Analytics
+
 - **Full-text Search** - Search across all log fields and metadata
 - **Time Range Filtering** - Precise date/time range queries
 - **Status Code Analysis** - Error rate tracking and distribution
@@ -44,6 +47,7 @@ Cache Operation → Subsystem Logger → Log Manager → [Stream Server, API Ser
 - **Client Analytics** - Top IPs, user agents, and geographic distribution
 
 ### Data Management
+
 - **30-day Retention** - Automatic log rotation and cleanup
 - **Compression** - Gzip compression for archived logs
 - **Export Formats** - JSON, CSV, and plain text downloads
@@ -149,21 +153,25 @@ await logger.logRequest({
 ### REST API Endpoints
 
 #### Authentication
+
 All API endpoints require authentication via `X-API-Key` header or `Authorization: Bearer <key>` header.
 
 #### Subsystem Management
 
 **GET /api/subsystems**
+
 - Get all registered subsystems with statistics
 - Response: `{ subsystems: [...], total: number }`
 
 **GET /api/subsystems/:subsystem/stats**
+
 - Get detailed statistics for specific subsystem
 - Response: `{ totalRequests, totalErrors, averageResponseTime, ... }`
 
 #### Log Search and Retrieval
 
 **POST /api/logs/search**
+
 ```json
 {
   "subsystems": ["cache-manager", "url-transformer"],
@@ -179,22 +187,26 @@ All API endpoints require authentication via `X-API-Key` header or `Authorizatio
 ```
 
 **GET /api/logs/:subsystem**
+
 - Get recent logs for specific subsystem
 - Query params: `limit`, `offset`, `startDate`, `endDate`
 
 #### Analytics
 
 **GET /api/analytics/overview**
+
 - Get system-wide analytics overview
 - Response: `{ overview, recentActivity, timestamp }`
 
 **GET /api/analytics/:subsystem?period=day**
+
 - Get subsystem-specific analytics
 - Periods: `hour`, `day`, `week`, `month`
 
 #### Log Downloads
 
 **POST /api/logs/download**
+
 ```json
 {
   "subsystems": ["cache-manager"],
@@ -204,12 +216,14 @@ All API endpoints require authentication via `X-API-Key` header or `Authorizatio
   "filters": { "statusCodes": [200] }
 }
 ```
+
 - Formats: `json`, `csv`, `txt`
 - Returns file download
 
 #### Log Management
 
 **DELETE /api/logs/:subsystem**
+
 ```json
 {
   "startDate": "2024-01-01T00:00:00Z",
@@ -220,6 +234,7 @@ All API endpoints require authentication via `X-API-Key` header or `Authorizatio
 ```
 
 **DELETE /api/logs**
+
 ```json
 {
   "confirm": "MASTER_RESET"
@@ -229,9 +244,11 @@ All API endpoints require authentication via `X-API-Key` header or `Authorizatio
 #### API Key Management
 
 **GET /api/keys**
+
 - List all API keys (without revealing actual keys)
 
 **POST /api/keys**
+
 ```json
 {
   "name": "dashboard-access",
@@ -240,27 +257,33 @@ All API endpoints require authentication via `X-API-Key` header or `Authorizatio
 ```
 
 **DELETE /api/keys/:keyId**
+
 - Revoke API key by partial ID
 
 #### System Information
 
 **GET /api/health**
+
 - Health check endpoint
 
 **GET /api/stats**
+
 - Comprehensive system statistics
 
 **GET /api/stats/performance**
+
 - Performance metrics (memory, CPU usage)
 
 ### WebSocket API
 
 #### Connection
+
 ```javascript
 const ws = new WebSocket('ws://localhost:8081');
 ```
 
 #### Authentication
+
 ```javascript
 ws.send(JSON.stringify({
   type: 'authenticate',
@@ -269,6 +292,7 @@ ws.send(JSON.stringify({
 ```
 
 #### Subscription
+
 ```javascript
 ws.send(JSON.stringify({
   type: 'subscribe',
@@ -277,6 +301,7 @@ ws.send(JSON.stringify({
 ```
 
 #### Filtering
+
 ```javascript
 ws.send(JSON.stringify({
   type: 'setFilters',
@@ -290,6 +315,7 @@ ws.send(JSON.stringify({
 ```
 
 #### History Request
+
 ```javascript
 ws.send(JSON.stringify({
   type: 'getHistory',
@@ -301,6 +327,7 @@ ws.send(JSON.stringify({
 #### Message Types
 
 **Incoming Messages:**
+
 - `welcome` - Connection established
 - `authResult` - Authentication result
 - `subscriptionResult` - Subscription confirmation
@@ -314,6 +341,7 @@ ws.send(JSON.stringify({
 ## Log Entry Format
 
 ### Standard Fields
+
 ```json
 {
   "id": "req_1234567890_abcdef",
@@ -351,6 +379,7 @@ ws.send(JSON.stringify({
 ### Subsystem-Specific Data
 
 #### Cache Manager
+
 ```json
 {
   "subsystemData": {
@@ -364,6 +393,7 @@ ws.send(JSON.stringify({
 ```
 
 #### URL Transformer
+
 ```json
 {
   "subsystemData": {
@@ -379,6 +409,7 @@ ws.send(JSON.stringify({
 ```
 
 #### File Resolution Cache
+
 ```json
 {
   "subsystemData": {
@@ -392,6 +423,7 @@ ws.send(JSON.stringify({
 ```
 
 #### Proxy Manager
+
 ```json
 {
   "subsystemData": {
@@ -407,21 +439,25 @@ ws.send(JSON.stringify({
 ## Performance Considerations
 
 ### Memory Usage
+
 - **Buffer Management** - Configurable buffer sizes per subsystem
 - **Memory Monitoring** - Automatic memory usage tracking
 - **Garbage Collection** - Efficient cleanup of old log entries
 
 ### Disk Usage
+
 - **Log Rotation** - Daily log file rotation
 - **Compression** - Gzip compression for archived logs
 - **Cleanup** - Automatic deletion after retention period
 
 ### Network Performance
+
 - **Rate Limiting** - Configurable rate limits for API and WebSocket
 - **Compression** - WebSocket message compression
 - **Batching** - Efficient batching of log entries
 
 ### CPU Usage
+
 - **Async Operations** - Non-blocking log operations
 - **Worker Threads** - Background processing for heavy operations
 - **Caching** - In-memory caching for frequent queries
@@ -429,16 +465,19 @@ ws.send(JSON.stringify({
 ## Monitoring and Alerts
 
 ### Health Checks
+
 - **System Health** - `/api/health` endpoint
 - **Component Status** - Individual component health monitoring
 - **Performance Metrics** - Memory, CPU, and disk usage tracking
 
 ### Error Handling
+
 - **Graceful Degradation** - System continues operating if logging fails
 - **Error Recovery** - Automatic recovery from transient failures
 - **Circuit Breaker** - Protection against cascading failures
 
 ### Alerts
+
 - **High Error Rates** - Configurable error rate thresholds
 - **Performance Degradation** - Response time monitoring
 - **Disk Space** - Log directory space monitoring
@@ -447,16 +486,19 @@ ws.send(JSON.stringify({
 ## Security
 
 ### Authentication
+
 - **API Keys** - Secure API key generation and management
 - **Permissions** - Granular permission system (read, write, delete)
 - **Key Rotation** - Support for key rotation and revocation
 
 ### Data Protection
+
 - **Sensitive Data** - Automatic filtering of sensitive information
 - **Encryption** - Optional encryption for log files
 - **Access Logging** - Audit trail for all log access
 
 ### Network Security
+
 - **CORS** - Configurable CORS policies
 - **Rate Limiting** - Protection against abuse
 - **IP Filtering** - Optional IP-based access control
@@ -466,6 +508,7 @@ ws.send(JSON.stringify({
 ### Common Issues
 
 #### High Memory Usage
+
 ```bash
 # Check buffer sizes
 curl -H "X-API-Key: your-key" http://localhost:8080/api/stats/performance
@@ -475,6 +518,7 @@ LOG_BUFFER_SIZE=500
 ```
 
 #### Slow Search Performance
+
 ```bash
 # Check search index size
 curl -H "X-API-Key: your-key" http://localhost:8080/api/stats
@@ -484,6 +528,7 @@ LOG_RETENTION_DAYS=7
 ```
 
 #### WebSocket Connection Issues
+
 ```bash
 # Check stream server status
 curl -H "X-API-Key: your-key" http://localhost:8080/api/stats
@@ -493,12 +538,15 @@ telnet localhost 8081
 ```
 
 ### Debug Mode
+
 Enable debug mode for detailed logging:
+
 ```bash
 LOG_DEBUG=true
 ```
 
 ### Log Levels
+
 - **ERROR** - System errors and failures
 - **WARN** - Performance issues and warnings
 - **INFO** - Normal operations and status
@@ -507,12 +555,14 @@ LOG_DEBUG=true
 ## Migration Guide
 
 ### From Basic Logging
+
 1. Install new logging dependencies
 2. Initialize logging system in main application
 3. Replace direct logger calls with subsystem loggers
 4. Update monitoring dashboards to use new API endpoints
 
 ### Configuration Migration
+
 ```javascript
 // Old configuration
 const winston = require('winston');
@@ -529,24 +579,28 @@ await initializeLogging({
 ## Best Practices
 
 ### Performance
+
 - Use appropriate buffer sizes for your traffic volume
 - Enable compression for archived logs
 - Monitor memory usage regularly
 - Use specific subsystem loggers instead of generic logging
 
 ### Security
+
 - Rotate API keys regularly
 - Use least-privilege permissions
 - Monitor access logs for suspicious activity
 - Enable rate limiting in production
 
 ### Monitoring
+
 - Set up alerts for high error rates
 - Monitor disk space usage
 - Track response time trends
 - Review log retention policies regularly
 
 ### Development
+
 - Use debug mode during development
 - Test with realistic data volumes
 - Validate log entry formats
@@ -555,6 +609,7 @@ await initializeLogging({
 ## Support
 
 For issues, questions, or feature requests:
+
 - Check the troubleshooting section above
 - Review the API documentation
 - Monitor system health endpoints

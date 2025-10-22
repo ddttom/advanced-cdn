@@ -88,6 +88,7 @@ node debug-ddt.js example.ddt.com
 ```
 
 **Expected Output:**
+
 ```
 === DDT Domain Debug Results ===
 
@@ -106,6 +107,7 @@ node debug-ddt.js api.ddt.com --verbose
 ```
 
 **Expected Output:**
+
 ```
 [2024-01-15T10:30:45.123Z] INFO: Making request to http://localhost:8080/
 [2024-01-15T10:30:45.124Z] DEBUG: Request headers:
@@ -149,6 +151,7 @@ node debug-ddt.js blog.ddt.com --format json
 ```
 
 **Expected Output:**
+
 ```json
 {
   "success": true,
@@ -336,6 +339,7 @@ The test suite covers:
 **Problem**: `Error: Connection refused (ECONNREFUSED)`
 
 **Solution**:
+
 ```bash
 # Start the CDN application first
 npm start
@@ -351,6 +355,7 @@ node debug-ddt.js test.ddt.com
 **Problem**: `HTTP Status: 404 Not Found`
 
 **Solution**: Ensure ddt.com domain mapping is configured in your `.env` file:
+
 ```bash
 PATH_REWRITE_ENABLED=true
 DOMAIN_PATH_MAPPING=ddt.com:/ddt
@@ -361,6 +366,7 @@ DOMAIN_PATH_MAPPING=ddt.com:/ddt
 **Problem**: `Error: Invalid domain format`
 
 **Solution**: Ensure domain follows the pattern `subdomain.ddt.com`:
+
 ```bash
 # Correct format
 node debug-ddt.js example.ddt.com
@@ -376,6 +382,7 @@ node debug-ddt.js -test.ddt.com     # Invalid subdomain
 **Problem**: `Error: Request timeout`
 
 **Solutions**:
+
 ```bash
 # Increase timeout
 node debug-ddt.js slow.ddt.com --timeout 60000
@@ -475,34 +482,43 @@ async function monitorDomains() {
 ### Classes
 
 #### `DebugCommand`
+
 Main orchestrator class for the debug process.
 
 #### `DomainValidator`
+
 Validates ddt.com domain format and extracts subdomains.
 
 **Methods:**
+
 - `static validate(domain)`: Validates domain format
 
 #### `HttpClient`
+
 Handles HTTP requests with proper headers and timeout management.
 
 **Constructor Options:**
+
 - `cdnUrl`: CDN server URL
 - `timeout`: Request timeout in milliseconds
 - `verbose`: Enable verbose logging
 
 #### `RetryHandler`
+
 Implements exponential backoff retry logic.
 
 **Constructor Options:**
+
 - `maxRetries`: Maximum retry attempts
 - `baseDelay`: Base delay for exponential backoff
 - `verbose`: Enable verbose logging
 
 #### `OutputFormatter`
+
 Formats and displays results in various formats.
 
 **Methods:**
+
 - `static formatResult(result, options)`: Format result for display
 - `static displayError(message, details)`: Display error messages
 - `static displayUsage()`: Show usage information
@@ -533,6 +549,7 @@ Formats and displays results in various formats.
 ## Changelog
 
 ### Version 1.0.0
+
 - Initial release with comprehensive domain testing functionality
 - Support for ddt.com domain validation and testing
 - HTTP client with retry logic and timeout handling
